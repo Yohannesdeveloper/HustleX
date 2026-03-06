@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "home": "መንሳፈፍ",
+    "aboutUs": "ብዛትና",
+    "exploreJobs": "ስራታት ምርምር",
+    "blog": "ብሎግ",
+    "faq": "ሕቶታት",
+    "howItWorks": "ከመዓልቲ ይሰርሕ",
+    "contact": "ርኸብና",
+    "findFreelancers": "ናጻ ሰራሕተኛታት ርኸብ",
+    "logIn": "እቶ",
+    "signUp": "ተመዝግብ"
+  },
+  "hero": {
+    "title": "ብክእለት ስርሑ።",
+    "titleHighlight": "ብፍጥነት ተጨንቑ።",
+    "subtitle": "ንንግድታት ምስ ዝለዓለ ኢትዮጵያዊ ክእለት",
+    "subtitleHighlight": "ኣብ 200+ ክእለትታት ውሽጢ።",
+    "getStarted": "ጅምር",
+    "findTalent": "ክእለት ርኸብ",
+    "joinAsFreelancer": "ከነጻ ሰራተኛ እንደ ተቀላቀል"
+  },
+  "features": {
+    "title": "ስለምን HustleX?",
+    "subtitle": "ኣብ ነጻ ስራ ዕዳጋ ንምዕዋት ዘድልየካ ዅሉ",
+    "postJobs": {
+      "title": "ስራታት ብቐሊል ኣርእይ",
+      "desc": "ስራታት ኣብ ደቂቃታት ውሽጢ ፍጠርን ኣሕተምን። ንፕሮጀክትካ ዝሰማማዕ ነጻ ሰራሕተኛ ርኸብ።"
+    },
+    "findTalent": {
+      "title": "ዝለዓለ ክእለት ርኸብ",
+      "desc": "ኣብ ሺሕታት ዝቝጸር ብክእለት ዝተሰልጡ ባለሙያታት ምርምር እና ኣብ ፕሮጀክትታትካ ንምስራሕ ዝዳለዉ።"
+    },
+    "securePayments": {
+      "title": "ዘረጋግጽ ክፍሊት",
+      "desc": "ንኽልቲ ወገናት ምስ ኢስክሮው ምክልኻል ሰናይን ኣማኒን ናይ ክፍሊት ስርዓት።"
+    },
+    "realTimeChat": {
+      "title": "ብቕጽበት ርክብ",
+      "desc": "ምስ ጋንታኻን ነጻ ሰራሕተኛታትን ብቐሊል ተዛረብ፣ ቪድዮ ጻውዒት ተጠቐምን ተተኣሳስርን።"
+    }
+  },
+  "categories": {
+    "title": "ብክፍሊ ምርምር",
+    "subtitle": "ኣብ ዓውድኻ ነጻ ሰራሕተኛታት ርኸብ",
+    "freelancers": "ነጻ ሰራሕተኛታት"
+  },
+  "testimonials": {
+    "title": "ተጠቃሚታትና እንታይ ይብሉ",
+    "subtitle": "ኣብ HustleX ኣብ ሺሕታት ዝቝጸር ዝዓወቱ ነጻ ሰራሕተኛታትን ንግድታትን ተቀላቀል"
+  },
+  "cta": {
+    "title": "ንመጀመሪያ ዝዳለኻ ዲኻ?",
+    "subtitle": "ንዝዓበየ ኢትዮጵያዊ ማሕበረሰብ ክእለት ነጻ ሰራሕተኛታትን ንግድታትን ተቀላቀል",
+    "getStarted": "ሎሚ ጀምር",
+    "learnMore": "ዝያዳ ምሕባር"
+  },
+  "footer": {
+    "description": "HustleX - ክእለት ምስ ኣጋጣሚ ኣብ ኢትዮጵያን ካብኡ ንላዕሊ ምራኸብ።",
+    "quickLinks": "ቀልጢፍ ኣገናኝ",
+    "resources": "ምንጪ",
+    "followUs": "ተኸተልና",
+    "allRightsReserved": "ኩሉ መሰላት ዝተሓልዩ እዮም።"
+  },
+  "common": {
+    "language": "ቋንቋ",
+    "darkMode": "ጸሊም ሞድ",
+    "loading": "እትጭን...",
+    "error": "ጌጋ",
+    "success": "ተሳኪዑ",
+    "save": "ኣሕዝም",
+    "cancel": "ኣትርፍ",
+    "delete": "ሰርዝ",
+    "edit": "ኣርምም",
+    "submit": "ሰዲድ"
+  }
+}

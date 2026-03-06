@@ -1,0 +1,17 @@
+MongoDB Connected: ac-1bovpaf-shard-00-00.o5rtqrg.mongodb.net
+Checking existing users...
+Total users in database: 4
+
+Freelancers found: 2
+1. yohannesfk123@gmail.com - freelancer,client - client
+Name: Y F
+   Title: No title
+2. yohannesfikreeshete@gmail.com - freelancer - freelancer
+Name: Y F
+   Title: No title
+
+Clients found: 3
+1. yohannesfk123@gmail.com - freelancer,client - client
+2. fk123@gmail.com - client - client
+3. yohannesfk321@gmail.com - client - client
+Check complete.

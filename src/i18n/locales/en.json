@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "home": "Home",
+    "aboutUs": "About Us",
+    "exploreJobs": "Explore Jobs",
+    "blog": "Blog",
+    "faq": "FAQ",
+    "howItWorks": "How it works",
+    "contact": "Contact",
+    "findFreelancers": "Find Freelancers",
+    "logIn": "Log In",
+    "signUp": "Sign Up"
+  },
+  "hero": {
+    "title": "Work smarter.",
+    "titleHighlight": "Hustle faster.",
+    "subtitle": "Connecting businesses with top Ethiopian talent",
+    "subtitleHighlight": "across 200+ skills.",
+    "getStarted": "Get Started",
+    "findTalent": "Find Talent",
+    "joinAsFreelancer": "Join as Freelancer"
+  },
+  "features": {
+    "title": "Why Choose HustleX?",
+    "subtitle": "Everything you need to succeed in the freelance marketplace",
+    "postJobs": {
+      "title": "Post Jobs Easily",
+      "desc": "Create and publish job listings in minutes. Find the perfect freelancer for your project."
+    },
+    "findTalent": {
+      "title": "Find Top Talent",
+      "desc": "Browse through thousands of skilled professionals ready to work on your projects."
+    },
+    "securePayments": {
+      "title": "Secure Payments",
+      "desc": "Safe and reliable payment system with escrow protection for both parties."
+    },
+    "realTimeChat": {
+      "title": "Real-Time Communication",
+      "desc": "Chat, video call, and collaborate seamlessly with your team and freelancers."
+    }
+  },
+  "categories": {
+    "title": "Browse by Category",
+    "subtitle": "Find freelancers in your field",
+    "freelancers": "Freelancers"
+  },
+  "testimonials": {
+    "title": "What Our Users Say",
+    "subtitle": "Join thousands of successful freelancers and businesses on HustleX"
+  },
+  "cta": {
+    "title": "Ready to Get Started?",
+    "subtitle": "Join Ethiopia's largest community of talented freelancers and businesses",
+    "getStarted": "Get Started Today",
+    "learnMore": "Learn More"
+  },
+  "footer": {
+    "description": "HustleX - Connecting talent with opportunity across Ethiopia and beyond.",
+    "quickLinks": "Quick Links",
+    "resources": "Resources",
+    "followUs": "Follow Us",
+    "allRightsReserved": "All rights reserved."
+  },
+  "common": {
+    "language": "Language",
+    "darkMode": "Dark Mode",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "submit": "Submit"
+  }
+}

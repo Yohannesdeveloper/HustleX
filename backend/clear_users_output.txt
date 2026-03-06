@@ -1,0 +1,25 @@
+🔍 Checking existing users...
+Found 4 total users in database:
+1. yohannesfk123@gmail.com - freelancer,client - client
+Name: Y F
+2. yohannesfikreeshete@gmail.com - freelancer - freelancer
+Name: Y F
+3. fk123@gmail.com - client - client
+Name: Y F
+4. yohannesfk321@gmail.com - client - client
+Name: Y F
+
+⚠️  WARNING: This will permanently delete 4 users (freelancers and clients)!
+This action cannot be undone.
+
+🗑️  Deleting all users...
+✅ Successfully deleted 4 users
+✅ Cleared 0 jobs
+✅ Cleared 0 applications
+✅ Cleared 0 messages
+✅ Cleared 0 companies
+✅ Cleared 0 blogs
+
+🎉 All users and related data cleared successfully!
+You can now start completely fresh with new accounts.
+Database connection closed.

@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "home": "Mana",
+    "aboutUs": "Waa'ee Keenya",
+    "exploreJobs": "Hojiiwwan Himaali",
+    "blog": "Blog",
+    "faq": "Gaaffilee",
+    "howItWorks": "Akka Itti Hojjattu",
+    "contact": "Nu Qunnamsiisi",
+    "findFreelancers": "Hojjattoota Bilisaa Himaali",
+    "logIn": "Seenu",
+    "signUp": "Galmaa'i"
+  },
+  "hero": {
+    "title": "Ogummaan hojjedhaa.",
+    "titleHighlight": "Saffisaan hojjedhaa.",
+    "subtitle": "Daldaltoota waliin ogummaa guddaa Itoophiyaa waliin qunnamsiisuu",
+    "subtitleHighlight": "ogummaa 200+ ol irratti.",
+    "getStarted": "Eegalee",
+    "findTalent": "Ogummaa Himaali",
+    "joinAsFreelancer": "Hojjattaa Bilisaa Ta'uun Makamu"
+  },
+  "features": {
+    "title": "Maaliif HustleX Filattu?",
+    "subtitle": "Hunduu bakka hojii bilisaa keessatti milkaa'uu barbaachisu",
+    "postJobs": {
+      "title": "Hojiiwwan Salphaan Baasii",
+      "desc": "Hojiiwwan dhibbaan keessatti uumuu fi baasuu. Hojjattaa gaarii projeektiif keessan argadhuu."
+    },
+    "findTalent": {
+      "title": "Ogummaa Guddaa Himaali",
+      "desc": "Hojjattoota kumootaan lakkaa'aman hojiiwwan keessan irratti hojjachuuf qophaa'aan himaali."
+    },
+    "securePayments": {
+      "title": "Kaffaltiinsa Nageenyaan",
+      "desc": "Sisteemiin kaffaltii nageenyaan fi amanamaa qabxiiwwan lamaanis eegumsa qabu."
+    },
+    "realTimeChat": {
+      "title": "Haqqii Yeroo Haaqaawaa",
+      "desc": "Hojjattoota bilisaa fi garee keessan waliin haala salphaan haasawu, video call gochuufi walitti fufu."
+    }
+  },
+  "categories": {
+    "title": "Gareen Himaali",
+    "subtitle": "Hojjattoota bilisaa bakka keessan keessatti himaali",
+    "freelancers": "Hojjattoota Bilisaa"
+  },
+  "testimonials": {
+    "title": "Fayyadamiin Keenyas Maal Jettu?",
+    "subtitle": "Hojjattoota bilisaa milkaa'aniifi daldaltoota kumootaan lakkaa'aman HustleX irratti makamu"
+  },
+  "cta": {
+    "title": "Eegalee Qophaa'aa Ta'ee?",
+    "subtitle": "Gareen guddaa Itoophiyaa hojjattoota bilisaa ogummaa qabanifi daldaltoota makamu",
+    "getStarted": "Har'a Eegalee",
+    "learnMore": "Dabalataan Baradhuu"
+  },
+  "footer": {
+    "description": "HustleX - Ogummaa waliin carraa Itoophiyaa fi alaatti qunnamsiisuu.",
+    "quickLinks": "Linkkeewwan Saffisaan",
+    "resources": "Qabeenya",
+    "followUs": "Nu Hordofaa",
+    "allRightsReserved": "Hundumtuu mirgaan kan eegamuudha."
+  },
+  "common": {
+    "language": "Afaan",
+    "darkMode": "Moodi Garaacha",
+    "loading": "Fayyadamuu...",
+    "error": "Dogoggora",
+    "success": "Milkaa'ina",
+    "save": "Qabsiisuu",
+    "cancel": "Haqiisuu",
+    "delete": "Haquu",
+    "edit": "Gara Garaasuu",
+    "submit": "Ergi"
+  }
+}

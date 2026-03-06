@@ -1,0 +1,6 @@
+Starting channel test...
+[2026-02-28T18:28:50.653Z] Bot Token: Set
+[2026-02-28T18:28:50.656Z] Testing channel: @HustleXeth
+[2026-02-28T18:28:51.314Z] SUCCESS for @HustleXeth: {"ok":true,"result":{"message_id":61,"sender_chat":{"id":-1003194542999,"title":"HustleX","username":"HustleXeth","type":"channel"},"chat":{"id":-1003194542999,"title":"HustleX","username":"HustleXeth","type":"channel"},"date":1772303332,"text":"Test message for @HustleXeth from debug script","entities":[{"offset":17,"length":11,"type":"mention"}]}}
+[2026-02-28T18:28:51.315Z] Testing channel: @HustleXet
+[2026-02-28T18:28:51.464Z] FAILURE for @HustleXet: {"ok":false,"error_code":400,"description":"Bad Request: not enough rights to send text messages to the chat"}

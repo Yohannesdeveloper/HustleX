@@ -1,0 +1,6 @@
+Starting test...
+[2026-02-28T18:26:31.523Z] Testing Telegram Posting...
+[2026-02-28T18:26:31.528Z] Bot Token: Set
+[2026-02-28T18:26:31.529Z] Chat ID: @HustleXeth
+[2026-02-28T18:26:32.011Z] Bot info: {"ok":true,"result":{"id":8034250378,"is_bot":true,"first_name":"HustleX","username":"HustleXet_bot","can_join_groups":true,"can_read_all_group_messages":false,"supports_inline_queries":true,"can_connect_to_business":true,"has_main_web_app":false,"has_topics_enabled":false,"allows_users_to_create_topics":false}}
+[2026-02-28T18:26:32.277Z] Message sent successfully: {"ok":true,"result":{"message_id":60,"sender_chat":{"id":-1003194542999,"title":"HustleX","username":"HustleXeth","type":"channel"},"chat":{"id":-1003194542999,"title":"HustleX","username":"HustleXeth","type":"channel"},"date":1772303193,"text":"Test message from HustleX debug script at 2026-02-28T18:26:32.012Z"}}

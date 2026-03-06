@@ -1,0 +1,77 @@
+{
+  "nav": {
+    "home": "መነሻ",
+    "aboutUs": "ስለእኛ",
+    "exploreJobs": "ስራዎችን ያስሱ",
+    "blog": "ብሎግ",
+    "faq": "ጥያቄዎች",
+    "howItWorks": "እንዴት ይሠራል",
+    "contact": "ያግኙን",
+    "findFreelancers": "ነጻ ሰራተኞችን ያግኙ",
+    "logIn": "ግባ",
+    "signUp": "ተመዝግብ"
+  },
+  "hero": {
+    "title": "በብቃት ስሩ።",
+    "titleHighlight": "በፍጥነት ይጨነቁ።",
+    "subtitle": "ንግዶችን ከከፍተኛ የኢትዮጵያ ችሎታዎች ጋር ማገናኘት",
+    "subtitleHighlight": "በ200+ ክህሎቶች ውስጥ።",
+    "getStarted": "ጀምር",
+    "findTalent": "ችሎታ ያግኙ",
+    "joinAsFreelancer": "እንደ ነጻ ሰራተኛ ይቀላቀሉ"
+  },
+  "features": {
+    "title": "ለምን HustleX?",
+    "subtitle": "በነጻ ስራ ገበያ ውስጥ ለማሳካት የሚያስፈልጉዎ ሁሉ",
+    "postJobs": {
+      "title": "ስራዎችን በቀላሉ ይለጥፉ",
+      "desc": "ስራዎችን በደቂቃዎች ውስጥ ይፍጠሩ እና ይለጥፉ። ለፕሮጀክትዎ ተስማሚውን ነጻ ሰራተኛ ያግኙ።"
+    },
+    "findTalent": {
+      "title": "ከፍተኛ ችሎታዎችን ያግኙ",
+      "desc": "በሺዎች የሚቆጠሩ የተሰለጡ ባለሙያዎችን ያስሱ እና በፕሮጀክቶችዎ ላይ ለመስራት ዝግጁ።"
+    },
+    "securePayments": {
+      "title": "ደህንነቱ የተጠበቀ ክፍያ",
+      "desc": "ለሁለቱም ወገኖች ከኢስክሮው ጥበቃ ጋር ደህንነቱ የተጠበቀ እና አስተማማኝ የክፍያ ስርዓት።"
+    },
+    "realTimeChat": {
+      "title": "በቀጥታ ግንኙነት",
+      "desc": "ከቡድንዎ እና ከነጻ ሰራተኞች ጋር በቀላሉ ያውሩ፣ ቪዲዮ ጥሪ ይጠቀሙ እና ይተባበሩ።"
+    }
+  },
+  "categories": {
+    "title": "በምድብ ያስሱ",
+    "subtitle": "በሜዳዎ ውስጥ ነጻ ሰራተኞችን ያግኙ",
+    "freelancers": "ነጻ ሰራተኞች"
+  },
+  "testimonials": {
+    "title": "የተጠቃሚዎቻችን ምን ይላሉ",
+    "subtitle": "በHustleX ላይ በሺዎች የሚቆጠሩ የተሳኩ ነጻ ሰራተኞች እና ንግዶች ይቀላቀሉ"
+  },
+  "cta": {
+    "title": "ለመጀመር ዝግጁ ነዎት?",
+    "subtitle": "የኢትዮጵያን ትልቁን የችሎታ ነጻ ሰራተኞች እና ንግዶች ማህበረሰብ ይቀላቀሉ",
+    "getStarted": "ዛሬ ይጀምሩ",
+    "learnMore": "ተጨማሪ ይወቁ"
+  },
+  "footer": {
+    "description": "HustleX - በኢትዮጵያ እና በላይ እድልን ከችሎታ ጋር ማገናኘት።",
+    "quickLinks": "ፈጣን አገናኞች",
+    "resources": "መርጃዎች",
+    "followUs": "እኛን ይከተሉን",
+    "allRightsReserved": "ሁሉም መብቶች የተጠበቁ ናቸው።"
+  },
+  "common": {
+    "language": "ቋንቋ",
+    "darkMode": "ጨለማ ሁነታ",
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት",
+    "success": "ተሳክቷል",
+    "save": "አስቀምጥ",
+    "cancel": "ሰርዝ",
+    "delete": "ሰርዝ",
+    "edit": "አርም",
+    "submit": "ላክ"
+  }
+}

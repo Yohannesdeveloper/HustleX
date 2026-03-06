@@ -1,0 +1,95 @@
+# HustleX Robots.txt
+# Premium Freelancing Marketplace
+# Last Updated: 2024
+
+# Allow all search engines
+User-agent: *
+
+# Crawl-delay to prevent server overload
+Crawl-delay: 1
+
+# Allow main pages
+Allow: /
+Allow: /about-us
+Allow: /contact-us
+Allow: /faq
+Allow: /pricing
+Allow: /blog
+Allow: /HowItWorks
+Allow: /help-center
+Allow: /job-listings
+Allow: /post-job
+Allow: /signup
+Allow: /login
+
+# Allow static assets
+Allow: /Logo.png
+Allow: /og-image-*.jpg
+Allow: /twitter-image-*.jpg
+
+# Disallow private/authenticated pages
+Disallow: /dashboard/
+Disallow: /dashboard/hiring
+Disallow: /dashboard/freelancer
+Disallow: /applications-management
+Disallow: /account-settings
+Disallow: /company-profile
+Disallow: /chat
+Disallow: /payment-wizard
+Disallow: /freelancer-profile-setup
+Disallow: /profile-setup
+Disallow: /preview-job
+Disallow: /edit-job/
+Disallow: /job-details/
+Disallow: /admin/
+Disallow: /admin/blog
+Disallow: /admin/job
+Disallow: /admin/subscriptions
+Disallow: /jobs/moderation
+Disallow: /blog/edit/
+Disallow: /blog/post
+Disallow: /forgot-password
+
+# Disallow utility pages
+Disallow: /api
+Disallow: /test-connection
+Disallow: /test-login
+
+# Sitemap location
+Sitemap: https://hustlex.com/sitemap.xml
+
+# Googlebot specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+# Bingbot specific
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# AI Search Crawlers (ChatGPT, Claude, etc.)
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+
+# Social Media Crawlers
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
