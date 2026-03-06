@@ -15,7 +15,6 @@
     "cors": "^2.8.5",
     "detect-port": "^2.1.0",
     "dotenv": "^16.6.1",
-    "emoji-picker-react": "^4.16.1",
     "express": "^4.18.2",
     "express-rate-limit": "^6.10.0",
     "express-validator": "^7.0.1",
@@ -29,8 +28,8 @@
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
-    "@types/react": "^18.3.27",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "nodemon": "^3.0.1"
   },
   "keywords": [
