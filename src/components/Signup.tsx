@@ -305,7 +305,7 @@ const Signup: React.FC = () => {
     <>
       {isLoginPage ? <LoginSEO /> : <RegisterSEO />}
       <div
-        className={`min-h-screen flex items-center justify-center px-4 transition-colors duration-300 ${darkMode
+        className={`min-h-screen flex items-center justify-center px-3 sm:px-4 py-8 transition-colors duration-300 ${darkMode
           ? "bg-gradient-to-br from-black via-gray-900 to-black-900 text-white"
           : "bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 text-gray-900"
           }`}
@@ -323,13 +323,13 @@ const Signup: React.FC = () => {
         </div>
 
         <div
-          className={`relative z-10 backdrop-blur-xl border rounded-3xl shadow-2xl p-10 w-full max-w-md ${darkMode
+          className={`relative z-10 backdrop-blur-xl border rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 w-full max-w-md ${darkMode
             ? "bg-black/40 border-cyan-500/20 shadow-cyan-500/10"
             : "bg-white/80 border-cyan-500/10 shadow-cyan-500/5"
             }`}
         >
           <h2
-            className={`text-3xl font-bold mb-6 text-center drop-shadow-lg ${darkMode ? "text-cyan-400" : "text-cyan-600"
+            className={`text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center drop-shadow-lg ${darkMode ? "text-cyan-400" : "text-cyan-600"
               }`}
           >
             {t.signup.createAccount}
@@ -583,7 +583,7 @@ const Signup: React.FC = () => {
           {/* Create Account Form */}
           {!existingUser && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
                   placeholder="First Name"
@@ -612,7 +612,7 @@ const Signup: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}

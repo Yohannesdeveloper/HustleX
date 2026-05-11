@@ -6,6 +6,7 @@ import { FaArrowLeft, FaSave, FaUser, FaCamera, FaCrown, FaBriefcase, FaUserTie 
 import { RootState } from '../store';
 import apiService from '../services/api';
 import { useAuth } from '../store/hooks';
+import PhoneInput from '../components/PhoneInput';
 
 const AccountSettings: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -330,16 +331,12 @@ const AccountSettings: React.FC = () => {
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Phone *
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
                   value={settings.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
-                    darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  onChange={(value) => handleInputChange('phone', value)}
+                  placeholder="Enter phone number"
                   required
+                  darkMode={darkMode}
                 />
               </div>
 

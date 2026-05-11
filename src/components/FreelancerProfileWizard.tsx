@@ -6,6 +6,7 @@ import { RootState } from '../store';
 import { User } from '../types';
 import apiService from '../services/api';
 import { useAuth } from '../store/hooks';
+import PhoneInput from './PhoneInput';
 
 interface FreelancerProfileData {
   // Basic Information
@@ -51,6 +52,9 @@ interface StepProps {
   onSubmit?: () => void;
   navigate?: any;
   refreshUser?: () => Promise<any>;
+  errors?: Record<string, string>;
+  touched?: Record<string, boolean>;
+  handleBlur?: (field: string) => void;
 }
 
 const steps = [
@@ -64,6 +68,8 @@ const FreelancerProfileWizard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading, refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [profileData, setProfileData] = useState<FreelancerProfileData>({
     firstName: '',
     lastName: '',
@@ -149,12 +155,150 @@ const FreelancerProfileWizard: React.FC = () => {
   }
 
   const updateData = (field: keyof FreelancerProfileData, value: any) => {
+    // Auto-format URLs to add https:// if missing
+    if (['portfolioUrl', 'linkedinUrl', 'githubUrl', 'websiteUrl'].includes(field) && value) {
+      const trimmedValue = value.trim();
+      if (trimmedValue && !trimmedValue.startsWith('http://') && !trimmedValue.startsWith('https://')) {
+        value = 'https://' + trimmedValue;
+      }
+    }
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (step === 1) {
+      // Basic Information validation - ONLY truly required fields
+      if (!profileData.firstName.trim()) {
+        newErrors.firstName = "First name is required";
+      } else if (profileData.firstName.trim().length < 2) {
+        newErrors.firstName = "First name must be at least 2 characters";
+      }
+
+      if (!profileData.lastName.trim()) {
+        newErrors.lastName = "Last name is required";
+      } else if (profileData.lastName.trim().length < 2) {
+        newErrors.lastName = "Last name must be at least 2 characters";
+      }
+
+      if (!profileData.email.trim()) {
+        newErrors.email = "Email is required";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
+        newErrors.email = "Please enter a valid email address";
+      }
+
+      if (!profileData.location.trim()) {
+        newErrors.location = "Location is required";
+      }
+
+      // Phone is OPTIONAL - only validate if provided
+      if (profileData.phone && profileData.phone.length < 10) {
+        newErrors.phone = "Please enter a valid phone number";
+      }
+    }
+
+    if (step === 2) {
+      // Professional Details validation - ONLY truly required fields
+      // Bio is required but make minimum length reasonable
+      if (!profileData.bio.trim()) {
+        newErrors.bio = "Professional bio is required";
+      } else if (profileData.bio.trim().length < 20) {
+        newErrors.bio = "Bio must be at least 20 characters";
+      }
+
+      // These fields are required for a complete profile
+      if (!profileData.experienceLevel) {
+        newErrors.experienceLevel = "Experience level is required";
+      }
+
+      if (!profileData.primarySkill) {
+        newErrors.primarySkill = "Primary skill is required";
+      }
+
+      if (!profileData.yearsOfExperience.trim()) {
+        newErrors.yearsOfExperience = "Years of experience is required";
+      }
+
+      if (!profileData.availability) {
+        newErrors.availability = "Availability status is required";
+      }
+
+      if (profileData.skills.length === 0) {
+        newErrors.skills = "Please select at least one skill";
+      }
+
+      // Optional URL validations - only validate if provided
+      if (profileData.portfolioUrl && profileData.portfolioUrl.trim()) {
+        const portfolioUrl = profileData.portfolioUrl.trim();
+        if (!portfolioUrl.startsWith('http://') && !portfolioUrl.startsWith('https://')) {
+          newErrors.portfolioUrl = "URL must start with http:// or https://";
+        }
+      }
+
+      if (profileData.linkedinUrl && profileData.linkedinUrl.trim()) {
+        const linkedinUrl = profileData.linkedinUrl.trim();
+        if (!linkedinUrl.includes('linkedin.com')) {
+          newErrors.linkedinUrl = "Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/yourname)";
+        }
+      }
+
+      if (profileData.githubUrl && profileData.githubUrl.trim()) {
+        const githubUrl = profileData.githubUrl.trim();
+        if (!githubUrl.includes('github.com')) {
+          newErrors.githubUrl = "Please enter a valid GitHub URL (e.g., https://github.com/username)";
+        }
+      }
+
+      if (profileData.websiteUrl && profileData.websiteUrl.trim()) {
+        const websiteUrl = profileData.websiteUrl.trim();
+        if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+          newErrors.websiteUrl = "URL must start with http:// or https://";
+        }
+      }
+
+      if (profileData.monthlyRate && (isNaN(Number(profileData.monthlyRate)) || Number(profileData.monthlyRate) < 0)) {
+        newErrors.monthlyRate = "Please enter a valid amount";
+      }
+      
+      // CV is required - either new file or existing
+      if (!profileData.cvFile && !profileData.existingCvUrl) {
+        newErrors.cvFile = "CV/Resume is required";
+      }
+    }
+
+    console.log('Validation errors:', newErrors);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
   const nextStep = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
+    console.log('Attempting to proceed from step', currentStep);
+    if (validateStep(currentStep)) {
+      console.log('Validation passed, moving to next step');
+      if (currentStep < steps.length) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      // Mark all fields in current step as touched
+      const stepFields = currentStep === 1 
+        ? ['firstName', 'lastName', 'email', 'location', 'phone']
+        : ['bio', 'experienceLevel', 'primarySkill', 'yearsOfExperience', 'availability', 'skills', 'cvFile'];
+      
+      const allTouched: Record<string, boolean> = {};
+      stepFields.forEach(field => allTouched[field] = true);
+      setTouched(allTouched);
+      
+      // Show specific error message
+      const errorCount = Object.keys(errors).length;
+      console.log(`Validation failed with ${errorCount} error(s):`, errors);
+      
+      // Don't show alert - errors will be displayed inline
+      // The user can see which fields have errors from the red borders and messages
     }
   };
 
@@ -172,6 +316,9 @@ const FreelancerProfileWizard: React.FC = () => {
       onPrev: prevStep,
       isFirst: currentStep === 1,
       isLast: currentStep === steps.length,
+      errors,
+      touched,
+      handleBlur,
     };
 
     switch (currentStep) {
@@ -268,7 +415,7 @@ const FreelancerProfileWizard: React.FC = () => {
 };
 
 // Step Components
-const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst, isLast }) => {
+const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst, isLast, errors = {}, touched = {}, handleBlur }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -366,12 +513,19 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
             type="text"
             value={data.firstName}
             onChange={(e) => updateData('firstName', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('firstName')}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched.firstName && errors.firstName
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:border-transparent transition-colors`}
             placeholder="Enter your first name"
           />
+          {touched.firstName && errors.firstName && (
+            <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+          )}
         </div>
 
         <div>
@@ -382,12 +536,19 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
             type="text"
             value={data.lastName}
             onChange={(e) => updateData('lastName', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('lastName')}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched.lastName && errors.lastName
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:border-transparent transition-colors`}
             placeholder="Enter your last name"
           />
+          {touched.lastName && errors.lastName && (
+            <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+          )}
         </div>
 
         <div>
@@ -398,28 +559,34 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
             type="email"
             value={data.email}
             onChange={(e) => updateData('email', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('email')}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched.email && errors.email
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:border-transparent transition-colors`}
             placeholder="your.email@example.com"
           />
+          {touched.email && errors.email && (
+            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+          )}
         </div>
 
         <div>
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             Phone
           </label>
-          <input
-            type="tel"
+          <PhoneInput
             value={data.phone}
-            onChange={(e) => updateData('phone', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
-            placeholder="+251 XXX XXX XXX"
+            onChange={(value) => updateData('phone', value)}
+            placeholder="XXX XXX XXX"
+            darkMode={darkMode}
           />
+          {touched.phone && errors.phone && (
+            <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+          )}
         </div>
 
         <div className="md:col-span-2">
@@ -430,12 +597,19 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
             type="text"
             value={data.location}
             onChange={(e) => updateData('location', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('location')}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched.location && errors.location
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:border-transparent transition-colors`}
             placeholder="City, Country"
           />
+          {touched.location && errors.location && (
+            <p className="text-red-500 text-xs mt-1">{errors.location}</p>
+          )}
         </div>
       </div>
 
@@ -454,7 +628,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
   );
 };
 
-const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev, isFirst, isLast }) => {
+const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev, isFirst, isLast, errors, touched, handleBlur }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
 
   const experienceLevels = [
@@ -489,13 +663,20 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           <textarea
             value={data.bio}
             onChange={(e) => updateData('bio', e.target.value)}
+            onBlur={() => handleBlur && handleBlur('bio')}
             rows={4}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched?.bio && errors?.bio
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
             placeholder="Tell us about yourself, your background, and what makes you unique..."
           />
+          {touched?.bio && errors?.bio && (
+            <p className="text-red-500 text-xs mt-1">{errors.bio}</p>
+          )}
         </div>
 
         {/* Education */}
@@ -547,6 +728,30 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
               } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
             placeholder="e.g., JavaScript, React, Node.js, Python (separate with commas)"
           />
+        </div>
+
+        {/* Primary Skill */}
+        <div>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Primary Skill *
+          </label>
+          <input
+            type="text"
+            value={data.primarySkill}
+            onChange={(e) => updateData('primarySkill', e.target.value)}
+            onBlur={() => handleBlur && handleBlur('primarySkill')}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched?.primarySkill && errors?.primarySkill
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            placeholder="e.g., Web Development, Graphic Design, Content Writing"
+          />
+          {touched?.primarySkill && errors?.primarySkill && (
+            <p className="text-red-500 text-xs mt-1">{errors.primarySkill}</p>
+          )}
         </div>
 
         {/* Certifications */}
@@ -634,12 +839,19 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
             type="url"
             value={data.portfolioUrl}
             onChange={(e) => updateData('portfolioUrl', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('portfolioUrl')}
+            className={`w-full px-4 py-3 rounded-lg border ${
+              touched?.portfolioUrl && errors?.portfolioUrl
+                ? 'border-red-500 focus:ring-red-500'
+                : darkMode
+                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
             placeholder="https://yourportfolio.com"
           />
+          {touched?.portfolioUrl && errors?.portfolioUrl && (
+            <p className="text-red-500 text-xs mt-1">{errors.portfolioUrl}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -651,12 +863,19 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
               type="url"
               value={data.linkedinUrl}
               onChange={(e) => updateData('linkedinUrl', e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${darkMode
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+              onBlur={() => handleBlur && handleBlur('linkedinUrl')}
+              className={`w-full px-4 py-3 rounded-lg border ${
+                touched?.linkedinUrl && errors?.linkedinUrl
+                  ? 'border-red-500 focus:ring-red-500'
+                  : darkMode
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
               placeholder="https://linkedin.com/in/yourprofile"
             />
+            {touched?.linkedinUrl && errors?.linkedinUrl && (
+              <p className="text-red-500 text-xs mt-1">{errors.linkedinUrl}</p>
+            )}
           </div>
 
           <div>
@@ -667,12 +886,19 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
               type="url"
               value={data.githubUrl}
               onChange={(e) => updateData('githubUrl', e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border ${darkMode
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+              onBlur={() => handleBlur && handleBlur('githubUrl')}
+              className={`w-full px-4 py-3 rounded-lg border ${
+                touched?.githubUrl && errors?.githubUrl
+                  ? 'border-red-500 focus:ring-red-500'
+                  : darkMode
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
               placeholder="https://github.com/yourusername"
             />
+            {touched?.githubUrl && errors?.githubUrl && (
+              <p className="text-red-500 text-xs mt-1">{errors.githubUrl}</p>
+            )}
           </div>
         </div>
 
@@ -770,7 +996,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          disabled={!data.bio || !data.education || !data.workExperience || !data.skills.length || !data.experienceLevel || !data.yearsOfExperience || !data.availability || (!data.cvFile && !data.existingCvUrl)}
+          disabled={!data.bio || !data.skills.length || !data.experienceLevel || !data.yearsOfExperience || !data.availability || (!data.cvFile && !data.existingCvUrl)}
           className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           Next Step

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { RootState } from '../store';
 import apiService from '../services/api';
 import { useAuth } from '../store/hooks';
+import PhoneInput from './PhoneInput';
 
 interface ClientProfileData {
   // Company Information
@@ -524,12 +525,12 @@ const ContactDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             Contact Phone *
           </label>
-          <input
-            type="tel"
+          <PhoneInput
             value={data.contactPhone}
-            onChange={(e) => updateData('contactPhone', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors`}
-            placeholder="+251 XXX XXX XXX"
+            onChange={(value) => updateData('contactPhone', value)}
+            placeholder="XXX XXX XXX"
+            required
+            darkMode={darkMode}
           />
         </div>
 
@@ -626,6 +627,7 @@ const ContactDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
 
 const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLast, refreshUser }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -682,7 +684,11 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         await refreshUser();
       }
 
-      alert('Company profile submitted successfully! Redirecting to client dashboard...');
+      alert('Company profile submitted successfully! Redirecting to hiring dashboard...');
+      
+      // Redirect to hiring dashboard
+      navigate('/dashboard/hiring');
+      
       if (onSubmit) {
         onSubmit();
       }

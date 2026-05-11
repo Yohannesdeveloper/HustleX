@@ -199,6 +199,13 @@ const MessagesTab: React.FC = () => {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Listen for message edit events from WebSocket (works for both sender and receiver)
   useEffect(() => {
     if (!socket) return;
@@ -322,28 +329,44 @@ const MessagesTab: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastProcessedFreelancerIdRef = useRef<string | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
+  const selectedConversationRef = useRef<Conversation | null>(null);
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // Keep ref in sync with selectedConversation
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
 
   // Join user to WebSocket when connected
   useEffect(() => {
     if (connected && user?._id) {
+      console.log("✅ Joining WebSocket room for user:", user._id);
       joinUser(user._id);
     }
   }, [connected, user?._id, joinUser]);
 
-  // Listen for real-time messages
+  // Listen for real-time messages - uses refs to avoid re-registration
   useEffect(() => {
     const handleNewMessage = (messageData: StoredMessage) => {
-      console.log("Received message via WebSocket:", messageData);
-      console.log("📥 Message files check:", {
-        hasFiles: messageData.files && messageData.files.length > 0,
-        fileCount: messageData.files ? messageData.files.length : 0,
-        files: messageData.files,
-        messageType: messageData.messageType,
+      console.log("📨 MessagesTab handleNewMessage called!");
+      console.log("📨 Received message via WebSocket:", messageData);
+      
+      // Get current values from refs
+      const currentUser = user;
+      const currentSelectedConv = selectedConversationRef.current;
+      
+      console.log("📥 Message details:", {
+        messageId: messageData._id || messageData.id,
+        senderId: getUserId(messageData.senderId),
+        receiverId: getUserId(messageData.receiverId),
+        message: messageData.message,
+        currentUserId: currentUser?._id,
+        selectedConvFreelancerId: currentSelectedConv?.freelancerId,
       });
 
       // Check if this is an edit action
       if (messageData.action === 'edit' || messageData.isEdit) {
+        console.log("📝 Received message edit event");
         // Update existing message instead of adding new one
         setMessages((prev) =>
           prev.map((msg) =>
@@ -359,8 +382,8 @@ const MessagesTab: React.FC = () => {
         );
 
         // Update in localStorage
-        if (selectedConversation && user?._id) {
-          const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+        if (currentSelectedConv && currentUser?._id) {
+          const conversationKey = getNormalizedConversationKey(currentUser._id, currentSelectedConv.freelancerId);
           const storedMessages = getStoredMessages(conversationKey);
           const updatedMessages = storedMessages.map((msg) =>
             (msg._id || msg.id) === (messageData.messageId || messageData._id)
@@ -378,79 +401,81 @@ const MessagesTab: React.FC = () => {
       }
 
       // Normalize conversationId format
-      // Backend uses: [senderId, receiverId].sort().join("_")
-      // Frontend uses: conversation_${user._id}_${freelancerId}
       const senderId = getUserId(messageData.senderId);
       const receiverId = getUserId(messageData.receiverId);
       const backendConversationId = messageData.conversationId || [senderId, receiverId].sort().join("_");
-      const targetFreelancerId = senderId === user?._id ? receiverId : senderId;
-      const frontendConversationId = getNormalizedConversationKey(user?._id || "", targetFreelancerId);
-      const messageKey = messageData._id || messageData.id || `${senderId}|${receiverId}|${messageData.message}|${messageData.createdAt || messageData.timestamp || ""}`;
-      if (messageKey) {
-        if (processedMessageIdsRef.current.has(messageKey)) {
+      const targetFreelancerId = senderId === currentUser?._id ? receiverId : senderId;
+      const frontendConversationId = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
+      
+      // Check if this is our own message (sender receiving confirmation)
+      const isOwnMessage = senderId === currentUser?._id;
+      
+      // Check for duplicates using message ID only
+      const messageId = messageData._id || messageData.id;
+      if (messageId) {
+        if (processedMessageIdsRef.current.has(messageId)) {
+          console.log("⏭️ Duplicate message detected (ID:", messageId + "), skipping");
           return;
         }
-        processedMessageIdsRef.current.add(messageKey);
+        processedMessageIdsRef.current.add(messageId);
       }
-
-      // Check if this message belongs to the currently selected conversation
-      const isCurrentConversation = selectedConversation && (
-        getConversationKey(selectedConversation) === frontendConversationId ||
-        getConversationKey(selectedConversation) === backendConversationId ||
-        selectedConversation.freelancerId === targetFreelancerId
-      );
-
-      // Check if this is a message we sent (confirmation from backend)
-      const isOwnMessage = senderId === user?._id;
-
-      // If this message belongs to the current conversation, add/replace it in messages
-      if (isCurrentConversation) {
+      
+      // For sender's own messages: try to replace temp message instead of adding new one
+      if (isOwnMessage) {
+        console.log("📨 Sender receiving confirmation for own message:", {
+          messageId: messageData._id || messageData.id,
+          message: messageData.message,
+          senderId,
+          receiverId,
+        });
+        
         setMessages((prev) => {
-          // If it's our own message, check if we have a temp message to replace
-          if (isOwnMessage) {
-            // Find and replace temp message with same content (match by message text and file count)
-            const tempIndex = prev.findIndex(m =>
-              (m._id && m._id.startsWith("temp_")) &&
-              m.message === messageData.message &&
-              m.senderId === messageData.senderId &&
-              m.receiverId === messageData.receiverId &&
-              ((m.files?.length || 0) === (messageData.files?.length || 0)) &&
-              (!!m.voiceData === !!messageData.voiceData)
-            );
-
-            if (tempIndex !== -1) {
-              // Replace temp message with real message (preserve all fields including files)
-              console.log("Replacing temp message with real message", {
-                hasFiles: messageData.files && messageData.files.length > 0,
-                fileCount: messageData.files ? messageData.files.length : 0,
-              });
-              const updated = [...prev];
-              // Ensure all fields are preserved, especially files
-              updated[tempIndex] = {
-                ...messageData,
-                files: messageData.files || [],
-                voiceData: messageData.voiceData,
-                voiceDuration: messageData.voiceDuration,
-                messageType: messageData.messageType,
-              };
-              return updated;
+          console.log("🔍 Searching for temp message in state, total messages:", prev.length);
+          
+          // Find temp message with matching content
+          const tempIndex = prev.findIndex((m, idx) => {
+            const isTemp = m._id && m._id.startsWith("temp_");
+            const matchesSender = getUserId(m.senderId) === senderId;
+            const matchesReceiver = getUserId(m.receiverId) === receiverId;
+            const matchesContent = m.message === messageData.message;
+            
+            if (isTemp) {
+              console.log(`  Message ${idx}: temp=${isTemp}, sender=${matchesSender}, receiver=${matchesReceiver}, content=${matchesContent}`, m._id);
             }
-          }
+            
+            return isTemp && matchesSender && matchesReceiver && matchesContent;
+          });
 
-          // Check if message already exists (avoid duplicates)
-          const exists = prev.some(m =>
-            (m._id || m.id) === (messageData._id || messageData.id) ||
-            (!m._id?.startsWith("temp_") && m._id === messageData._id && m.message === messageData.message)
-          );
+          if (tempIndex !== -1) {
+            console.log("✅ Found temp message at index", tempIndex, "- replacing with confirmed message");
+            const updated = [...prev];
+            updated[tempIndex] = {
+              ...messageData,
+              files: messageData.files || [],
+              voiceData: messageData.voiceData,
+              voiceDuration: messageData.voiceDuration,
+              messageType: messageData.messageType,
+            };
+            return updated;
+          }
+          
+          console.log("⚠️ No temp message found, checking if real message already exists");
+          // If no temp message found, check if real message already exists
+          const exists = prev.some(m => {
+            const mId = m._id || m.id;
+            const matches = mId === messageId;
+            if (matches) {
+              console.log("  Found existing message with ID:", mId);
+            }
+            return matches;
+          });
+          
           if (exists) {
-            console.log("Message already exists, skipping");
+            console.log("⏭️ Message already exists, skipping");
             return prev;
           }
-          console.log("Adding new message to current conversation", {
-            hasFiles: messageData.files && messageData.files.length > 0,
-            fileCount: messageData.files ? messageData.files.length : 0,
-          });
-          // Ensure all fields are preserved, especially files
+          
+          console.log("➕ Adding confirmed message (no temp found)");
           return [...prev, {
             ...messageData,
             files: messageData.files || [],
@@ -459,14 +484,74 @@ const MessagesTab: React.FC = () => {
             messageType: messageData.messageType,
           }];
         });
+        
         // Scroll to bottom
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
+        
+        // Still need to persist and update conversation list, so don't return here
+        // Continue to the persistence logic below
       }
 
-      // Persist incoming message to localStorage (include all fields including files, voice, etc.)
-      const localKey = getNormalizedConversationKey(user?._id || "", targetFreelancerId || "");
+      // Check if this message belongs to the currently selected conversation
+      const isCurrentConversation = currentSelectedConv && (
+        getConversationKey(currentSelectedConv) === frontendConversationId ||
+        getConversationKey(currentSelectedConv) === backendConversationId ||
+        currentSelectedConv.freelancerId === targetFreelancerId
+      );
+
+      console.log("🔍 Message analysis:", {
+        isCurrentConversation,
+        isOwnMessage,
+        targetFreelancerId,
+        selectedConvId: currentSelectedConv?.freelancerId,
+      });
+
+      // If this message belongs to the current conversation, add/replace it in messages
+      if (isCurrentConversation) {
+        console.log("✅ Message belongs to current conversation, adding to UI");
+        
+        // Show browser notification (only for received messages, not own)
+        if (!isOwnMessage && Notification.permission === "granted") {
+          new Notification("New Message", {
+            body: messageData.message,
+            icon: "/Logo.png",
+          });
+        }
+        
+        // For sender's own messages: handled above (temp message replacement)
+        // For receiver's messages: add to state
+        if (!isOwnMessage) {
+          setMessages((prev) => {
+            // Check if message already exists (avoid duplicates)
+            const exists = prev.some(m =>
+              (m._id || m.id) === (messageData._id || messageData.id)
+            );
+            if (exists) {
+              console.log("⏭️ Message already exists in state, skipping");
+              return prev;
+            }
+            console.log("➕ Adding new message to current conversation");
+            return [...prev, {
+              ...messageData,
+              files: messageData.files || [],
+              voiceData: messageData.voiceData,
+              voiceDuration: messageData.voiceDuration,
+              messageType: messageData.messageType,
+            }];
+          });
+          // Scroll to bottom
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }
+      } else {
+        console.log("ℹ️ Message for different conversation, updating conversation list only");
+      }
+
+      // Persist incoming message to localStorage (always, even if not current conversation)
+      const localKey = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
       persistMessageToLocalStorage(localKey, {
         _id: messageData._id,
         id: messageData.id,
@@ -484,17 +569,14 @@ const MessagesTab: React.FC = () => {
         receiver: messageData.receiver,
       });
 
-      // Always update conversation list
+      // Always update conversation list (even for non-current conversations)
       setConversations((prev) => {
-        // Find conversation by matching normalized key
-        const targetFreelancerId = senderId === user?._id ? receiverId : senderId;
-        const normalizedKey = getNormalizedConversationKey(user?._id || "", targetFreelancerId);
+        const normalizedKey = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
         const existingConv = prev.find(
           (conv) => getConversationKey(conv) === normalizedKey
         );
 
         if (existingConv) {
-          // Update existing conversation - ensure no duplicates
           const updated = prev.map((conv) =>
             getConversationKey(conv) === normalizedKey
               ? {
@@ -504,28 +586,20 @@ const MessagesTab: React.FC = () => {
               }
               : conv
           );
-
-          // Remove duplicates by freelancerId (keep first occurrence)
+          // Remove duplicates
           const seen = new Set<string>();
-          const deduplicated = updated.filter(conv => {
-            if (seen.has(conv.freelancerId)) {
-              return false;
-            }
+          return updated.filter(conv => {
+            if (seen.has(conv.freelancerId)) return false;
             seen.add(conv.freelancerId);
             return true;
-          });
-
-          return deduplicated.sort((a, b) =>
+          }).sort((a, b) =>
             new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
           );
         } else {
-          // Add new conversation only if it doesn't exist
-          // Double-check to prevent duplicates
           const alreadyExists = prev.some(
             (conv) => getConversationKey(conv) === normalizedKey
           );
           if (alreadyExists) {
-            // If it exists, just update it
             return prev.map((conv) =>
               getConversationKey(conv) === normalizedKey
                 ? {
@@ -539,29 +613,25 @@ const MessagesTab: React.FC = () => {
             );
           }
 
-          // Add new conversation
           const profile = messageData.sender?.profile || {};
           const senderName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || messageData.sender?.email || "Unknown";
-          const isOwnMessage = getUserId(messageData.senderId) === user?._id;
-          const fallbackName = selectedConversation?.freelancerName || senderName;
-          const fallbackEmail = selectedConversation?.freelancerEmail || messageData.sender?.email || "";
+          const isSenderOwnMessage = getUserId(messageData.senderId) === currentUser?._id;
+          const fallbackName = currentSelectedConv?.freelancerName || senderName;
+          const fallbackEmail = currentSelectedConv?.freelancerEmail || messageData.sender?.email || "";
 
           const newConv = {
             id: normalizedKey,
             freelancerId: targetFreelancerId,
-            freelancerName: isOwnMessage ? fallbackName : senderName,
-            freelancerEmail: isOwnMessage ? fallbackEmail : (messageData.sender?.email || ""),
+            freelancerName: isSenderOwnMessage ? fallbackName : senderName,
+            freelancerEmail: isSenderOwnMessage ? fallbackEmail : (messageData.sender?.email || ""),
             lastMessage: messageData.message,
             lastMessageTime: messageData.createdAt || new Date().toISOString(),
             unreadCount: 0,
           };
 
-          // Remove duplicates before adding
           const seen = new Set<string>();
           const deduplicated = prev.filter(conv => {
-            if (seen.has(conv.freelancerId)) {
-              return false;
-            }
+            if (seen.has(conv.freelancerId)) return false;
             seen.add(conv.freelancerId);
             return true;
           });
@@ -574,11 +644,13 @@ const MessagesTab: React.FC = () => {
     };
 
     onMessage(handleNewMessage);
+    console.log("✅ WebSocket message listener registered");
 
     return () => {
       offMessage(handleNewMessage);
+      console.log("🔌 WebSocket message listener removed");
     };
-  }, [selectedConversation, user?._id, onMessage, offMessage]);
+  }, [user?._id, onMessage, offMessage]); // Removed selectedConversation from dependencies!
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -865,7 +937,8 @@ const MessagesTab: React.FC = () => {
   // Load messages for selected conversation
   useEffect(() => {
     if (!selectedConversation || !user?._id) {
-      setMessages([]);
+      // Don't clear messages immediately - keep them in localStorage
+      // Only clear state if we're truly switching away
       return;
     }
 
@@ -912,10 +985,35 @@ const MessagesTab: React.FC = () => {
         })
         : conversationMessages;
       setMessages(filteredLocalMessages);
+      
+      // If API failed but we have localStorage messages, try to sync them to API in background
+      if (filteredLocalMessages.length > 0) {
+        console.log("Messages loaded from localStorage for persistence");
+      }
     };
 
     loadMessages();
   }, [selectedConversation, user?._id]);
+
+  // Backup messages to localStorage whenever they change (extra safety layer)
+  useEffect(() => {
+    if (!selectedConversation || !user?._id || messages.length === 0) {
+      return;
+    }
+
+    try {
+      const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+      const existingMessages = getStoredMessages(conversationKey);
+      
+      // Only save if we have new messages or different count
+      if (messages.length !== existingMessages.length) {
+        localStorage.setItem(conversationKey, JSON.stringify(messages));
+        console.log("Backed up", messages.length, "messages to localStorage");
+      }
+    } catch (error) {
+      console.error("Failed to backup messages to localStorage:", error);
+    }
+  }, [messages, selectedConversation, user?._id]);
 
   const handleSendMessage = async () => {
     // Check if there's anything to send
@@ -1042,41 +1140,44 @@ const MessagesTab: React.FC = () => {
       }
     }
 
-    // Optimistically add message to UI
-    const tempMessage = {
-      _id: `temp_${Date.now()}`,
-      conversationId,
-      senderId: user._id,
-      receiverId: selectedConversation.freelancerId,
-      message: displayMessage,
-      messageType,
-      voiceData: voiceDataUrl,
-      voiceDuration: recordingTime,
-      files: fileAttachments,
-      createdAt: new Date().toISOString(),
-      sender: {
-        _id: user._id,
-        email: user.email,
-        profile: user.profile,
-      },
-    };
+    // Optimistically add message to UI (only if WebSocket is not connected)
+    // When WebSocket is connected, we'll get real-time confirmation from backend
+    if (!connected || !socket) {
+      const tempMessage = {
+        _id: `temp_${Date.now()}`,
+        conversationId,
+        senderId: user._id,
+        receiverId: selectedConversation.freelancerId,
+        message: displayMessage,
+        messageType,
+        voiceData: voiceDataUrl,
+        voiceDuration: recordingTime,
+        files: fileAttachments,
+        createdAt: new Date().toISOString(),
+        sender: {
+          _id: user._id,
+          email: user.email,
+          profile: user.profile,
+        },
+      };
 
-    setMessages((prev) => [...prev, tempMessage]);
+      setMessages((prev) => [...prev, tempMessage]);
 
-    // Persist optimistic message to localStorage for refresh safety
-    persistMessageToLocalStorage(conversationId, {
-      id: tempMessage._id,
-      senderId: user._id,
-      receiverId: selectedConversation.freelancerId,
-      message: displayMessage,
-      messageType,
-      voiceData: voiceDataUrl,
-      voiceDuration: recordingTime,
-      files: fileAttachments,
-      timestamp: tempMessage.createdAt,
-      senderName: `${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}`.trim() || user?.email,
-      receiverName: selectedConversation.freelancerName,
-    });
+      // Persist optimistic message to localStorage for refresh safety
+      persistMessageToLocalStorage(conversationId, {
+        id: tempMessage._id,
+        senderId: user._id,
+        receiverId: selectedConversation.freelancerId,
+        message: displayMessage,
+        messageType,
+        voiceData: voiceDataUrl,
+        voiceDuration: recordingTime,
+        files: fileAttachments,
+        timestamp: tempMessage.createdAt,
+        senderName: `${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}`.trim() || user?.email,
+        receiverName: selectedConversation.freelancerName,
+      });
+    }
 
     // Send via WebSocket if connected
     if (connected && socket) {
@@ -1827,6 +1928,21 @@ const MessagesTab: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 relative">
+                  {/* WebSocket Connection Status */}
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs" 
+                       title={connected ? "Real-time messaging active" : "Connecting..."}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      connected 
+                        ? "bg-green-500 animate-pulse" 
+                        : "bg-yellow-500 animate-pulse"
+                    }`} />
+                    <span className={`text-xs ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {connected ? "Live" : "Connecting"}
+                    </span>
+                  </div>
+                  
                   {/* Video Call Button */}
                   <motion.button
                     onClick={initiateVideoCall}

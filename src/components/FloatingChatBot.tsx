@@ -347,8 +347,12 @@ const FloatingChatBot: React.FC = () => {
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className={`fixed bottom-6 right-6 z-50 ${isMinimized ? "w-80 h-16" : "w-96 h-[600px]"
-              } rounded-2xl shadow-2xl overflow-hidden ${darkMode
+            className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 
+              ${isMinimized 
+                ? "w-[calc(100vw-2rem)] sm:w-80 h-16" 
+                : "w-[calc(100vw-2rem)] sm:w-96 h-[500px] sm:h-[600px]"
+              } 
+              max-w-[400px] rounded-2xl shadow-2xl overflow-hidden ${darkMode
                 ? "bg-gray-900 border-2 border-cyan-500/30"
                 : "bg-white border-2 border-cyan-200"
               }`}

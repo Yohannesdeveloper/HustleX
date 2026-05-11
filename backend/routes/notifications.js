@@ -22,6 +22,17 @@ router.post("/email", async (req, res) => {
       .json({ message: "Missing required fields: to, subject, body" });
   }
 
+  // Check if email credentials are configured
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || 
+      process.env.EMAIL_USER === 'your-email@gmail.com' || 
+      process.env.EMAIL_PASS === 'your-app-password') {
+    console.warn("⚠️ Email credentials not configured. Email notifications disabled.");
+    return res.status(200).json({ 
+      message: "Email service not configured. Notification skipped.",
+      skipped: true 
+    });
+  }
+
   try {
     await transporter.sendMail({
       from: `"HustleX" <${process.env.EMAIL_USER}>`,
@@ -30,12 +41,16 @@ router.post("/email", async (req, res) => {
       text: body,
       html: `<p>${body}</p>`,
     });
+    console.log(`✅ Email sent successfully to ${to}`);
     res.status(200).json({ message: "Email sent successfully" });
   } catch (error) {
-    console.error("Error sending email:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to send email", error: error.message });
+    console.error("❌ Error sending email:", error.message);
+    // Return 200 with warning instead of 500 to not break the application flow
+    res.status(200).json({ 
+      message: "Email notification failed but application status was updated",
+      error: error.message,
+      warning: true
+    });
   }
 });
 

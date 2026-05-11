@@ -6,6 +6,7 @@ import { FaArrowLeft, FaSave, FaBuilding, FaFileAlt, FaCamera, FaCheckCircle, Fa
 import { RootState } from '../store';
 import apiService from '../services/api';
 import { useAuth } from '../store/hooks';
+import PhoneInput from '../components/PhoneInput';
 
 const CompanyProfile: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -34,6 +35,8 @@ const CompanyProfile: React.FC = () => {
   const [tradeLicenseFile, setTradeLicenseFile] = useState<File | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Fetch existing company profile data on component mount
   useEffect(() => {
@@ -153,6 +156,155 @@ const CompanyProfile: React.FC = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setCompanyData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    validateField(field);
+  };
+
+  const validateField = (field: string): boolean => {
+    const newErrors = { ...errors };
+
+    switch (field) {
+      case 'companyName':
+        if (!companyData.companyName.trim()) {
+          // Company name is optional for private clients
+          delete newErrors.companyName;
+        } else if (companyData.companyName.trim().length < 2) {
+          newErrors.companyName = 'Company name must be at least 2 characters';
+        } else {
+          delete newErrors.companyName;
+        }
+        break;
+
+      case 'industry':
+        if (!companyData.industry) {
+          newErrors.industry = 'Industry is required';
+        } else {
+          delete newErrors.industry;
+        }
+        break;
+
+      case 'companySize':
+        if (!companyData.companySize) {
+          newErrors.companySize = 'Company size is required';
+        } else {
+          delete newErrors.companySize;
+        }
+        break;
+
+      case 'phone':
+        if (!companyData.phone.trim()) {
+          newErrors.phone = 'Phone number is required';
+        } else if (companyData.phone.length < 10) {
+          newErrors.phone = 'Please enter a valid phone number (at least 10 digits)';
+        } else {
+          delete newErrors.phone;
+        }
+        break;
+
+      case 'email':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!companyData.email.trim()) {
+          newErrors.email = 'Email is required';
+        } else if (!emailRegex.test(companyData.email)) {
+          newErrors.email = 'Please enter a valid email address';
+        } else {
+          delete newErrors.email;
+        }
+        break;
+
+      case 'description':
+        if (!companyData.description.trim()) {
+          newErrors.description = 'Company description is required';
+        } else if (companyData.description.trim().length < 50) {
+          newErrors.description = 'Description must be at least 50 characters';
+        } else {
+          delete newErrors.description;
+        }
+        break;
+
+      case 'address':
+        if (!companyData.address.trim()) {
+          newErrors.address = 'Address is required';
+        } else {
+          delete newErrors.address;
+        }
+        break;
+
+      case 'website':
+        if (companyData.website && !companyData.website.startsWith('http')) {
+          newErrors.website = 'Please enter a valid URL starting with http:// or https://';
+        } else {
+          delete newErrors.website;
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).filter(key => touched[key] || newErrors[key]).length === 0;
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    const isPrivateClient = !companyData.companyName.trim();
+
+    // Required fields validation
+    if (!isPrivateClient && !companyData.companyName.trim()) {
+      newErrors.companyName = 'Company name is required for company accounts';
+    } else if (!isPrivateClient && companyData.companyName.trim().length < 2) {
+      newErrors.companyName = 'Company name must be at least 2 characters';
+    }
+
+    if (!companyData.industry) {
+      newErrors.industry = 'Industry is required';
+    }
+
+    if (!companyData.companySize) {
+      newErrors.companySize = 'Company size is required';
+    }
+
+    if (!companyData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (companyData.phone.length < 10) {
+      newErrors.phone = 'Please enter a valid phone number (at least 10 digits)';
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!companyData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!emailRegex.test(companyData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!companyData.description.trim()) {
+      newErrors.description = 'Company description is required';
+    } else if (companyData.description.trim().length < 50) {
+      newErrors.description = 'Description must be at least 50 characters';
+    }
+
+    if (!companyData.address.trim()) {
+      newErrors.address = 'Address is required';
+    }
+
+    if (companyData.website && !companyData.website.startsWith('http')) {
+      newErrors.website = 'Please enter a valid URL';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,56 +341,31 @@ const CompanyProfile: React.FC = () => {
 
   const handleSave = async () => {
     try {
+      // Validate form
+      if (!validateForm()) {
+        // Mark all fields as touched to show errors
+        const allTouched: Record<string, boolean> = {};
+        ['companyName', 'industry', 'companySize', 'phone', 'email', 'description', 'address', 'website'].forEach(field => {
+          allTouched[field] = true;
+        });
+        setTouched(allTouched);
+        
+        // Scroll to first error
+        const firstErrorField = Object.keys(errors)[0];
+        if (firstErrorField) {
+          const element = document.getElementById(`field-${firstErrorField}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+        }
+        
+        alert('Please fix the errors in the form before submitting.');
+        return;
+      }
+
       // Check if this is a private client (no company name) or company client
       const isPrivateClient = !companyData.companyName.trim();
-
-      // Validation for required fields (everything except website, legal documents, and founded year)
-      const requiredFields = [
-        { field: 'industry', value: companyData.industry, label: 'Industry' },
-        { field: 'companySize', value: companyData.companySize, label: 'Company Size' },
-        { field: 'phone', value: companyData.phone, label: 'Phone' },
-        { field: 'email', value: companyData.email, label: 'Email' },
-        { field: 'description', value: companyData.description, label: 'Company Description' },
-        { field: 'address', value: companyData.address, label: 'Address' },
-      ];
-
-      // For company clients, company name is required, but legal documents are optional
-      // (they can provide either business registration number OR tax ID to be considered valid)
-      if (!isPrivateClient) {
-        requiredFields.unshift({ field: 'companyName', value: companyData.companyName, label: 'Company Name' });
-
-        // Legal documents are optional for companies - they can provide either registration number or tax ID
-        const hasBusinessRegistration = companyData.registrationNumber.trim();
-        const hasTaxId = companyData.taxId.trim();
-
-        // If neither is provided, add a note but don't make them required
-        if (!hasBusinessRegistration && !hasTaxId) {
-          // Legal documents are optional - companies can proceed without them
-          console.log('Company profile will be valid but not verified without legal documents');
-        }
-      }
-
-      // Check for missing required fields
-      const missingFields = requiredFields.filter(field => !field.value.trim());
-
-      if (missingFields.length > 0) {
-        const fieldNames = missingFields.map(field => field.label).join(', ');
-        alert(`Please fill in all required fields: ${fieldNames}`);
-        return;
-      }
-
-      // Additional validation for email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(companyData.email)) {
-        alert('Please enter a valid email address');
-        return;
-      }
-
-      // Additional validation for phone number (basic check)
-      if (companyData.phone.length < 10) {
-        alert('Please enter a valid phone number');
-        return;
-      }
 
       let logoUrl = '';
       let tradeLicenseUrl = '';
@@ -434,7 +561,7 @@ const CompanyProfile: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
+              <div className="md:col-span-2" id="field-companyName">
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Company Name {!companyData.companyName.trim() ? '(optional for private clients)' : '(required for companies)'}
                   {!companyData.companyName.trim() && <span className="text-gray-400 text-xs ml-2">Private Client</span>}
@@ -443,33 +570,45 @@ const CompanyProfile: React.FC = () => {
                   type="text"
                   value={companyData.companyName}
                   onChange={(e) => handleInputChange('companyName', e.target.value)}
+                  onBlur={() => handleBlur('companyName')}
                   className={`w-full px-4 py-3 rounded-lg border ${
-                    darkMode
+                    touched.companyName && errors.companyName
+                      ? 'border-red-500 focus:ring-red-500'
+                      : darkMode
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  } focus:ring-2 focus:border-transparent transition-colors`}
                   placeholder={companyData.companyName.trim() ? "Enter your company name" : "Leave blank for private clients"}
                 />
+                {touched.companyName && errors.companyName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.companyName}</p>
+                )}
               </div>
 
-              <div>
+              <div id="field-industry">
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Industry
+                  Industry *
                 </label>
                 <select
                   value={companyData.industry}
                   onChange={(e) => handleInputChange('industry', e.target.value)}
+                  onBlur={() => handleBlur('industry')}
                   className={`w-full px-4 py-3 rounded-lg border ${
-                    darkMode
+                    touched.industry && errors.industry
+                      ? 'border-red-500 focus:ring-red-500'
+                      : darkMode
                       ? 'bg-gray-700 border-gray-600 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  } focus:ring-2 focus:border-transparent transition-colors`}
                 >
                   <option value="">Select Industry</option>
                   {industries.map((industry) => (
                     <option key={industry} value={industry}>{industry}</option>
                   ))}
                 </select>
+                {touched.industry && errors.industry && (
+                  <p className="text-red-500 text-xs mt-1">{errors.industry}</p>
+                )}
               </div>
 
               <div>
@@ -509,38 +648,42 @@ const CompanyProfile: React.FC = () => {
                 />
               </div>
 
-              <div>
+              <div id="field-phone">
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Phone
+                  Phone *
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
                   value={companyData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
-                    darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
-                  placeholder="+251 XXX XXX XXX"
+                  onChange={(value) => handleInputChange('phone', value)}
+                  placeholder="XXX XXX XXX"
+                  darkMode={darkMode}
                 />
+                {touched.phone && errors.phone && (
+                  <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                )}
               </div>
 
-              <div>
+              <div id="field-email">
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Email
+                  Email *
                 </label>
                 <input
                   type="email"
                   value={companyData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
+                  onBlur={() => handleBlur('email')}
                   className={`w-full px-4 py-3 rounded-lg border ${
-                    darkMode
+                    touched.email && errors.email
+                      ? 'border-red-500 focus:ring-red-500'
+                      : darkMode
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                  } focus:ring-2 focus:border-transparent transition-colors`}
                   placeholder="contact@yourcompany.com"
                 />
+                {touched.email && errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
               </div>
 
               <div>

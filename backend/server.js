@@ -281,10 +281,15 @@ io.on("connection", (socket) => {
       const receiverSocketId = connectedUsers.get(receiverId);
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("newMessage", messageData);
+        console.log(`✅ Emitted newMessage to receiver ${receiverId} at socket ${receiverSocketId}`);
       }
 
-      // Confirm to sender
-      socket.emit("messageSent", messageData);
+      // Also emit to sender for real-time sync (replaces messageSent)
+      const senderSocketId = connectedUsers.get(socket.userId);
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("newMessage", messageData);
+        console.log(`✅ Emitted newMessage to sender ${socket.userId} at socket ${senderSocketId}`);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       socket.emit("messageError", { error: "Failed to send message" });

@@ -700,7 +700,9 @@ const PostJob: React.FC = () => {
   const [education, setEducation] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [postingStatus, setPostingStatus] = useState<any>(null);
-  const [loadingStatus, setLoadingStatus] = useState<boolean>(true);
+  const [loadingStatus, setLoadingStatus] = useState<boolean>(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Set default deadline to 15 days from today
   useEffect(() => {
@@ -711,6 +713,31 @@ const PostJob: React.FC = () => {
       setDeadline(formattedDate);
     }
   }, []);
+
+  // Auto-populate company name from user profile
+  useEffect(() => {
+    const loadCompanyProfile = async () => {
+      try {
+        // Try to get company profile first
+        const companyProfile = await apiService.getCompanyProfile();
+        if (companyProfile && companyProfile.companyName) {
+          setCompany(companyProfile.companyName);
+        }
+      } catch {
+        // If no company profile, try to use user's profile
+        if (user?.profile?.firstName || user?.profile?.lastName) {
+          const fullName = `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
+          if (fullName) {
+            setCompany(fullName);
+          }
+        }
+      }
+    };
+    
+    if (isAuthenticated && user) {
+      loadCompanyProfile();
+    }
+  }, [isAuthenticated, user]);
 
   // Check subscription status on mount
   useEffect(() => {
@@ -731,12 +758,98 @@ const PostJob: React.FC = () => {
 
   // Authentication check moved to form submission
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // ONLY required fields validation (matching backend requirements)
+    if (!title.trim()) {
+      newErrors.title = "Job title is required";
+    } else if (title.trim().length < 3) {
+      newErrors.title = "Job title must be at least 3 characters";
+    }
+
+    if (!description.trim()) {
+      newErrors.description = "Job description is required";
+    } else if (description.trim().length < 50) {
+      newErrors.description = "Description must be at least 50 characters";
+    }
+
+    if (!category) {
+      newErrors.category = "Category is required";
+    }
+
+    // Budget/Compensation - at least one should be provided
+    if (!compensationType) {
+      newErrors.compensationType = "Compensation type is required";
+    }
+
+    // Optional field validations (only validate if provided)
+    if (compensationAmount && (isNaN(Number(compensationAmount)) || Number(compensationAmount) < 0)) {
+      newErrors.compensationAmount = "Please enter a valid amount";
+    }
+
+    if (vacancies && (isNaN(Number(vacancies)) || Number(vacancies) < 1)) {
+      newErrors.vacancies = "Vacancies must be at least 1";
+    }
+
+    if (jobLink && jobLink.trim()) {
+      try {
+        new URL(jobLink);
+      } catch {
+        newErrors.jobLink = "Please enter a valid URL";
+      }
+    }
+
+    if (deadline) {
+      const selectedDate = new Date(deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.deadline = "Deadline cannot be in the past";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    validateForm();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check authentication before submitting
     if (!isAuthenticated || !user) {
       navigate("/login?redirect=" + encodeURIComponent(location.pathname));
+      return;
+    }
+
+    // Validate form
+    if (!validateForm()) {
+      // Mark only required fields as touched to show errors
+      const requiredFields = ['title', 'description', 'category', 'compensationType'];
+      const allTouched: Record<string, boolean> = {};
+      requiredFields.forEach(field => {
+        allTouched[field] = true;
+      });
+      setTouched(allTouched);
+      
+      // Scroll to first error
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        const element = document.getElementById(`field-${firstErrorField}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.focus();
+        }
+      }
+      
+      // Show more helpful error message
+      const errorCount = Object.keys(errors).length;
+      console.log(`Validation failed with ${errorCount} error(s):`, errors);
       return;
     }
 
@@ -868,6 +981,18 @@ const PostJob: React.FC = () => {
           input[type="date"] {
             color-scheme: ${darkMode ? "dark" : "light"};
             color: ${darkMode ? "white" : "black"};
+          }
+
+          /* Error state styling */
+          .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+          }
+
+          .error-message {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
           }
         `}
       </style>
@@ -1058,7 +1183,7 @@ const PostJob: React.FC = () => {
               </motion.h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <motion.div variants={inputVariants} className="mb-6">
+              <motion.div variants={inputVariants} className="mb-6" id="field-title">
                 <label
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
@@ -1068,20 +1193,27 @@ const PostJob: React.FC = () => {
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  onBlur={() => handleBlur('title')}
                   placeholder={t.postJob.enterJobTitle}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                    : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={`w-full p-4 rounded-xl border ${
+                    touched.title && errors.title
+                      ? "input-error"
+                      : darkMode
+                      ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
+                      : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 />
+                {touched.title && errors.title && (
+                  <p className="error-message">{errors.title}</p>
+                )}
               </motion.div>
               <motion.div variants={inputVariants} className="mb-6">
                 <label
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Site *
+                  Job Site
                 </label>
                 <select
                   value={jobSite}
@@ -1143,7 +1275,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Sector *
+                  Job Sector
                 </label>
                 <select
                   value={jobSector}
@@ -1364,7 +1496,7 @@ const PostJob: React.FC = () => {
                   ))}
                 </div>
               </motion.div>
-              <motion.div variants={inputVariants} className="md:col-span-2">
+              <motion.div variants={inputVariants} className="md:col-span-2" id="field-description">
                 <label
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-2`}
@@ -1384,15 +1516,22 @@ const PostJob: React.FC = () => {
                       setDescription(e.target.value);
                     }
                   }}
+                  onBlur={() => handleBlur('description')}
                   placeholder={t.postJob.enterDescription}
                   rows={8}
                   required
                   maxLength={maxDescriptionLength}
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                    : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 resize-none`}
+                  className={`w-full p-4 rounded-xl border ${
+                    touched.description && errors.description
+                      ? "input-error"
+                      : darkMode
+                      ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
+                      : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 resize-none`}
                 />
+                {touched.description && errors.description && (
+                  <p className="error-message">{errors.description}</p>
+                )}
                 <div className="flex items-center justify-between mt-2">
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Quick Tip! Create a high quality job post to attract top talents on HustleX!!
@@ -1449,7 +1588,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Country *
+                  Country
                 </label>
                 <select
                   value={country}

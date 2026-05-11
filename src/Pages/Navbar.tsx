@@ -69,11 +69,6 @@ const Navbar: React.FC = () => {
               {userRole === "freelancer" && (
                 <>
                   <li>
-                    <Link to="/dashboard/freelancer" className="hover:underline whitespace-nowrap">
-                      Dashboard
-                    </Link>
-                  </li>
-                  <li>
                     <Link to="/job-listings" className="hover:underline whitespace-nowrap">
                       View Jobs
                     </Link>
@@ -91,11 +86,6 @@ const Navbar: React.FC = () => {
                   <li>
                     <Link to="/post-job" className="hover:underline whitespace-nowrap">
                       Post a Job
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/dashboard/hiring" className="hover:underline whitespace-nowrap">
-                      Dashboard
                     </Link>
                   </li>
                 </>
@@ -153,15 +143,6 @@ const Navbar: React.FC = () => {
                   <>
                     <li>
                       <Link
-                        to="/dashboard/freelancer"
-                        className="hover:underline whitespace-nowrap block"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Dashboard
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
                         to="/job-listings"
                         className="hover:underline whitespace-nowrap block"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -190,15 +171,6 @@ const Navbar: React.FC = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Post a Job
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        to="/dashboard/hiring"
-                        className="hover:underline whitespace-nowrap block"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Dashboard
                       </Link>
                     </li>
                   </>

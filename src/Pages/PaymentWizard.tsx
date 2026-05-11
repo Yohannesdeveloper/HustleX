@@ -8,6 +8,7 @@ import { FaCheck, FaMobileAlt, FaArrowLeft, FaGlobe } from "react-icons/fa";
 import apiService from "../services/api";
 import { useTranslation } from "../hooks/useTranslation";
 import { getBackendUrlSync } from "../utils/portDetector";
+import PhoneInput from "../components/PhoneInput";
 
 const PaymentWizard: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
@@ -69,8 +70,14 @@ const PaymentWizard: React.FC = () => {
   ];
 
   const handlePhoneNumberSubmit = async () => {
-    if (!phoneNumber || !/^09\d{8}$/.test(phoneNumber)) {
-      alert("Please enter a valid Telebirr phone number (09XXXXXXXX)");
+    // Extract phone number without country code for validation
+    const phoneWithoutCode = phoneNumber.replace(/^\+251\s?/, '').replace(/^09/, '09');
+    
+    // Validate Ethiopian phone number format (09XXXXXXXX or +251 9XXXXXXXX)
+    const isValidEthiopian = /^09\d{8}$/.test(phoneWithoutCode) || /^\+251\s?9\d{8}$/.test(phoneNumber.trim());
+    
+    if (!phoneNumber || !isValidEthiopian) {
+      alert("Please enter a valid Telebirr phone number (09XXXXXXXX or +251 9XXXXXXXX)");
       return;
     }
 
@@ -271,19 +278,19 @@ const PaymentWizard: React.FC = () => {
                 </div>
 
                 <p className="text-gray-600 mb-6">{t.payment.enterPhoneNumber}</p>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder={t.payment.enterPhoneNumberPlaceholder}
-                  className="w-full max-w-md mx-auto px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 text-lg"
-                  maxLength={10}
-                />
+                <div className="w-full max-w-md mx-auto">
+                  <PhoneInput
+                    value={phoneNumber}
+                    onChange={setPhoneNumber}
+                    placeholder={t.payment.enterPhoneNumberPlaceholder}
+                    darkMode={darkMode}
+                  />
+                </div>
               </div>
               <button
                 onClick={handlePhoneNumberSubmit}
-                disabled={!phoneNumber || phoneNumber.length !== 10}
-                className={`w-full max-w-md py-3 px-6 rounded-lg font-semibold text-white transition-all ${phoneNumber && phoneNumber.length === 10
+                disabled={!phoneNumber || phoneNumber.length < 10}
+                className={`w-full max-w-md py-3 px-6 rounded-lg font-semibold text-white transition-all ${phoneNumber && phoneNumber.length >= 10
                   ? "bg-orange-500 hover:bg-orange-600"
                   : "bg-gray-400 cursor-not-allowed"
                   }`}

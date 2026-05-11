@@ -6,6 +6,15 @@ const config: Config = {
     "./src/**/*.{js,ts,jsx,tsx}", // This tells Tailwind to scan all your components and pages
   ],
   theme: {
+    screens: {
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
+      // Additional mobile breakpoints
+      'xs': '475px',
+    },
     extend: {
       animation: {
         marquee: "marquee 20s linear infinite",
@@ -34,6 +43,12 @@ const config: Config = {
       },
       backdropBlur: {
         glass: "10px",
+      },
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
       },
     },
   },

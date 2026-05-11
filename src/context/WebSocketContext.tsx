@@ -119,7 +119,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
 
       newSocket.on("newMessage", (data: any) => {
-        console.log("Received newMessage event:", data);
+        console.log("🔔 WebSocketContext received newMessage event:", data);
+        console.log("🔔 Number of message callbacks:", messageCallbacksRef.current.size);
         messageCallbacksRef.current.forEach((callback) => {
           try {
             callback(data);
@@ -131,9 +132,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       // Listen for message sent confirmation
       newSocket.on("messageSent", (data: any) => {
-        console.log("Message sent confirmation:", data);
-        // Intentionally do not forward messageSent to message callbacks
-        // to avoid duplicate message handling (newMessage already covers it).
+        console.log("📤 Message sent confirmation (ignored - using newMessage instead):", data?._id || data?.id);
+        // Do NOT forward to message callbacks to avoid duplicates
+        // The sender now receives newMessage event just like the receiver
       });
 
       newSocket.on("userTyping", (data: any) => {
