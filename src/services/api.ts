@@ -688,7 +688,9 @@ class ApiService {
     if (!token) {
       throw new Error("Authentication required");
     }
-    const response = await axios.get(`${this.baseUrl}/users/freelancers`);
+    const response = await axios.get(`${this.baseUrl}/users/freelancers`, {
+      params: { page: 1, limit: 100 },
+    });
     const data = response.data as any;
     return (data.freelancers || []) as Array<{
       _id: string;
@@ -765,22 +767,42 @@ class ApiService {
     };
   }
 
-  // Get freelancers with status information
-  async getFreelancersWithStatus(): Promise<FreelancerWithStatus[]> {
-    try {
-      const response = await axios.get(`${this.baseUrl}/users/freelancers`);
-      const freelancers = ((response.data as any).freelancers || []) as FreelancerWithStatus[];
+  /** Paginated freelancer directory (loads up to maxPages for client UI). */
+  async getFreelancersWithStatus(options?: {
+    search?: string;
+    maxPages?: number;
+  }): Promise<FreelancerWithStatus[]> {
+    const maxPages = options?.maxPages ?? 10;
+    const search = options?.search?.trim();
+    const all: FreelancerWithStatus[] = [];
+    let page = 1;
+    let hasNext = true;
 
-      // Add mock status for now (can be replaced with real status from backend)
-      return freelancers.map((freelancer) => ({
+    try {
+      while (hasNext && page <= maxPages) {
+        const response = await axios.get(`${this.baseUrl}/users/freelancers`, {
+          params: { page, limit: 50, ...(search ? { search } : {}) },
+        });
+        const data = response.data as {
+          freelancers?: FreelancerWithStatus[];
+          pagination?: { hasNext?: boolean };
+        };
+        const batch = data.freelancers || [];
+        all.push(...batch);
+        hasNext = Boolean(data.pagination?.hasNext);
+        page += 1;
+        if (batch.length === 0) break;
+      }
+
+      return all.map((freelancer) => ({
         ...freelancer,
-        status: Math.random() > 0.5 ? "online" : "offline" as "online" | "offline",
-        lastActive: "2 hours ago",
-        portfolio: freelancer.profile?.portfolioUrl ? {
-          url: freelancer.profile.portfolioUrl,
-        } : undefined,
+        status: (freelancer as FreelancerWithStatus).status || ("offline" as const),
+        lastActive: (freelancer as FreelancerWithStatus).lastActive,
+        portfolio: freelancer.profile?.portfolioUrl
+          ? { url: freelancer.profile.portfolioUrl }
+          : undefined,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching freelancers with status:", error);
       throw error;
     }
@@ -806,12 +828,33 @@ class ApiService {
     }
   }
 
-  // Get conversation messages
-  async getConversationMessages(conversationId: string): Promise<any[]> {
+  // Get conversation messages (paginated; fetches all pages up to maxPages)
+  async getConversationMessages(
+    conversationId: string,
+    maxPages = 5
+  ): Promise<any[]> {
     try {
-      const response = await axios.get(`${this.baseUrl}/messages/conversation/${conversationId}`);
-      return (response.data || []) as any[];
-    } catch (error: any) {
+      const messages: any[] = [];
+      let page = 1;
+      let hasNext = true;
+
+      while (hasNext && page <= maxPages) {
+        const response = await axios.get(
+          `${this.baseUrl}/messages/conversation/${conversationId}`,
+          { params: { page, limit: 100 } }
+        );
+        const data = response.data as { messages?: any[]; pagination?: { hasNext?: boolean } };
+        if (Array.isArray(data)) {
+          return data as any[];
+        }
+        messages.push(...(data.messages || []));
+        hasNext = Boolean(data.pagination?.hasNext);
+        page += 1;
+        if (!data.messages?.length) break;
+      }
+
+      return messages;
+    } catch (error: unknown) {
       console.error("Error fetching conversation messages:", error);
       throw error;
     }

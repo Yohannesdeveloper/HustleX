@@ -1,8 +1,8 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
-const nodemailer = require("nodemailer");
 const User = require("../models/User");
+const { sendMail } = require("../services/mail");
 const Company = require("../models/Company");
 const { auth } = require("../middleware/auth");
 
@@ -12,15 +12,6 @@ const router = express.Router();
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
-
-// Nodemailer transporter for sending OTP emails
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -181,13 +172,12 @@ router.post(
       user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
 
-      // Send OTP email
-      await transporter.sendMail({
-        from: `"HustleX" <${process.env.EMAIL_USER}>`,
+      await sendMail({
         to: email,
         subject: "Your password reset OTP",
         text: `Your OTP is ${otp}. It expires in 10 minutes.`,
         html: `<p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
+        priority: "high",
       });
 
       return res.json({ message: "OTP sent to email" });
@@ -532,6 +522,7 @@ router.post("/freelancer-profile", auth, async (req, res) => {
     profile.linkedinUrl = profileData.linkedinUrl;
     profile.githubUrl = profileData.githubUrl;
     profile.websiteUrl = profileData.websiteUrl;
+    profile.cvUrl = profileData.cvUrl;
 
     // Avatar
     if (profileData.avatar) {

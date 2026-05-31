@@ -2,30 +2,29 @@ const express = require("express");
 const router = express.Router();
 const Message = require("../models/Message");
 const { auth } = require("../middleware/auth");
+const { parsePagination } = require("../lib/pagination");
 
-// Get connectedUsers map from server (will be set by server.js)
 let connectedUsers = new Map();
 
-// Function to set connectedUsers map (called by server.js)
 const setConnectedUsers = (map) => {
   connectedUsers = map;
 };
 
-// Get all conversations for a user
 router.get("/conversations", auth, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
+    const { page, limit, skip, meta } = parsePagination(req.query, {
+      defaultLimit: 30,
+      maxLimit: 100,
+    });
 
-    // Get all unique conversations for this user
-    const conversations = await Message.aggregate([
+    const pipeline = [
       {
         $match: {
           $or: [{ senderId: userId }, { receiverId: userId }],
         },
       },
-      {
-        $sort: { createdAt: -1 },
-      },
+      { $sort: { createdAt: -1 } },
       {
         $group: {
           _id: "$conversationId",
@@ -46,12 +45,19 @@ router.get("/conversations", auth, async (req, res) => {
           },
         },
       },
+      { $sort: { "lastMessage.createdAt": -1 } },
       {
-        $sort: { "lastMessage.createdAt": -1 },
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          total: [{ $count: "count" }],
+        },
       },
-    ]);
+    ];
 
-    // Populate sender and receiver info
+    const [result] = await Message.aggregate(pipeline);
+    const conversations = result?.data || [];
+    const total = result?.total?.[0]?.count || 0;
+
     for (const conv of conversations) {
       await Message.populate(conv.lastMessage, [
         { path: "senderId", select: "email profile" },
@@ -59,31 +65,43 @@ router.get("/conversations", auth, async (req, res) => {
       ]);
     }
 
-    res.json(conversations);
+    res.json({
+      conversations,
+      pagination: meta(total),
+    });
   } catch (error) {
     console.error("Error fetching conversations:", error);
     res.status(500).json({ message: "Error fetching conversations" });
   }
 });
 
-// Get messages for a specific conversation
 router.get("/conversation/:conversationId", auth, async (req, res) => {
   try {
     let { conversationId } = req.params;
     const userId = req.user._id || req.user.id;
+    const { page, limit, skip, meta } = parsePagination(req.query, {
+      defaultLimit: 50,
+      maxLimit: 100,
+    });
 
-    // Handle conversationId format: userId1/userId2 or conversation_userId1_userId2
     if (conversationId.includes("/")) {
       const [userId1, userId2] = conversationId.split("/");
       conversationId = [userId1, userId2].sort().join("_");
     }
 
-    const messages = await Message.find({ conversationId })
-      .populate("senderId", "email profile")
-      .populate("receiverId", "email profile")
-      .sort({ createdAt: 1 });
+    const filter = { conversationId };
 
-    // Mark messages as read
+    const [messages, total] = await Promise.all([
+      Message.find(filter)
+        .populate("senderId", "email profile")
+        .populate("receiverId", "email profile")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Message.countDocuments(filter),
+    ]);
+
     await Message.updateMany(
       {
         conversationId,
@@ -96,19 +114,20 @@ router.get("/conversation/:conversationId", auth, async (req, res) => {
       }
     );
 
-    res.json(messages);
+    res.json({
+      messages: messages.reverse(),
+      pagination: meta(total),
+    });
   } catch (error) {
     console.error("Error fetching messages:", error);
     res.status(500).json({ message: "Error fetching messages" });
   }
 });
 
-// Get or create conversation between two users
 router.get("/conversation/:userId1/:userId2", auth, async (req, res) => {
   try {
     const { userId1, userId2 } = req.params;
     const conversationId = [userId1, userId2].sort().join("_");
-
     res.json({ conversationId });
   } catch (error) {
     console.error("Error getting conversation:", error);
@@ -116,7 +135,6 @@ router.get("/conversation/:userId1/:userId2", auth, async (req, res) => {
   }
 });
 
-// Edit a message
 router.put("/:messageId", auth, async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -127,24 +145,20 @@ router.put("/:messageId", auth, async (req, res) => {
       return res.status(400).json({ message: "Message text is required" });
     }
 
-    // Find the message
     const messageToEdit = await Message.findById(messageId);
     if (!messageToEdit) {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    // Verify user owns the message
     if (messageToEdit.senderId.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Unauthorized to edit this message" });
     }
 
-    // Update the message
     messageToEdit.message = message.trim();
     messageToEdit.isEdited = true;
     messageToEdit.editedAt = new Date();
     await messageToEdit.save();
 
-    // Populate sender info
     await messageToEdit.populate("senderId", "email profile");
 
     const editedMessageData = {
@@ -152,24 +166,17 @@ router.put("/:messageId", auth, async (req, res) => {
       sender: messageToEdit.senderId,
       conversationId: messageToEdit.conversationId,
       messageId: messageToEdit._id,
-      action: 'edit',
+      action: "edit",
       isEdit: true,
     };
 
-    // Emit WebSocket event to notify receiver
-    const io = req.app.get('io');
-    if (io && connectedUsers) {
-      // Get receiver socket ID
-      const receiverSocketId = connectedUsers.get(messageToEdit.receiverId.toString());
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageEdited", editedMessageData);
-      }
-      
-      // Also notify sender
-      const senderSocketId = connectedUsers.get(userId.toString());
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("messageEdited", editedMessageData);
-      }
+    const io = req.app.get("io");
+    const getUserSocketId = req.app.get("getUserSocketId");
+    if (io) {
+      const receiverId = messageToEdit.receiverId.toString();
+      const senderId = userId.toString();
+      io.to(`user:${receiverId}`).emit("messageEdited", editedMessageData);
+      io.to(`user:${senderId}`).emit("messageEdited", editedMessageData);
     }
 
     res.json({
@@ -182,6 +189,5 @@ router.put("/:messageId", auth, async (req, res) => {
   }
 });
 
-// Export router with setConnectedUsers function
 router.setConnectedUsers = setConnectedUsers;
 module.exports = router;

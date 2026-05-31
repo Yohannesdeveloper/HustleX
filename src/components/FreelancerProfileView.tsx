@@ -50,7 +50,7 @@ const FreelancerProfileView: React.FC<FreelancerProfileViewProps> = ({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <motion.div
         className={`${
-          darkMode ? "bg-gray-800 border-white/10" : "bg-white border-black/10"
+          darkMode ? "bg-gray-800 text-white border-white/10" : "bg-white text-gray-900 border-black/10"
         } border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl`}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -194,8 +194,8 @@ const FreelancerProfileView: React.FC<FreelancerProfileViewProps> = ({
               {/* Bio Section */}
               {bio && bio !== 'No bio available' && (
                 <div className={`rounded-lg border p-6 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-                  <h3 className="text-xl font-semibold mb-4">About</h3>
-                  <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} leading-relaxed`}>
+                  <h3 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>About</h3>
+                  <p className={`${darkMode ? 'text-gray-100' : 'text-gray-600'} leading-relaxed`}>
                     {bio}
                   </p>
                 </div>

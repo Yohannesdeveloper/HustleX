@@ -6,6 +6,13 @@ import { RootState } from '../store';
 import apiService from '../services/api';
 import { useAuth } from '../store/hooks';
 import PhoneInput from './PhoneInput';
+import { COUNTRIES } from '../constants/countries';
+import { formatLocation, parseLocation } from '../utils/location';
+import {
+  mapCompanySizeToApi,
+  mapCompanySizeToDisplay,
+  normalizeWebsiteUrl,
+} from '../utils/companyProfile';
 
 interface ClientProfileData {
   // Company Information
@@ -15,6 +22,8 @@ interface ClientProfileData {
   companySize: string;
   website: string;
   location: string;
+  city: string;
+  country: string;
 
   // Contact Information
   contactPerson: string;
@@ -63,6 +72,8 @@ const ClientProfileWizard: React.FC = () => {
     companySize: '',
     website: '',
     location: '',
+    city: '',
+    country: '',
     contactPerson: '',
     contactEmail: '',
     contactPhone: '',
@@ -81,17 +92,6 @@ const ClientProfileWizard: React.FC = () => {
       try {
         const companyProfile = await apiService.getCompanyProfile();
 
-        const mapCompanySizeToDisplay = (size: string) => {
-          const sizeMap: { [key: string]: string } = {
-            '1-10': '1-10 employees',
-            '11-50': '11-50 employees',
-            '51-200': '51-200 employees',
-            '201-500': '201-500 employees',
-            '500+': '1000+ employees',
-          };
-          return sizeMap[size] || size;
-        };
-
         const companyLogoUrl = companyProfile.logo
           ? (companyProfile.logo.startsWith('http') || companyProfile.logo.startsWith('data:')
             ? companyProfile.logo
@@ -106,6 +106,8 @@ const ClientProfileWizard: React.FC = () => {
           : null;
 
         const logoUrl = companyLogoUrl || userProfilePic;
+        const savedLocation = companyProfile.location ?? companyProfile.address ?? '';
+        const { city, country } = parseLocation(savedLocation);
 
         setProfileData(prev => ({
           ...prev,
@@ -114,7 +116,9 @@ const ClientProfileWizard: React.FC = () => {
           industry: companyProfile.industry ?? prev.industry,
           companySize: mapCompanySizeToDisplay(companyProfile.companySize) || prev.companySize,
           website: companyProfile.website ?? prev.website,
-          location: companyProfile.location ?? companyProfile.address ?? prev.location,
+          location: savedLocation || prev.location,
+          city: city || prev.city,
+          country: country || prev.country,
           contactPerson: companyProfile.contactPerson ?? companyProfile.representative ?? prev.contactPerson,
           contactEmail: companyProfile.contactEmail ?? prev.contactEmail,
           contactPhone: companyProfile.contactPhone ?? prev.contactPhone,
@@ -149,6 +153,12 @@ const ClientProfileWizard: React.FC = () => {
   }, [loading, user]);
 
   const updateData = (field: keyof ClientProfileData, value: any) => {
+    if (field === 'website' && typeof value === 'string' && value.trim()) {
+      const trimmed = value.trim();
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        value = `https://${trimmed}`;
+      }
+    }
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -267,6 +277,25 @@ const ClientProfileWizard: React.FC = () => {
 // Step Components
 const CompanyInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst, isLast }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+
+  const inputClass = (hasError = false) =>
+    `w-full px-4 py-3 rounded-lg border ${
+      hasError
+        ? 'border-red-500 focus:ring-red-500'
+        : darkMode
+          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+    } focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors`;
+
+  const handleCityChange = (city: string) => {
+    updateData('city', city);
+    updateData('location', formatLocation(city, data.country));
+  };
+
+  const handleCountryChange = (country: string) => {
+    updateData('country', country);
+    updateData('location', formatLocation(data.city, country));
+  };
 
   const industries = [
     'Technology',
@@ -433,17 +462,40 @@ const CompanyInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirs
           />
         </div>
 
-        <div>
+        <div className="md:col-span-2">
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             Location *
           </label>
-          <input
-            type="text"
-            value={data.location}
-            onChange={(e) => updateData('location', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors`}
-            placeholder="City, Country"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              value={data.city}
+              onChange={(e) => handleCityChange(e.target.value)}
+              className={inputClass()}
+              placeholder="City"
+            />
+            <select
+              value={data.country}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              className={inputClass()}
+            >
+              <option value="" disabled className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                Select country
+              </option>
+              {COUNTRIES.map((c) => (
+                <option
+                  key={c}
+                  value={c}
+                  className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}
+                >
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Saved as: {data.location || 'City, Country'}
+          </p>
         </div>
 
         <div className="md:col-span-2">
@@ -465,7 +517,7 @@ const CompanyInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirs
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          disabled={!data.companyName || !data.industry || !data.companySize || !data.location || !data.companyDescription}
+          disabled={!data.companyName || !data.industry || !data.companySize || !data.city.trim() || !data.country || !data.companyDescription}
           className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           Next Step
@@ -661,20 +713,37 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         }
       }
 
-      // Prepare profile data with uploaded file URLs
-      const profileData = {
-        companyName: data.companyName,
+      const validLogo =
+        logoUrl && (logoUrl.startsWith('http://') || logoUrl.startsWith('https://'))
+          ? logoUrl
+          : undefined;
+      const validTradeLicense =
+        tradeLicenseUrl &&
+        (tradeLicenseUrl.startsWith('http://') || tradeLicenseUrl.startsWith('https://'))
+          ? tradeLicenseUrl
+          : undefined;
+
+      // Prepare profile data with uploaded file URLs (match API validation)
+      const profileData: Record<string, unknown> = {
+        companyName: data.companyName.trim(),
         description: data.companyDescription,
         industry: data.industry,
-        companySize: data.companySize,
-        website: data.website,
-        location: data.location,
+        companySize: mapCompanySizeToApi(data.companySize),
+        location: formatLocation(data.city, data.country) || data.location,
         contactEmail: data.contactEmail,
         contactPhone: data.contactPhone,
-        foundedYear: data.foundedYear ? parseInt(data.foundedYear) : undefined,
-        logo: logoUrl,
-        tradeLicense: tradeLicenseUrl,
       };
+
+      const website = normalizeWebsiteUrl(data.website);
+      if (website) profileData.website = website;
+
+      if (data.foundedYear) {
+        const year = parseInt(data.foundedYear, 10);
+        if (!Number.isNaN(year)) profileData.foundedYear = year;
+      }
+      if (validLogo) profileData.logo = validLogo;
+      if (validTradeLicense) profileData.tradeLicense = validTradeLicense;
+      if (data.taxId?.trim()) profileData.taxId = data.taxId.trim();
 
       // Save company profile (stored in same backend as client dashboard)
       await apiService.updateCompanyProfile(profileData);
@@ -694,7 +763,13 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       }
     } catch (error: any) {
       console.error('Error saving company profile:', error);
-      alert('Failed to save company profile. Please try again.');
+      const details = error?.response?.data?.errors;
+      const errMsg =
+        (Array.isArray(details) && details.map((e: { msg?: string }) => e.msg).filter(Boolean).join('\n')) ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Please try again.';
+      alert(`Failed to save company profile: ${errMsg}`);
     } finally {
       setIsSubmitting(false);
     }

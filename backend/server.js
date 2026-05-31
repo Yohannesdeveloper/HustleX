@@ -2,16 +2,29 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+const hpp = require("hpp");
+const compression = require("compression");
 const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
 const { createServer } = require("http");
-const { Server } = require("socket.io");
+const { Server } = require('socket.io');
 const mongoose = require("mongoose");
 const { detect: detectPort } = require("detect-port");
+const morgan = require("morgan");
 dotenv.config();
 
+const { logScaleStatus } = require("./config/scale");
+logScaleStatus();
+
 const connectDB = require("./config/database");
+const { sanitizeInput } = require("./middleware/sanitize");
+const { initializeRedis, cacheMiddleware } = require("./middleware/cache");
+const requestTimeout = require("./middleware/timeout");
+const { createRateLimitStore } = require("./middleware/rate-limit-redis");
+const { metricsMiddleware, getPrometheusMetrics, recordSocketMessage, recordSocketError } = require("./middleware/metrics");
 
 // Import routes
 const authRoutes = require("./routes/auth");
@@ -30,12 +43,16 @@ const pricingRoutes = require("./routes/pricing");
 
 const app = express();
 
+app.use(metricsMiddleware);
+
 // Connect to MongoDB
 connectDB();
 
 // CORS must be applied BEFORE helmet/ratelimit to ensure preflights aren't blocked
 const corsOptions = {
-  origin: true, // reflect request origin
+  origin: process.env.NODE_ENV === "production" 
+    ? [process.env.CLIENT_URL || "https://hustlex.com"] 
+    : true, // reflect request origin in development
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: [
@@ -45,38 +62,163 @@ const corsOptions = {
     "x-admin-code",
   ],
   optionsSuccessStatus: 200,
+  maxAge: 86400, // Cache preflight request for 24 hours
 };
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
-// Security middleware
+// Compression middleware - MUST be applied early for optimal performance
+// Compresses all responses with gzip/brotli (reduces payload size by 60-80%)
+app.use(compression({
+  level: 6, // Balance between CPU usage and compression ratio (1-9)
+  threshold: 1024, // Only compress responses larger than 1KB
+}));
+
+// Initialize Redis cache
+initializeRedis();
+
+const { isS3Enabled } = require("./services/storage");
+const { isQueueEnabled } = require("./lib/redis-config");
+console.log(`📦 File storage: ${isS3Enabled() ? "S3 + CDN" : "local disk"}`);
+console.log(`📬 Background queues: ${isQueueEnabled() ? "enabled (run npm run worker)" : "disabled"}`);
+
+// Security middleware - MUST be applied early
 // Allow images and other static assets to be consumed by the frontend on a different origin
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: false, // Disable CSP for Socket.IO compatibility
+    crossOriginEmbedderPolicy: false, // Required for some features
+    contentSecurityPolicy: process.env.NODE_ENV === "production" ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Needed for React
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        connectSrc: ["'self'", "https:", "wss:", "ws:"], // For WebSocket
+        mediaSrc: ["'self'", "blob:"],
+        objectSrc: ["'none'"],
+        frameSrc: ["'none'"],
+      },
+    } : false, // Disable CSP in development
   })
 );
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "development" ? 2000 : 100, // much higher limit for dev
+// Additional security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  
+  // HSTS in production
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  
+  next();
 });
-app.use(limiter);
 
-// Body parsing middleware
-app.use(express.json({ limit: "1gb" }));
-app.use(express.urlencoded({ extended: true, limit: "1gb" }));
+// Request logging with morgan
+if (process.env.NODE_ENV === "production") {
+  // Use combined format for production (includes more details)
+  app.use(morgan('combined', {
+    stream: {
+      write: (message) => {
+        const logMessage = message.trim();
+        console.log(logMessage);
+        // Write to log file
+        const logDir = path.join(__dirname, 'logs');
+        if (!fs.existsSync(logDir)) {
+          fs.mkdirSync(logDir, { recursive: true });
+        }
+        fs.appendFileSync(path.join(logDir, 'access.log'), logMessage + '\n');
+      }
+    }
+  }));
+} else {
+  // Use dev format for development (colorized, concise)
+  app.use(morgan('dev'));
+}
+
+// Body parsing middleware - LIMIT SIZE to prevent DoS
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize({
+  replaceWith: '_',
+}));
+
+// Data sanitization against XSS attacks
+app.use(xss());
+
+// Prevent parameter pollution
+app.use(hpp());
+
+// Custom input sanitization middleware
+app.use(sanitizeInput);
+
+// Request timeout handling (30 seconds default)
+app.use(requestTimeout(30000));
+
+// Rate limiting - Global
+// store: shared Redis counter so all pods enforce the same per-IP window
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === "development" ? 2000 : 100,
+  message: {
+    message: "Too many requests from this IP, please try again later.",
+    retryAfter: "15 minutes"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === "test",
+  store: createRateLimitStore('global'),
+});
+app.use(globalLimiter);
+
+// Stricter rate limiting for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 100 : 20,
+  message: {
+    message: "Too many authentication attempts, please try again later.",
+    retryAfter: "15 minutes"
+  },
+  skipSuccessfulRequests: true,
+  store: createRateLimitStore('auth'),
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 200 : 50,
+  message: {
+    message: "Too many file uploads, please try again later.",
+    retryAfter: "1 hour",
+  },
+  store: createRateLimitStore("upload"),
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 1000 : 200,
+  message: {
+    message: "Too many API requests, please try again later.",
+    retryAfter: "15 minutes",
+  },
+  store: createRateLimitStore("api"),
+});
 
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes
-app.use("/api/auth", authRoutes);
+// Routes - Apply rate limiters
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/upload", uploadRoutes);
+app.use("/api/upload", uploadLimiter, uploadRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/companies", companyRoutes);
 app.use("/api/blogs", blogRoutes);
@@ -87,9 +229,119 @@ app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/statistics", statisticsRoutes);
 app.use("/api/pricing", pricingRoutes);
 
-// Health check endpoint
+// Prometheus metrics (K8s / monitoring)
+app.get("/metrics", (req, res) => {
+  res.set("Content-Type", "text/plain; version=0.0.4");
+  res.send(getPrometheusMetrics());
+});
+
+// Health check endpoint - Basic
 app.get("/api/health", (req, res) => {
   res.json({ message: "API is running", timestamp: new Date().toISOString() });
+});
+
+// Enhanced health check - Detailed system status
+app.get("/api/health/detailed", async (req, res) => {
+  try {
+    const health = {
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.env.npm_package_version || "1.0.0",
+      environment: process.env.NODE_ENV || "development",
+    };
+
+    // Check MongoDB connection
+    try {
+      const dbState = mongoose.connection.readyState;
+      health.database = {
+        status: dbState === 1 ? "connected" : "disconnected",
+        responseTime: null,
+      };
+
+      if (dbState === 1) {
+        const start = Date.now();
+        await mongoose.connection.db.admin().ping();
+        health.database.responseTime = `${Date.now() - start}ms`;
+      }
+    } catch (error) {
+      health.database = {
+        status: "error",
+        error: error.message,
+      };
+      health.status = "degraded";
+    }
+
+    // Check Redis connection
+    try {
+      const { redisClient } = require("./middleware/cache");
+      const client = redisClient();
+      if (client && client.status === "ready") {
+        const start = Date.now();
+        await client.ping();
+        health.redis = {
+          status: "connected",
+          responseTime: `${Date.now() - start}ms`,
+        };
+      } else {
+        health.redis = {
+          status: "disconnected",
+          note: "Redis caching disabled or not ready",
+        };
+      }
+    } catch (error) {
+      health.redis = {
+        status: "error",
+        error: error.message,
+      };
+      health.status = "degraded";
+    }
+
+    // Memory usage
+    const memUsage = process.memoryUsage();
+    health.memory = {
+      rss: `${Math.round(memUsage.rss / 1024 / 1024)} MB`,
+      heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)} MB`,
+      heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)} MB`,
+      external: `${Math.round(memUsage.external / 1024 / 1024)} MB`,
+    };
+
+    // CPU usage (basic)
+    health.cpu = {
+      cores: require("os").cpus().length,
+      platform: process.platform,
+      nodeVersion: process.version,
+    };
+
+    const { isQueueEnabled } = require("./lib/redis-config");
+    health.queues = { enabled: isQueueEnabled() };
+    if (isQueueEnabled()) {
+      try {
+        const { getQueueStats } = require("./services/queue-stats");
+        health.queues.stats = await getQueueStats();
+      } catch (queueErr) {
+        health.queues.error = queueErr.message;
+      }
+    }
+
+    // Determine overall status
+    if (health.database.status === "error" && health.redis.status === "error") {
+      health.status = "unhealthy";
+      res.status(503);
+    } else if (health.status === "degraded") {
+      res.status(200); // Still respond OK but with degraded status
+    } else {
+      res.status(200);
+    }
+
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Error handling middleware
@@ -158,31 +410,83 @@ let PORT = desiredPort;
 // Create HTTP server
 const server = createServer(app);
 
-// Initialize Socket.IO
+// Initialize Socket.IO (Redis adapter attached in startup after connect attempt)
+const { createAdapter } = require("@socket.io/redis-adapter");
+const { initSocketRedis, getSocketPubClient } = require("./lib/redis-socket");
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:3000",
-      "http://localhost:5173",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: process.env.NODE_ENV === 'production'
+      ? [process.env.CLIENT_URL || 'https://hustlex.com']
+      : [
+          process.env.CLIENT_URL || 'http://localhost:5173',
+          'http://localhost:5174',
+          'http://localhost:3000',
+          'http://localhost:5173',
+        ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   },
   allowEIO3: true,
-  // Increase payload size to support multiple file/voice attachments in chat
   maxHttpBufferSize: 10 * 1024 * 1024, // 10MB
+  // Tune for high concurrency
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  upgradeTimeout: 30000,
+  transports: ['websocket', 'polling'],
 });
+
+const { setIO } = require("./services/realtime");
+setIO(io);
 
 // Make io accessible to routes
 app.set('io', io);
 
-// Socket.IO connection handling
-const connectedUsers = new Map(); // userId -> socketId
+/**
+ * Redis-backed socket presence store.
+ * Replaces the in-process Map so all pods share online state.
+ * Key: hustlex:presence:{userId}  Value: socketId  TTL: 90s (refreshed on activity)
+ */
+const PRESENCE_PREFIX = 'hustlex:presence:';
+const PRESENCE_TTL = 90; // seconds
 
-// Make connectedUsers accessible to message routes
+async function setUserPresence(userId, socketId) {
+  const redis = getSocketPubClient();
+  if (!redis) return;
+  try {
+    await redis.setex(`${PRESENCE_PREFIX}${userId}`, PRESENCE_TTL, socketId);
+  } catch (err) {
+    console.error("setUserPresence error:", err.message);
+  }
+}
+
+async function getUserSocketId(userId) {
+  const redis = getSocketPubClient();
+  if (!redis) return null;
+  try {
+    return await redis.get(`${PRESENCE_PREFIX}${userId}`);
+  } catch (err) {
+    console.error("getUserSocketId error:", err.message);
+    return null;
+  }
+}
+
+async function removeUserPresence(userId) {
+  const redis = getSocketPubClient();
+  if (!redis) return;
+  try {
+    await redis.del(`${PRESENCE_PREFIX}${userId}`);
+  } catch (err) {
+    console.error("removeUserPresence error:", err.message);
+  }
+}
+
+// Expose helpers to routes that need to emit to specific users
+app.set('getUserSocketId', getUserSocketId);
+
+// Legacy in-process map kept for setConnectedUsers compatibility
+const connectedUsers = new Map();
 if (messageRoutes.setConnectedUsers) {
   messageRoutes.setConnectedUsers(connectedUsers);
 }
@@ -193,130 +497,78 @@ io.on("connection", (socket) => {
   // User joins with their userId
   socket.on("join", (userId) => {
     if (userId) {
+      // Update both local map (for same-pod fast path) and Redis (for cross-pod routing)
       connectedUsers.set(userId, socket.id);
       socket.userId = userId;
+      setUserPresence(userId, socket.id);
+      // Join a named room so any pod can emit to this user via io.to(userId)
+      socket.join(`user:${userId}`);
       console.log(`User ${userId} joined with socket ${socket.id}`);
     }
   });
 
-  // Handle sending messages
+  // Handle sending messages — async queue (scale) or inline persist
   socket.on("sendMessage", async (data) => {
     try {
-      const Message = require("./models/Message");
-      const { senderId, receiverId, message, conversationId, messageType, voiceData, voiceDuration } = data;
+      const { senderId, receiverId } = data;
+      const {
+        persistChatMessage,
+        buildOptimisticMessage,
+        createClientMessageId,
+      } = require("./services/message-persist");
+      const {
+        isMessageAsyncEnabled,
+        enqueueChatMessageAsync,
+        persistChatMessageQueued,
+      } = require("./services/queue-helpers");
 
-      // Normalize files payload – handle both structured arrays and stringified data
-      let files = [];
-      if (Array.isArray(data.files)) {
-        // Sometimes the frontend (or older clients) might send files as a single JSON string
-        if (data.files.length > 0 && typeof data.files[0] === "string") {
-          try {
-            const parsed = JSON.parse(data.files[0]);
-            if (Array.isArray(parsed)) {
-              files = parsed;
-            }
-          } catch (e) {
-            console.error("Failed to parse stringified files array:", e);
-            files = [];
-          }
-        } else {
-          files = data.files;
+      const clientMessageId = data.clientMessageId || createClientMessageId();
+
+      if (isMessageAsyncEnabled()) {
+        const optimistic = buildOptimisticMessage({ ...data, clientMessageId });
+        const senderRoom = `user:${socket.userId || senderId}`;
+        io.to(senderRoom).emit("newMessage", optimistic);
+        await enqueueChatMessageAsync({ ...data, clientMessageId });
+        recordSocketMessage();
+        return;
+      }
+
+      let messageData;
+      try {
+        messageData = await persistChatMessageQueued(data);
+        if (!messageData) {
+          messageData = await persistChatMessage(data);
         }
-      } else if (typeof data.files === "string") {
-        // Direct JSON string case
-        try {
-          const parsed = JSON.parse(data.files);
-          if (Array.isArray(parsed)) {
-            files = parsed;
-          }
-        } catch (e) {
-          console.error("Failed to parse files JSON string:", e);
-          files = [];
-        }
-      } else if (data.files && typeof data.files === "object") {
-        // Single file object case
-        files = [data.files];
+      } catch (queueErr) {
+        console.warn("Message queue failed, saving inline:", queueErr.message);
+        messageData = await persistChatMessage(data);
       }
 
-      // Ensure conversationId is properly formatted
-      const formattedConversationId = conversationId || [senderId, receiverId].sort().join("_");
-
-      // Create message in database
-      const newMessage = new Message({
-        conversationId: formattedConversationId,
-        senderId,
-        receiverId,
-        message,
-        messageType: messageType || 'text',
-        voiceData: voiceData || undefined,
-        voiceDuration: voiceDuration || undefined,
-        files: files || [],
-      });
-      await newMessage.save();
-
-      // Populate sender info
-      await newMessage.populate("senderId", "email profile");
-
-      // Ensure all fields are included, especially files array
-      const messageObj = newMessage.toObject();
-      const messageData = {
-        ...messageObj,
-        sender: newMessage.senderId,
-        conversationId: formattedConversationId,
-        // Explicitly include files, voiceData, etc. to ensure they're sent
-        files: messageObj.files || [],
-        voiceData: messageObj.voiceData || undefined,
-        voiceDuration: messageObj.voiceDuration || undefined,
-        messageType: messageObj.messageType || 'text',
-      };
-
-      console.log("📤 Broadcasting message with files:", {
-        messageId: messageData._id,
-        hasFiles: messageData.files && messageData.files.length > 0,
-        fileCount: messageData.files ? messageData.files.length : 0,
-        messageType: messageData.messageType,
-      });
-
-      // Emit to receiver if online
-      const receiverSocketId = connectedUsers.get(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("newMessage", messageData);
-        console.log(`✅ Emitted newMessage to receiver ${receiverId} at socket ${receiverSocketId}`);
-      }
-
-      // Also emit to sender for real-time sync (replaces messageSent)
-      const senderSocketId = connectedUsers.get(socket.userId);
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("newMessage", messageData);
-        console.log(`✅ Emitted newMessage to sender ${socket.userId} at socket ${senderSocketId}`);
-      }
+      io.to(`user:${receiverId}`).emit("newMessage", messageData);
+      io.to(`user:${socket.userId || senderId}`).emit("newMessage", messageData);
+      recordSocketMessage();
     } catch (error) {
       console.error("Error sending message:", error);
+      recordSocketError();
       socket.emit("messageError", { error: "Failed to send message" });
     }
   });
 
-  // Handle typing indicator
+  // Handle typing indicator — emit to named room (works cross-pod)
   socket.on("typing", (data) => {
     const { receiverId, conversationId } = data;
-    const receiverSocketId = connectedUsers.get(receiverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("userTyping", {
-        senderId: socket.userId,
-        conversationId,
-      });
-    }
+    io.to(`user:${receiverId}`).emit("userTyping", {
+      senderId: socket.userId,
+      conversationId,
+    });
   });
 
   socket.on("stopTyping", (data) => {
     const { receiverId, conversationId } = data;
-    const receiverSocketId = connectedUsers.get(receiverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("userStoppedTyping", {
-        senderId: socket.userId,
-        conversationId,
-      });
-    }
+    io.to(`user:${receiverId}`).emit("userStoppedTyping", {
+      senderId: socket.userId,
+      conversationId,
+    });
   });
 
   // Handle editing messages
@@ -382,24 +634,13 @@ io.on("connection", (socket) => {
         message: editedMessageData.message,
       });
 
-      // Emit to receiver if online
-      const receiverSocketId = connectedUsers.get(receiverIdStr);
-      if (receiverSocketId) {
-        console.log(`✅ Sending edit to receiver ${receiverIdStr} at socket ${receiverSocketId}`);
-        io.to(receiverSocketId).emit("messageEdited", editedMessageData);
-      } else {
-        console.log(`⚠️ Receiver ${receiverIdStr} is not online`);
-      }
+      // Emit to receiver room (works cross-pod via Redis adapter)
+      io.to(`user:${receiverIdStr}`).emit("messageEdited", editedMessageData);
+      console.log(`✅ Sent edit to receiver room user:${receiverIdStr}`);
 
-      // Confirm to sender (always emit to sender)
-      const senderSocketId = connectedUsers.get(senderIdStr);
-      if (senderSocketId && senderSocketId !== socket.id) {
-        // Only emit separately if it's a different socket (shouldn't happen, but just in case)
-        console.log(`✅ Confirming edit to sender ${senderIdStr} at socket ${senderSocketId}`);
-        io.to(senderSocketId).emit("messageEdited", editedMessageData);
-      }
-      // Also emit to the current socket (sender)
-      socket.emit("messageEdited", editedMessageData);
+      // Confirm to sender room
+      io.to(`user:${senderIdStr}`).emit("messageEdited", editedMessageData);
+      console.log(`✅ Confirmed edit to sender room user:${senderIdStr}`);
     } catch (error) {
       console.error("Error editing message:", error);
       socket.emit("messageError", { error: "Failed to edit message" });
@@ -407,23 +648,17 @@ io.on("connection", (socket) => {
   });
 
   // Handle disconnect
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     if (socket.userId) {
       connectedUsers.delete(socket.userId);
+      await removeUserPresence(socket.userId);
       console.log(`User ${socket.userId} disconnected`);
     }
   });
 });
 
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    uptime: process.uptime(),
-  });
-});
+// Note: /api/health is already registered above (lines ~219–314).
+// The duplicate has been removed to prevent silent route override.
 
 // Port info endpoint for frontend
 app.get("/api/port", (req, res) => {
@@ -436,6 +671,11 @@ app.get("/api/port", (req, res) => {
 // Start server with automatic port detection
 (async () => {
   try {
+    const socketRedis = await initSocketRedis();
+    if (socketRedis.ready) {
+      io.adapter(createAdapter(socketRedis.pubClient, socketRedis.subClient));
+    }
+
     PORT = await findAvailablePort(desiredPort);
     writePortToFile(PORT);
 
@@ -445,7 +685,9 @@ app.get("/api/port", (req, res) => {
       console.log(`📦 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`🔌 Socket.IO server initialized`);
       console.log(`💾 MongoDB: ${mongoose.connection.readyState === 1 ? "✅ Connected" : "❌ Disconnected"}`);
-      console.log(`🔄 Nodemon: Watching for changes...`);
+      if (process.env.NODEMON) {
+        console.log(`🔄 Nodemon: watching for file changes`);
+      }
       console.log(`========================================\n`);
     });
   } catch (error) {

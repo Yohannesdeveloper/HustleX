@@ -1,12 +1,26 @@
 {
   "watch": ["server.js", "routes", "models", "config", "middleware"],
-  "ext": "js,json",
-  "ignore": ["node_modules", "uploads", "*.test.js"],
+  "ext": "js",
+  "ignore": [
+    "node_modules",
+    "uploads",
+    "*.test.js",
+    "../port.json",
+    "../public/port.json"
+  ],
   "exec": "node server.js",
   "env": {
-    "NODE_ENV": "development"
+    "NODE_ENV": "development",
+    "NODEMON": "1"
   },
-  "delay": 1000,
+  "delay": 2000,
+  "signal": "SIGTERM",
   "verbose": true,
-  "restartable": "rs"
+  "restartable": "rs",
+  "watchOptions": {
+    "awaitWriteFinish": {
+      "stabilityThreshold": 600,
+      "pollInterval": 100
+    }
+  }
 }

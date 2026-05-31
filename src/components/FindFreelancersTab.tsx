@@ -38,6 +38,9 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
     }
   };
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isRoleError, setIsRoleError] = useState(false);
+  const [addingRole, setAddingRole] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFreelancer, setSelectedFreelancer] = useState<FreelancerWithStatus | null>(null);
   const [filters, setFilters] = useState({
@@ -104,9 +107,33 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
     }
   }, [freelancers]);
 
+  const handleAddClientRole = async () => {
+    setAddingRole(true);
+    try {
+      // Add client role to the user's account
+      await apiService.addRole("client");
+    } catch (err: any) {
+      // If already has the role, that's fine — just switch to it
+      console.log("addRole result:", err?.response?.data?.message);
+    }
+    try {
+      // Switch current role to client
+      await apiService.switchRole("client");
+    } catch (err: any) {
+      console.log("switchRole result:", err?.response?.data?.message);
+    }
+    setAddingRole(false);
+    setIsRoleError(false);
+    setLoadError(null);
+    // Retry fetching freelancers
+    fetchFreelancers();
+  };
+
   const fetchFreelancers = async (retries = 3) => {
     try {
       setLoading(true);
+      setLoadError(null);
+      setIsRoleError(false);
       const data = await apiService.getFreelancersWithStatus();
       console.log("Fetched freelancers data:", data);
       console.log("Number of freelancers:", Array.isArray(data) ? data.length : 0);
@@ -126,6 +153,20 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
       }
     } catch (error: any) {
       console.error("Error fetching freelancers:", error);
+
+      const status = error?.response?.status;
+      const apiMessage = error?.response?.data?.message;
+      if (status === 403) {
+        setIsRoleError(true);
+        setLoadError(
+          apiMessage ||
+            "You need a client account to browse freelancers."
+        );
+      } else if (status === 401) {
+        setLoadError("Please sign in again to view freelancers.");
+      } else if (apiMessage) {
+        setLoadError(apiMessage);
+      }
 
       // Check if it's a network error (backend not running)
       const isNetworkError = error?.code === 'ERR_NETWORK' ||
@@ -416,6 +457,68 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
               </motion.p>
             </motion.div>
           </div>
+        ) : loadError ? (
+          <motion.div
+            className="flex items-center justify-center h-full px-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className={`text-center max-w-md p-8 rounded-2xl border ${
+              darkMode
+                ? "bg-gray-900/60 border-white/10"
+                : "bg-white border-gray-200"
+            } shadow-2xl`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+                isRoleError
+                  ? darkMode ? "bg-amber-500/20 border border-amber-500/30" : "bg-amber-50 border border-amber-200"
+                  : darkMode ? "bg-red-500/20 border border-red-500/30" : "bg-red-50 border border-red-200"
+              }`}>
+                <span className="text-3xl">{isRoleError ? "🔑" : "⚠️"}</span>
+              </div>
+              <p className={`text-xl font-bold mb-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {isRoleError ? "Client Access Required" : "Cannot load freelancers"}
+              </p>
+              <p className={`text-sm mb-6 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                {isRoleError
+                  ? "Your account needs client access to browse freelancers. Click below to add the client role instantly."
+                  : loadError}
+              </p>
+              <div className="flex flex-col gap-3">
+                {isRoleError && (
+                  <button
+                    type="button"
+                    onClick={handleAddClientRole}
+                    disabled={addingRole}
+                    className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                      darkMode
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-400 hover:to-blue-400 shadow-lg shadow-cyan-500/20"
+                        : "bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500"
+                    } disabled:opacity-60`}
+                  >
+                    {addingRole ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                        Adding client role...
+                      </span>
+                    ) : (
+                      "🔑 Add Client Role & Browse Freelancers"
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fetchFreelancers()}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all border ${
+                    darkMode
+                      ? "border-white/20 text-gray-300 hover:bg-white/10"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </motion.div>
         ) : filteredFreelancers.length === 0 && !loading ? (
           <motion.div
             className="flex items-center justify-center h-full"
@@ -442,7 +545,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
                 }`}>
                 {searchTerm || filters.skills.length > 0 || filters.location || filters.status || filters.experienceLevel
                   ? "Try adjusting your search or filters"
-                  : "No freelancers available at the moment"}
+                  : "No freelancers have registered yet, or complete freelancer profile setup on another account to test messaging."}
               </p>
             </div>
           </motion.div>
@@ -453,6 +556,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
               const fullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || freelancer.email;
               const primarySkill = profile.primarySkill || profile.skills?.[0] || "Freelancer";
               const location = profile.location || "Not specified";
+              const avatarUrl = profile.avatar ? (profile.avatar.startsWith('http') || profile.avatar.startsWith('data:') ? profile.avatar : apiService.getFileUrl(profile.avatar)) : null;
 
               return (
                 <motion.div
@@ -479,14 +583,22 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
                   <div className="relative z-10 flex items-center gap-4">
                     {/* Compact Avatar */}
                     <div className="relative flex-shrink-0">
-                      <div
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${darkMode
-                          ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30"
-                          : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
-                          } flex items-center justify-center text-lg md:text-xl font-bold shadow-sm`}
-                      >
-                        {fullName.charAt(0).toUpperCase()}
-                      </div>
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={fullName}
+                          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover ${darkMode ? "border border-cyan-500/30" : "border border-cyan-200"}`}
+                        />
+                      ) : (
+                        <div
+                          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${darkMode
+                            ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30"
+                            : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
+                            } flex items-center justify-center text-lg md:text-xl font-bold shadow-sm`}
+                        >
+                          {fullName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       {freelancer.status && (
                         <div className="absolute -bottom-0.5 -right-0.5 scale-75">
                           <StatusIndicator status={freelancer.status} size="sm" />

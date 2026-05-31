@@ -61,7 +61,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
     <AnimatePresence>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <motion.div
-          className={`${darkMode ? "bg-gray-900 border-white/10" : "bg-white border-black/10"
+          className={`${darkMode ? "bg-gray-900 text-white border-white/10" : "bg-white text-gray-900 border-black/10"
             } border rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl`}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -78,7 +78,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <div
-                      className={`w-16 h-16 rounded-full ${darkMode ? "bg-cyan-500/20" : "bg-cyan-100"
+                      className={`w-16 h-16 rounded-full ${darkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"
                         } flex items-center justify-center text-2xl font-bold`}
                     >
                       {fullName.charAt(0).toUpperCase()}
@@ -90,7 +90,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     )}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <h1 className={`text-2xl font-bold flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
                       {fullName}
                       {isProfileComplete && (
                         <CheckCircle className="w-5 h-5 text-green-500" />
@@ -106,6 +106,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                           size="sm"
                           showLabel={true}
                           lastActive={freelancer.lastActive}
+                          labelClassName={darkMode ? "text-gray-200" : "text-gray-700"}
+                          lastActiveClassName={darkMode ? "text-gray-400" : "text-gray-500"}
                         />
                       </div>
                     )}
@@ -147,11 +149,11 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                     }`}
                 >
-                  <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                    <Briefcase className="w-5 h-5" />
+                  <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    <Briefcase className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                     About
                   </h3>
-                  <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>{bio}</p>
+                  <p className={`leading-relaxed ${darkMode ? "text-gray-100" : "text-gray-700"}`}>{bio}</p>
                 </div>
 
                 {/* Portfolio Section */}
@@ -160,8 +162,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                       }`}
                   >
-                    <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
+                    <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <Globe className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                       Portfolio
                     </h3>
                     <a
@@ -185,8 +187,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                       }`}
                   >
-                    <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                      <Award className="w-5 h-5" />
+                    <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <Award className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                       Skills & Expertise
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -212,17 +214,17 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                       className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                         }`}
                     >
-                      <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                        <Clock className="w-5 h-5" />
+                      <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                        <Clock className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                         Experience
                       </h3>
                       {yearsOfExperience && (
-                        <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                        <p className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                           {yearsOfExperience} years
                         </p>
                       )}
                       {experience && (
-                        <p className={`mt-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                        <p className={`mt-2 ${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                           {experience}
                         </p>
                       )}
@@ -234,11 +236,11 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                       className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                         }`}
                     >
-                      <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                        <Award className="w-5 h-5" />
+                      <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                        <Award className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                         Education
                       </h3>
-                      <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                      <p className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                         {education}
                       </p>
                     </div>
@@ -251,15 +253,15 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                       }`}
                   >
-                    <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                      <Star className="w-5 h-5" />
+                    <h3 className={`text-xl font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <Star className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                       Certifications
                     </h3>
                     <ul className="list-disc list-inside space-y-1">
                       {certifications.map((cert, index) => (
                         <li
                           key={index}
-                          className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                          className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}
                         >
                           {cert}
                         </li>
@@ -274,11 +276,11 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                       }`}
                   >
-                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
+                    <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <Calendar className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                       Availability
                     </h3>
-                    <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    <p className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                       {availability}
                     </p>
                   </div>
@@ -287,11 +289,11 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                       }`}
                   >
-                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <MapPin className="w-5 h-5" />
+                    <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <MapPin className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                       Location
                     </h3>
-                    <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>{location}</p>
+                    <p className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}>{location}</p>
                   </div>
                 </div>
 
@@ -300,18 +302,18 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                     }`}
                 >
-                  <h3 className="text-xl font-semibold mb-3">Contact & Links</h3>
+                  <h3 className={`text-xl font-semibold mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>Contact & Links</h3>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                      <Mail className={`w-4 h-4 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
+                      <span className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                         {freelancer.email}
                       </span>
                     </div>
                     {profile.phone && (
                       <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                        <Phone className={`w-4 h-4 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
+                        <span className={`${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                           {profile.phone}
                         </span>
                       </div>
@@ -358,8 +360,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     className={`rounded-lg border p-6 ${darkMode ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"
                       }`}
                   >
-                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
+                    <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <FileText className={`w-5 h-5 ${darkMode ? "text-gray-300" : "text-gray-600"}`} />
                       Resume/CV
                     </h3>
                     <a

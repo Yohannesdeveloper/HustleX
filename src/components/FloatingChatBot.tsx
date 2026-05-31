@@ -87,6 +87,7 @@ const FloatingChatBot: React.FC = () => {
         {
           message,
           conversationHistory,
+          language,
         },
         {
           timeout: 30000, // 30 second timeout

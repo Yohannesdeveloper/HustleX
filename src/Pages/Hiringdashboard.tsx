@@ -8,13 +8,13 @@ import {
   Users,
   Briefcase,
   BarChart3,
-  CheckCircle,
-  Clock,
   User,
   MessageSquare,
+  Search,
 } from "lucide-react";
 import ApplicationsManagementMongo from "./ApplicationsManagementMongo";
 import FloatingDarkModeToggle from "../components/FloatingDarkModeToggle";
+import FindFreelancersTab from "../components/FindFreelancersTab";
 
 
 // Animation for individual letters in headings
@@ -49,6 +49,7 @@ const HiringDashboard: React.FC = () => {
     | "overview"
     | "applications"
     | "jobs"
+    | "freelancers"
     | "profile"
   >("overview");
 
@@ -94,6 +95,7 @@ const HiringDashboard: React.FC = () => {
     { id: "overview" as const, label: "Overview", icon: BarChart3 },
     { id: "applications" as const, label: "Applications", icon: Users },
     { id: "jobs" as const, label: "My Jobs", icon: Briefcase },
+    { id: "freelancers" as const, label: "Find Freelancers", icon: Search },
     { id: "messages" as const, label: "Messages", icon: MessageSquare, navigate: "/chat" },
     { id: "profile" as const, label: "Profile", icon: User },
   ];
@@ -103,7 +105,7 @@ const HiringDashboard: React.FC = () => {
     const state = location.state as any;
     if (
       state?.tab &&
-      ["overview", "applications", "jobs", "profile"].includes(state.tab)
+      ["overview", "applications", "jobs", "freelancers", "profile"].includes(state.tab)
     ) {
       setActiveTab(state.tab);
     }
@@ -428,6 +430,17 @@ const HiringDashboard: React.FC = () => {
     switch (activeTab) {
       case "applications":
         return <ApplicationsManagementMongo />;
+      case "freelancers":
+        return (
+          <div
+            className={`min-h-screen ${
+              darkMode ? "bg-black text-white" : "bg-white text-black"
+            }`}
+            style={{ height: "calc(100vh - 60px)" }}
+          >
+            <FindFreelancersTab />
+          </div>
+        );
       case "jobs":
         return (
           <div
@@ -936,8 +949,8 @@ const HiringDashboard: React.FC = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           {/* Mobile: Horizontal scrollable tabs */}
-          <div className="flex items-center gap-2 sm:gap-8 overflow-x-auto scrollbar-hide pb-2">
-            <div className="flex items-center gap-2 sm:gap-8 overflow-x-auto flex-1">
+          <div className="flex items-center gap-1 sm:gap-6 overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex items-center gap-1 sm:gap-6 overflow-x-auto flex-1">
              {tabs.map((tab) => (
                <button
                  key={tab.id}
@@ -946,10 +959,10 @@ const HiringDashboard: React.FC = () => {
                    if (navPath) {
                      navigate(navPath);
                    } else {
-                     setActiveTab(tab.id as "overview" | "applications" | "jobs" | "profile");
+                     setActiveTab(tab.id as "overview" | "applications" | "jobs" | "freelancers" | "profile");
                    }
                  }}
-                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 sm:py-4 border-b-2 font-medium transition-all duration-300 font-inter tracking-tight text-sm sm:text-base whitespace-nowrap ${
+                 className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 sm:py-4 border-b-2 font-medium transition-all duration-300 font-inter tracking-tight text-xs sm:text-base whitespace-nowrap flex-shrink-0 ${
                    activeTab === tab.id
                      ? darkMode
                        ? "border-blue-500 text-white"
@@ -967,7 +980,7 @@ const HiringDashboard: React.FC = () => {
                    />
                  ) : (
                    <tab.icon
-                     className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                     className={`w-3.5 h-3.5 sm:w-5 sm:h-5 flex-shrink-0 ${
                        activeTab === tab.id
                          ? darkMode
                            ? "text-white"
@@ -978,8 +991,8 @@ const HiringDashboard: React.FC = () => {
                      }`}
                    />
                  )}
-                 <span className="hidden xs:inline">{tab.label}</span>
-                 <span className="xs:hidden">{tab.label.split(" ")[0]}</span>
+                 <span className="hidden sm:inline">{tab.label}</span>
+                 <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
                </button>
              ))}
             </div>

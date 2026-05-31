@@ -87,7 +87,9 @@ export async function detectBackendPort(basePort = 5000): Promise<number> {
     }
   }
 
-  const commonPorts = Array.from(new Set([basePort, 5000, 5001, 5002, 5003, 3000, 3001]));
+  const commonPorts = Array.from(
+    new Set([basePort, 5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 3000, 3001])
+  );
 
   // 2️⃣ Try API endpoint
   for (const port of commonPorts) {

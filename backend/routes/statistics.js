@@ -4,13 +4,14 @@ const Job = require("../models/Job");
 const User = require("../models/User");
 const Application = require("../models/Application");
 const { auth } = require("../middleware/auth");
+const { cacheMiddleware } = require("../middleware/cache");
 
 // ================================
 // @route   GET /api/statistics
 // @desc    Get platform-wide statistics
 // @access  Public
 // ================================
-router.get("/", async (req, res) => {
+router.get("/", cacheMiddleware(60), async (req, res) => {
   try {
     const [
       totalJobs,

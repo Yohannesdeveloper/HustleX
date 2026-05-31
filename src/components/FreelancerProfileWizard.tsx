@@ -7,6 +7,8 @@ import { User } from '../types';
 import apiService from '../services/api';
 import { useAuth } from '../store/hooks';
 import PhoneInput from './PhoneInput';
+import { COUNTRIES } from '../constants/countries';
+import { formatLocation, parseLocation } from '../utils/location';
 
 interface FreelancerProfileData {
   // Basic Information
@@ -15,6 +17,8 @@ interface FreelancerProfileData {
   email: string;
   phone: string;
   location: string;
+  city: string;
+  country: string;
   profilePicture: File | null;
   profilePicturePreview: string | null;
 
@@ -63,6 +67,18 @@ const steps = [
   { id: 3, title: 'Review & Submit', description: 'Review your profile' },
 ];
 
+const getFieldClass = (darkMode: boolean, hasError: boolean) => {
+  const theme = darkMode
+    ? 'bg-gray-800 text-white placeholder-gray-400'
+    : 'bg-white text-gray-900 placeholder-gray-500';
+  const border = hasError
+    ? 'border-red-500 focus:ring-red-500'
+    : darkMode
+      ? 'border-gray-600 focus:ring-blue-500'
+      : 'border-gray-300 focus:ring-blue-500';
+  return `w-full px-4 py-3 rounded-lg border ${theme} ${border} focus:ring-2 focus:border-transparent transition-colors`;
+};
+
 const FreelancerProfileWizard: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const navigate = useNavigate();
@@ -76,6 +92,8 @@ const FreelancerProfileWizard: React.FC = () => {
     email: '',
     phone: '',
     location: '',
+    city: '',
+    country: '',
     profilePicture: null,
     profilePicturePreview: null,
     experienceLevel: '',
@@ -107,6 +125,8 @@ const FreelancerProfileWizard: React.FC = () => {
     const p = user.profile;
     const avatarUrl = p.avatar ? (p.avatar.startsWith('http') || p.avatar.startsWith('data:') ? p.avatar : apiService.getFileUrl(p.avatar)) : null;
     const cvUrl = p.cvUrl ? (p.cvUrl.startsWith('http') || p.cvUrl.startsWith('data:') ? p.cvUrl : apiService.getFileUrl(p.cvUrl)) : p.cvUrl || '';
+    const savedLocation = p.location ?? '';
+    const { city, country } = parseLocation(savedLocation);
 
     setProfileData(prev => ({
       ...prev,
@@ -114,7 +134,9 @@ const FreelancerProfileWizard: React.FC = () => {
       lastName: p.lastName ?? prev.lastName,
       email: (user as any).email ?? prev.email,
       phone: p.phone ?? prev.phone,
-      location: p.location ?? prev.location,
+      location: savedLocation || prev.location,
+      city: city || prev.city,
+      country: country || prev.country,
       profilePicturePreview: avatarUrl ?? prev.profilePicturePreview,
       existingCvUrl: cvUrl || prev.existingCvUrl,
       experienceLevel: p.experienceLevel ?? prev.experienceLevel,
@@ -165,7 +187,7 @@ const FreelancerProfileWizard: React.FC = () => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
-  const validateStep = (step: number): boolean => {
+  const validateStep = (step: number): { isValid: boolean; newErrors: Record<string, string> } => {
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
@@ -188,8 +210,11 @@ const FreelancerProfileWizard: React.FC = () => {
         newErrors.email = "Please enter a valid email address";
       }
 
-      if (!profileData.location.trim()) {
-        newErrors.location = "Location is required";
+      if (!profileData.city.trim()) {
+        newErrors.city = "City is required";
+      }
+      if (!profileData.country.trim()) {
+        newErrors.country = "Country is required";
       }
 
       // Phone is OPTIONAL - only validate if provided
@@ -260,16 +285,14 @@ const FreelancerProfileWizard: React.FC = () => {
       if (profileData.monthlyRate && (isNaN(Number(profileData.monthlyRate)) || Number(profileData.monthlyRate) < 0)) {
         newErrors.monthlyRate = "Please enter a valid amount";
       }
-      
-      // CV is required - either new file or existing
-      if (!profileData.cvFile && !profileData.existingCvUrl) {
-        newErrors.cvFile = "CV/Resume is required";
-      }
     }
 
     console.log('Validation errors:', newErrors);
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      newErrors
+    };
   };
 
   const handleBlur = (field: string) => {
@@ -278,7 +301,8 @@ const FreelancerProfileWizard: React.FC = () => {
 
   const nextStep = () => {
     console.log('Attempting to proceed from step', currentStep);
-    if (validateStep(currentStep)) {
+    const { isValid, newErrors } = validateStep(currentStep);
+    if (isValid) {
       console.log('Validation passed, moving to next step');
       if (currentStep < steps.length) {
         setCurrentStep(currentStep + 1);
@@ -286,16 +310,29 @@ const FreelancerProfileWizard: React.FC = () => {
     } else {
       // Mark all fields in current step as touched
       const stepFields = currentStep === 1 
-        ? ['firstName', 'lastName', 'email', 'location', 'phone']
-        : ['bio', 'experienceLevel', 'primarySkill', 'yearsOfExperience', 'availability', 'skills', 'cvFile'];
+        ? ['firstName', 'lastName', 'email', 'city', 'country', 'phone']
+        : [
+            'bio', 
+            'experienceLevel', 
+            'primarySkill', 
+            'yearsOfExperience', 
+            'availability', 
+            'skills', 
+            'cvFile', 
+            'portfolioUrl', 
+            'linkedinUrl', 
+            'githubUrl', 
+            'websiteUrl', 
+            'monthlyRate'
+          ];
       
       const allTouched: Record<string, boolean> = {};
       stepFields.forEach(field => allTouched[field] = true);
-      setTouched(allTouched);
+      setTouched(prev => ({ ...prev, ...allTouched }));
       
       // Show specific error message
-      const errorCount = Object.keys(errors).length;
-      console.log(`Validation failed with ${errorCount} error(s):`, errors);
+      const errorCount = Object.keys(newErrors).length;
+      console.log(`Validation failed with ${errorCount} error(s):`, newErrors);
       
       // Don't show alert - errors will be displayed inline
       // The user can see which fields have errors from the red borders and messages
@@ -339,10 +376,10 @@ const FreelancerProfileWizard: React.FC = () => {
       <div className={`sticky top-0 z-10 ${darkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'} border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className="max-w-4xl mx-auto px-6 py-4">
           {/* Important Notice */}
-          <div className={`mb-4 p-3 rounded-lg border ${darkMode ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+          <div className={`mb-4 p-3 rounded-lg border ${darkMode ? 'bg-blue-500/10 border-blue-500/30 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
             <p className="text-sm font-medium flex items-center gap-2">
               <span className="text-xl">ℹ️</span>
-              <span>Please complete your freelancer profile to access the dashboard</span>
+              <span className={darkMode ? 'text-white' : ''}>Please complete your freelancer profile to access the dashboard</span>
             </p>
           </div>
 
@@ -361,8 +398,8 @@ const FreelancerProfileWizard: React.FC = () => {
                 </div>
               )}
               <div>
-                <h1 className="text-2xl font-bold">Freelancer Profile Setup</h1>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Freelancer Profile Setup</h1>
+                <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
                   Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
                 </p>
               </div>
@@ -418,6 +455,19 @@ const FreelancerProfileWizard: React.FC = () => {
 const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst, isLast, errors = {}, touched = {}, handleBlur }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
 
+  const inputClass = (field: string) =>
+    getFieldClass(darkMode, Boolean(touched[field] && errors[field]));
+
+  const handleCityChange = (city: string) => {
+    updateData('city', city);
+    updateData('location', formatLocation(city, data.country));
+  };
+
+  const handleCountryChange = (country: string) => {
+    updateData('country', country);
+    updateData('location', formatLocation(data.city, country));
+  };
+
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -447,8 +497,8 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">Basic Information</h2>
-        <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+        <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Basic Information</h2>
+        <p className={`${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
           Let's start with your personal details
         </p>
       </div>
@@ -484,7 +534,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
           </div>
-          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
             Click to upload profile picture
           </p>
           <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -506,7 +556,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             First Name *
           </label>
           <input
@@ -529,7 +579,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Last Name *
           </label>
           <input
@@ -552,7 +602,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Email *
           </label>
           <input
@@ -575,7 +625,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Phone
           </label>
           <PhoneInput
@@ -590,26 +640,51 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
         </div>
 
         <div className="md:col-span-2">
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Location *
           </label>
-          <input
-            type="text"
-            value={data.location}
-            onChange={(e) => updateData('location', e.target.value)}
-            onBlur={() => handleBlur && handleBlur('location')}
-            className={`w-full px-4 py-3 rounded-lg border ${
-              touched.location && errors.location
-                ? 'border-red-500 focus:ring-red-500'
-                : darkMode
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-            } focus:ring-2 focus:border-transparent transition-colors`}
-            placeholder="City, Country"
-          />
-          {touched.location && errors.location && (
-            <p className="text-red-500 text-xs mt-1">{errors.location}</p>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <input
+                type="text"
+                value={data.city}
+                onChange={(e) => handleCityChange(e.target.value)}
+                onBlur={() => handleBlur && handleBlur('city')}
+                className={inputClass('city')}
+                placeholder="City"
+              />
+              {touched.city && errors.city && (
+                <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+              )}
+            </div>
+            <div>
+              <select
+                value={data.country}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                onBlur={() => handleBlur && handleBlur('country')}
+                className={inputClass('country')}
+              >
+                <option value="" disabled className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                  Select country
+                </option>
+                {COUNTRIES.map((c) => (
+                  <option
+                    key={c}
+                    value={c}
+                    className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}
+                  >
+                    {c}
+                  </option>
+                ))}
+              </select>
+              {touched.country && errors.country && (
+                <p className="text-red-500 text-xs mt-1">{errors.country}</p>
+              )}
+            </div>
+          </div>
+          <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Saved as: {data.location || 'City, Country'}
+          </p>
         </div>
       </div>
 
@@ -618,7 +693,7 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          disabled={!data.firstName || !data.lastName || !data.email || !data.location}
+          disabled={!data.firstName || !data.lastName || !data.email || !data.city.trim() || !data.country}
           className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           Next Step
@@ -648,8 +723,8 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">Professional Details</h2>
-        <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+        <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Professional Details</h2>
+        <p className={`${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
           Share your experience and professional links
         </p>
       </div>
@@ -657,7 +732,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
       <div className="space-y-6">
         {/* Bio */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Bio *
           </label>
           <textarea
@@ -665,13 +740,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
             onChange={(e) => updateData('bio', e.target.value)}
             onBlur={() => handleBlur && handleBlur('bio')}
             rows={4}
-            className={`w-full px-4 py-3 rounded-lg border ${
-              touched?.bio && errors?.bio
-                ? 'border-red-500 focus:ring-red-500'
-                : darkMode
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            className={getFieldClass(darkMode, Boolean(touched?.bio && errors?.bio))}
             placeholder="Tell us about yourself, your background, and what makes you unique..."
           />
           {touched?.bio && errors?.bio && (
@@ -681,7 +750,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
         {/* Education */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Education *
           </label>
           <textarea
@@ -698,7 +767,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
         {/* Work Experience */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Work Experience *
           </label>
           <textarea
@@ -715,24 +784,25 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
         {/* Skills */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Skills *
           </label>
           <input
             type="text"
             value={data.skills.join(', ')}
             onChange={(e) => updateData('skills', e.target.value.split(',').map(skill => skill.trim()).filter(skill => skill))}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('skills')}
+            className={getFieldClass(darkMode, Boolean(touched?.skills && errors?.skills))}
             placeholder="e.g., JavaScript, React, Node.js, Python (separate with commas)"
           />
+          {touched?.skills && errors?.skills && (
+            <p className="text-red-500 text-xs mt-1">{errors.skills}</p>
+          )}
         </div>
 
         {/* Primary Skill */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Primary Skill *
           </label>
           <input
@@ -740,13 +810,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
             value={data.primarySkill}
             onChange={(e) => updateData('primarySkill', e.target.value)}
             onBlur={() => handleBlur && handleBlur('primarySkill')}
-            className={`w-full px-4 py-3 rounded-lg border ${
-              touched?.primarySkill && errors?.primarySkill
-                ? 'border-red-500 focus:ring-red-500'
-                : darkMode
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            className={getFieldClass(darkMode, Boolean(touched?.primarySkill && errors?.primarySkill))}
             placeholder="e.g., Web Development, Graphic Design, Content Writing"
           />
           {touched?.primarySkill && errors?.primarySkill && (
@@ -756,7 +820,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
         {/* Certifications */}
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Certifications
           </label>
           <input
@@ -772,67 +836,80 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Experience Level *
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {experienceLevels.map((level) => (
               <button
                 key={level}
-                onClick={() => updateData('experienceLevel', level)}
+                onClick={() => {
+                  updateData('experienceLevel', level);
+                  handleBlur && handleBlur('experienceLevel');
+                }}
                 className={`p-3 rounded-lg border text-sm font-medium transition-all ${data.experienceLevel === level
                   ? 'bg-blue-500 border-blue-500 text-white'
                   : darkMode
                     ? 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700'
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                  } ${touched?.experienceLevel && errors?.experienceLevel ? 'border-red-500 focus:ring-red-500' : ''}`}
               >
                 {level}
               </button>
             ))}
           </div>
+          {touched?.experienceLevel && errors?.experienceLevel && (
+            <p className="text-red-500 text-xs mt-1">{errors.experienceLevel}</p>
+          )}
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Years of Experience *
           </label>
           <input
             type="text"
             value={data.yearsOfExperience}
             onChange={(e) => updateData('yearsOfExperience', e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            onBlur={() => handleBlur && handleBlur('yearsOfExperience')}
+            className={getFieldClass(darkMode, Boolean(touched?.yearsOfExperience && errors?.yearsOfExperience))}
             placeholder="e.g., 3 years"
           />
+          {touched?.yearsOfExperience && errors?.yearsOfExperience && (
+            <p className="text-red-500 text-xs mt-1">{errors.yearsOfExperience}</p>
+          )}
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Availability Status *
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {['Available', 'Busy', 'Part-time', 'Not Available'].map((status) => (
               <button
                 key={status}
-                onClick={() => updateData('availability', status)}
+                onClick={() => {
+                  updateData('availability', status);
+                  handleBlur && handleBlur('availability');
+                }}
                 className={`p-3 rounded-lg border text-sm font-medium transition-all ${data.availability === status
                   ? 'bg-green-500 border-green-500 text-white'
                   : darkMode
                     ? 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700'
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                  } ${touched?.availability && errors?.availability ? 'border-red-500 focus:ring-red-500' : ''}`}
               >
                 {status}
               </button>
             ))}
           </div>
+          {touched?.availability && errors?.availability && (
+            <p className="text-red-500 text-xs mt-1">{errors.availability}</p>
+          )}
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Portfolio URL
           </label>
           <input
@@ -840,13 +917,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
             value={data.portfolioUrl}
             onChange={(e) => updateData('portfolioUrl', e.target.value)}
             onBlur={() => handleBlur && handleBlur('portfolioUrl')}
-            className={`w-full px-4 py-3 rounded-lg border ${
-              touched?.portfolioUrl && errors?.portfolioUrl
-                ? 'border-red-500 focus:ring-red-500'
-                : darkMode
-                ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+            className={getFieldClass(darkMode, Boolean(touched?.portfolioUrl && errors?.portfolioUrl))}
             placeholder="https://yourportfolio.com"
           />
           {touched?.portfolioUrl && errors?.portfolioUrl && (
@@ -856,21 +927,15 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              LinkedIn URL
+            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+              LinkedIn URL <span className={`text-xs font-normal ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>(Optional)</span>
             </label>
             <input
               type="url"
               value={data.linkedinUrl}
               onChange={(e) => updateData('linkedinUrl', e.target.value)}
               onBlur={() => handleBlur && handleBlur('linkedinUrl')}
-              className={`w-full px-4 py-3 rounded-lg border ${
-                touched?.linkedinUrl && errors?.linkedinUrl
-                  ? 'border-red-500 focus:ring-red-500'
-                  : darkMode
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+              className={getFieldClass(darkMode, Boolean(touched?.linkedinUrl && errors?.linkedinUrl))}
               placeholder="https://linkedin.com/in/yourprofile"
             />
             {touched?.linkedinUrl && errors?.linkedinUrl && (
@@ -879,21 +944,15 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              GitHub URL
+            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+              GitHub URL <span className={`text-xs font-normal ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>(Optional)</span>
             </label>
             <input
               type="url"
               value={data.githubUrl}
               onChange={(e) => updateData('githubUrl', e.target.value)}
               onBlur={() => handleBlur && handleBlur('githubUrl')}
-              className={`w-full px-4 py-3 rounded-lg border ${
-                touched?.githubUrl && errors?.githubUrl
-                  ? 'border-red-500 focus:ring-red-500'
-                  : darkMode
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+              className={getFieldClass(darkMode, Boolean(touched?.githubUrl && errors?.githubUrl))}
               placeholder="https://github.com/yourusername"
             />
             {touched?.githubUrl && errors?.githubUrl && (
@@ -903,8 +962,8 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
         </div>
 
         <div>
-          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            CV/Resume *
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
+            CV/Resume
           </label>
 
           {/* Show existing CV if available */}
@@ -918,7 +977,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
                     📄
                   </div>
                   <div>
-                    <p className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>
                       Current CV/Resume
                     </p>
                     <a
@@ -941,12 +1000,20 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
             </div>
           )}
 
-          <div className={`border-2 border-dashed rounded-lg p-6 text-center ${darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'
+          <div className={`border-2 border-dashed rounded-lg p-6 text-center ${
+            touched?.cvFile && errors?.cvFile
+              ? 'border-red-500 bg-red-500/5'
+              : darkMode
+              ? 'border-gray-600 hover:border-gray-500'
+              : 'border-gray-300 hover:border-gray-400'
             } transition-colors`}>
             <input
               type="file"
               accept=".pdf,.doc,.docx"
-              onChange={handleFileChange}
+              onChange={(e) => {
+                handleFileChange(e);
+                handleBlur && handleBlur('cvFile');
+              }}
               className="hidden"
               id="cv-upload"
             />
@@ -955,7 +1022,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
                 }`}>
                 📄
               </div>
-              <p className={`text-sm mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p className={`text-sm mb-2 ${darkMode ? 'text-white' : 'text-gray-600'}`}>
                 {data.cvFile
                   ? data.cvFile.name
                   : data.existingCvUrl
@@ -977,6 +1044,10 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
               Remove new file
             </button>
           )}
+
+          {touched?.cvFile && errors?.cvFile && (
+            <p className="text-red-500 text-xs mt-2">{errors.cvFile}</p>
+          )}
         </div>
       </div>
 
@@ -986,7 +1057,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           whileTap={{ scale: 0.98 }}
           onClick={onPrev}
           className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${darkMode
-            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            ? 'bg-gray-700 text-white hover:bg-gray-600'
             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
         >
@@ -996,7 +1067,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          disabled={!data.bio || !data.skills.length || !data.experienceLevel || !data.yearsOfExperience || !data.availability || (!data.cvFile && !data.existingCvUrl)}
+          disabled={!data.bio || !data.skills.length || !data.experienceLevel || !data.yearsOfExperience || !data.availability}
           className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           Next Step
@@ -1066,7 +1137,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         lastName: data.lastName || "",
         email: data.email || "",
         phone: data.phone || "",
-        location: data.location || "",
+        location: formatLocation(data.city, data.country) || data.location || "",
         bio: data.bio || "",
         education: data.education || "",
         experience: data.workExperience || "",
@@ -1121,8 +1192,8 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">Review Your Profile</h2>
-        <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+        <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Review Your Profile</h2>
+        <p className={`${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
           Please review your information before submitting
         </p>
       </div>
@@ -1130,8 +1201,8 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       {/* Profile Header Section */}
       <div className={`rounded-lg border p-6 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
         <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold mb-2">Review Your Profile</h3>
-          <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Review Your Profile</h3>
+          <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             {data.firstName} {data.lastName}'s Professional Profile
           </p>
         </div>
@@ -1164,8 +1235,8 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           )}
 
           <div className="text-center">
-            <h4 className="text-xl font-semibold mb-1">{data.firstName} {data.lastName}</h4>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <h4 className={`text-xl font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{data.firstName} {data.lastName}</h4>
+            <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
               {data.experienceLevel} • {data.location}
             </p>
           </div>
@@ -1174,19 +1245,19 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         {/* Basic Information Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email:</span>
-            <span className={`text-right ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.email}</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Email:</span>
+            <span className={`text-right ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.email}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Phone:</span>
-            <span className={`text-right ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.phone || 'Not provided'}</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Phone:</span>
+            <span className={`text-right ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.phone || 'Not provided'}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Location:</span>
-            <span className={`text-right ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.location}</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Location:</span>
+            <span className={`text-right ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.location}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Availability:</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Availability:</span>
             <span className={`text-right px-2 py-1 rounded-full text-xs font-medium ${data.availability === 'Available'
               ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
               : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
@@ -1198,53 +1269,53 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       </div>
 
       <div className={`rounded-lg border p-6 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-        <h3 className="text-xl font-semibold mb-4">Professional Details</h3>
+        <h3 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Professional Details</h3>
         <div className="space-y-3">
           {data.bio && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Bio:</span>
-              <p className={`ml-2 mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} whitespace-pre-wrap`}>{data.bio}</p>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Bio:</span>
+              <p className={`ml-2 mt-1 ${darkMode ? 'text-gray-100' : 'text-gray-600'} whitespace-pre-wrap`}>{data.bio}</p>
             </div>
           )}
           {data.education && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Education:</span>
-              <p className={`ml-2 mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} whitespace-pre-wrap`}>{data.education}</p>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Education:</span>
+              <p className={`ml-2 mt-1 ${darkMode ? 'text-gray-200' : 'text-gray-600'} whitespace-pre-wrap`}>{data.education}</p>
             </div>
           )}
           {data.workExperience && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Work Experience:</span>
-              <p className={`ml-2 mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} whitespace-pre-wrap`}>{data.workExperience}</p>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Work Experience:</span>
+              <p className={`ml-2 mt-1 ${darkMode ? 'text-gray-200' : 'text-gray-600'} whitespace-pre-wrap`}>{data.workExperience}</p>
             </div>
           )}
           {data.skills.length > 0 && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Skills:</span>
-              <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.skills.join(', ')}</span>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Skills:</span>
+              <span className={`ml-2 ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.skills.join(', ')}</span>
             </div>
           )}
           {data.certifications.length > 0 && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Certifications:</span>
-              <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.certifications.join(', ')}</span>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Certifications:</span>
+              <span className={`ml-2 ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.certifications.join(', ')}</span>
             </div>
           )}
           <div>
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Experience Level:</span>
-            <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.experienceLevel}</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Experience Level:</span>
+            <span className={`ml-2 ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.experienceLevel}</span>
           </div>
           <div>
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Years of Experience:</span>
-            <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.yearsOfExperience || 'Not specified'}</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Years of Experience:</span>
+            <span className={`ml-2 ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.yearsOfExperience || 'Not specified'}</span>
           </div>
           <div>
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Availability:</span>
-            <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{data.availability}</span>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Availability:</span>
+            <span className={`ml-2 ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>{data.availability}</span>
           </div>
           {data.portfolioUrl && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Portfolio:</span>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>Portfolio:</span>
               <a href={data.portfolioUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:text-blue-600">
                 {data.portfolioUrl}
               </a>
@@ -1252,7 +1323,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           )}
           {data.linkedinUrl && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>LinkedIn:</span>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>LinkedIn:</span>
               <a href={data.linkedinUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:text-blue-600">
                 {data.linkedinUrl}
               </a>
@@ -1260,15 +1331,15 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           )}
           {data.githubUrl && (
             <div>
-              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>GitHub:</span>
+              <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>GitHub:</span>
               <a href={data.githubUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 hover:text-blue-600">
                 {data.githubUrl}
               </a>
             </div>
           )}
           <div>
-            <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>CV/Resume:</span>
-            <span className={`ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-700'}`}>CV/Resume:</span>
+            <span className={`ml-2 ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
               {data.cvFile
                 ? data.cvFile.name
                 : data.existingCvUrl
@@ -1286,7 +1357,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           whileTap={{ scale: 0.98 }}
           onClick={onPrev}
           className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${darkMode
-            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            ? 'bg-gray-700 text-white hover:bg-gray-600'
             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
         >

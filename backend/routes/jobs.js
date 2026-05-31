@@ -3,8 +3,11 @@ const { body, validationResult } = require("express-validator");
 const Job = require("../models/Job");
 const { auth, adminAuth } = require("../middleware/auth");
 const { checkSubscriptionForJobPosting, getUserJobPostingStatus } = require("../middleware/subscription");
-const nodemailer = require("nodemailer");
+const { cacheMiddleware, invalidatePattern, setCache, getCache } = require("../middleware/cache");
 const User = require("../models/User");
+const { sendMail, sendMailAsync } = require("../services/mail");
+const { postJobToTelegramQueue } = require("../services/queue-helpers");
+const { isQueueEnabled } = require("../lib/redis-config");
 const postJobToTelegram = require("../postToTelegram");
 
 const router = express.Router();
@@ -38,10 +41,11 @@ router.get("/user/my-jobs", auth, async (req, res) => {
 // @desc    Get all jobs with pagination and filters
 // @access  Public
 // ================================
-router.get("/", async (req, res) => {
+router.get("/", cacheMiddleware(300), async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    let limit = parseInt(req.query.limit, 10) || 10;
+    if (limit > 50) limit = 50;
     const skip = (page - 1) * limit;
 
     const filter = { isActive: true, approved: true };
@@ -154,42 +158,30 @@ router.post(
       const job = new Job(jobData);
       await job.save();
 
-      // Send admin notification email about new job
-      try {
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      // Invalidate job listing cache
+      await invalidatePattern("cache:/api/jobs*");
+      console.log("🗑️  Invalidated job listing cache after new job creation");
+
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+      sendMailAsync({
+        to: adminEmail,
+        subject: `New job posted: ${job.title}`,
+        html: `<p>A new job was posted and awaits approval.</p>
+               <p><strong>Title:</strong> ${job.title}</p>
+               <p><strong>Category:</strong> ${job.category}</p>
+               <p><strong>Budget:</strong> ${job.budget}</p>
+               <p><strong>Posted By:</strong> ${req.user.email}</p>
+               <p>Visit the admin panel to approve or decline.</p>`,
+      });
+      if (req.user?.email) {
+        sendMailAsync({
+          to: req.user.email,
+          subject: `Your job is pending approval: ${job.title}`,
+          html: `<p>Hi,</p>
+                 <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
+                 <p>We'll email you once it's approved and visible to freelancers.</p>
+                 <p>— HustleX Team</p>`,
         });
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-        await transporter.sendMail({
-          from: `HustleX <${process.env.EMAIL_USER}>`,
-          to: adminEmail,
-          subject: `New job posted: ${job.title}`,
-          html: `<p>A new job was posted and awaits approval.</p>
-                 <p><strong>Title:</strong> ${job.title}</p>
-                 <p><strong>Category:</strong> ${job.category}</p>
-                 <p><strong>Budget:</strong> ${job.budget}</p>
-                 <p><strong>Posted By:</strong> ${req.user.email}</p>
-                 <p>Visit the admin panel to approve or decline.</p>`,
-        });
-
-        // Notify job owner that their job is pending approval
-        if (req.user?.email) {
-          await transporter.sendMail({
-            from: `HustleX <${process.env.EMAIL_USER}>`,
-            to: req.user.email,
-            subject: `Your job is pending approval: ${job.title}`,
-            html: `<p>Hi,</p>
-                   <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
-                   <p>We'll email you once it's approved and visible to freelancers.</p>
-                   <p>If you need to make changes, you can edit the posting from your dashboard.</p>
-                   <p>— HustleX Team</p>`,
-          });
-        }
-
-
-      } catch (mailErr) {
-        console.error("Failed to send job notification email:", mailErr.message);
       }
 
       res.status(201).json({ message: "Job created successfully", job });
@@ -231,33 +223,30 @@ router.put("/:id/approve", adminAuth, async (req, res) => {
     );
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    // Notify job owner via email about approval
-    try {
-      const owner = await User.findById(job.postedBy).select("email");
-      if (owner?.email) {
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        });
-        await transporter.sendMail({
-          from: `HustleX <${process.env.EMAIL_USER}>`,
-          to: owner.email,
-          subject: `Your job was approved: ${job.title}`,
-          html: `<p>Hello,</p>
-                 <p>Your job "<strong>${job.title}</strong>" has been approved and is now visible to freelancers.</p>
-                 <p>Category: ${job.category || ''}</p>
-                 <p>Budget: ${job.budget || ''}</p>
-                 <p>Thank you for using HustleX.</p>`,
-        });
-      }
-    } catch (mailErr) {
-      console.error("Failed to send approval email:", mailErr.message);
+    const owner = await User.findById(job.postedBy).select("email");
+    if (owner?.email) {
+      sendMailAsync({
+        to: owner.email,
+        subject: `Your job was approved: ${job.title}`,
+        html: `<p>Hello,</p>
+               <p>Your job "<strong>${job.title}</strong>" has been approved and is now visible to freelancers.</p>
+               <p>Thank you for using HustleX.</p>`,
+      });
     }
 
-    // ✅ Post the approved job to your Telegram channel (fire and forget, but with logging)
-    postJobToTelegram(job).catch(err => {
-      console.error(`Telegram: Background posting failed for job ${job._id}:`, err.message);
-    });
+    if (isQueueEnabled()) {
+      postJobToTelegramQueue(job._id.toString()).catch((err) =>
+        console.error(`Telegram queue failed for job ${job._id}:`, err.message)
+      );
+    } else {
+      postJobToTelegram(job).catch((err) =>
+        console.error(`Telegram: Background posting failed for job ${job._id}:`, err.message)
+      );
+    }
+
+    // Invalidate cache after approval
+    await invalidatePattern("cache:/api/jobs*");
+    console.log("🗑️  Invalidated job listing cache after job approval");
 
     res.json({ message: "Job approved", job });
   } catch (error) {
@@ -281,25 +270,15 @@ router.put("/:id/decline", adminAuth, async (req, res) => {
     );
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    // Notify job owner via email about decline
-    try {
-      const owner = await User.findById(job.postedBy).select("email");
-      if (owner?.email) {
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-        });
-        await transporter.sendMail({
-          from: `HustleX <${process.env.EMAIL_USER}>`,
-          to: owner.email,
-          subject: `Your job was declined: ${job.title}`,
-          html: `<p>Hello,</p>
-                 <p>Your job "<strong>${job.title}</strong>" was declined${reason ? ` for the following reason: <em>${reason}</em>` : "."}</p>
-                 <p>Please review and resubmit if appropriate. Thank you.</p>`,
-        });
-      }
-    } catch (mailErr) {
-      console.error("Failed to send decline email:", mailErr.message);
+    const ownerDecline = await User.findById(job.postedBy).select("email");
+    if (ownerDecline?.email) {
+      sendMailAsync({
+        to: ownerDecline.email,
+        subject: `Your job was declined: ${job.title}`,
+        html: `<p>Hello,</p>
+               <p>Your job "<strong>${job.title}</strong>" was declined${reason ? ` for the following reason: <em>${reason}</em>` : "."}</p>
+               <p>Please review and resubmit if appropriate. Thank you.</p>`,
+      });
     }
     res.json({ message: "Job declined", job });
   } catch (error) {
@@ -325,6 +304,11 @@ router.put("/:id", auth, async (req, res) => {
       new: true,
       runValidators: true,
     });
+
+    // Invalidate cache
+    await invalidatePattern("cache:/api/jobs*");
+    console.log("🗑️  Invalidated job listing cache after job update");
+
     res.json({ message: "Job updated successfully", job: updatedJob });
   } catch (error) {
     console.error("Update job error:", error);
@@ -346,6 +330,11 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
 
     await Job.findByIdAndDelete(req.params.id);
+
+    // Invalidate cache
+    await invalidatePattern("cache:/api/jobs*");
+    console.log("🗑️  Invalidated job listing cache after job deletion");
+
     res.json({ message: "Job deleted successfully" });
   } catch (error) {
     console.error("Delete job error:", error);

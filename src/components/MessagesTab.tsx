@@ -4,12 +4,17 @@ import { useAppSelector } from "../store/hooks";
 import { useAuth } from "../store/hooks";
 import { useLocation } from "react-router-dom";
 import { useWebSocket } from "../context/WebSocketContext";
-import { Send, MessageSquare, X, Smile, CheckCircle2, Paperclip, Mic, MicOff, Video, FileText, Image, File, Trash2, Play, Pause, Square, Music, Film, Archive, Code, Database, FileSpreadsheet, Presentation, MoreVertical, Copy, Forward, Reply, Pencil, Download, Pin, User } from "lucide-react";
+import { Send, MessageSquare, X, Smile, CheckCircle2, Paperclip, Mic, MicOff, Video, FileText, Image, File, Trash2, Play, Pause, Square, Music, Film, Archive, Code, Database, FileSpreadsheet, Presentation, MoreVertical, Copy, Forward, Reply, Pencil, Download, Pin, User, ChevronLeft } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import type { EmojiClickData } from "emoji-picker-react";
 import apiService from "../services/api";
 import { FreelancerWithStatus } from "../types";
 import FreelancerProfileModal from "./FreelancerProfileModal";
+import {
+  fetchFreelancerDirectory,
+  getFreelancerDisplayName,
+  resolveFreelancerById,
+} from "../utils/freelancerDirectory";
 
 interface Conversation {
   id: string;
@@ -165,7 +170,119 @@ const dedupeConversations = (list: Conversation[]) => {
   return Array.from(map.values());
 };
 
-const MessagesTab: React.FC = () => {
+interface VoicePlayerProps {
+  src: string;
+  duration: number;
+  isOwnMessage: boolean;
+  darkMode: boolean;
+}
+
+const VoicePlayer: React.FC<VoicePlayerProps> = ({ src, duration, isOwnMessage, darkMode }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(duration || 0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const audio = new Audio(src);
+    audioRef.current = audio;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const handleEnded = () => setIsPlaying(false);
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setAudioDuration(audio.duration);
+      }
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    if (audio.readyState >= 1 && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      setAudioDuration(audio.duration);
+    }
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [src]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+      setIsPlaying(true);
+    }
+  };
+
+  const percentage = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={togglePlay}
+        className={`p-1.5 rounded-full flex-shrink-0 transition-all ${isOwnMessage
+            ? "bg-white/20 hover:bg-white/30 text-white"
+            : darkMode
+              ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400"
+              : "bg-cyan-100 hover:bg-cyan-200 text-cyan-600"
+          }`}
+      >
+        {isPlaying ? (
+          <Pause className="w-3.5 h-3.5 fill-current" />
+        ) : (
+          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        {/* Progress Bar Container */}
+        <div className={`h-1 w-full rounded-full relative overflow-hidden ${isOwnMessage ? "bg-white/20" : darkMode ? "bg-white/10" : "bg-gray-200"
+          }`}>
+          <div
+            className={`h-full rounded-full transition-all duration-100 ${isOwnMessage ? "bg-white" : "bg-cyan-500"
+              }`}
+            style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+          />
+        </div>
+
+        {/* Time Labels */}
+        <div className="flex items-center justify-between mt-0.5 text-[8px]">
+          <span className={isOwnMessage ? "text-white/70" : "text-gray-500"}>
+            {Math.floor(currentTime / 60)}:{(Math.floor(currentTime) % 60).toString().padStart(2, '0')}
+          </span>
+          <span className={isOwnMessage ? "text-white/70" : "text-gray-500"}>
+            {Math.floor(audioDuration / 60)}:{(Math.floor(audioDuration) % 60).toString().padStart(2, '0')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface MessagesTabProps {
+  availableFreelancers?: FreelancerWithStatus[];
+  freelancersLoading?: boolean;
+  isClient?: boolean;
+  onGoToFindFreelancers?: () => void;
+  onFreelancersLoaded?: (freelancers: FreelancerWithStatus[]) => void;
+}
+
+const MessagesTab: React.FC<MessagesTabProps> = ({
+  availableFreelancers = [],
+  freelancersLoading = false,
+  isClient = true,
+  onGoToFindFreelancers,
+  onFreelancersLoaded,
+}) => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const { user } = useAuth();
   const location = useLocation();
@@ -194,7 +311,107 @@ const MessagesTab: React.FC = () => {
   const [replyToMessage, setReplyToMessage] = useState<{ id: string; text: string } | null>(null);
   const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileFreelancer, setProfileFreelancer] = useState<FreelancerWithStatus | null>(null);
+  const freelancersDirectoryRef = useRef<FreelancerWithStatus[]>([]);
   const messageMenuRef = useRef<HTMLDivElement>(null);
+
+  const [browseFreelancers, setBrowseFreelancers] = useState<FreelancerWithStatus[]>([]);
+  const [browseLoadError, setBrowseLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (availableFreelancers.length > 0) {
+      freelancersDirectoryRef.current = availableFreelancers;
+      setBrowseFreelancers(
+        availableFreelancers.filter((f) => f._id && f._id !== user?._id)
+      );
+    }
+  }, [availableFreelancers, user?._id]);
+
+  useEffect(() => {
+    if (availableFreelancers.length > 0 || freelancersLoading) return;
+    if (!isClient || !user?._id) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchFreelancerDirectory();
+        if (cancelled) return;
+        const others = list.filter((f) => f._id !== user._id);
+        freelancersDirectoryRef.current = list;
+        setBrowseFreelancers(others);
+        onFreelancersLoaded?.(list);
+        setBrowseLoadError(null);
+      } catch (error: unknown) {
+        if (!cancelled) {
+          const err = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+          setBrowseLoadError(
+            err?.response?.data?.message ||
+            (err?.response?.status === 403
+              ? "You need a client account to message freelancers."
+              : "Could not load freelancers. Start the backend (port 5000) and sign in as a client.")
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isClient, user?._id, availableFreelancers.length, freelancersLoading, onFreelancersLoaded]);
+
+  const startConversationWithFreelancer = (freelancer: FreelancerWithStatus) => {
+    if (!user?._id || freelancer._id === user._id) return;
+
+    const conversationKey = getNormalizedConversationKey(user._id, freelancer._id);
+    const conv: Conversation = {
+      id: conversationKey,
+      freelancerId: freelancer._id,
+      freelancerName: getFreelancerDisplayName(freelancer),
+      freelancerEmail: freelancer.email || "",
+      lastMessage: "",
+      lastMessageTime: new Date().toISOString(),
+      unreadCount: 0,
+      freelancer,
+    };
+
+    setConversations((prev) => {
+      const existing = prev.find((c) => c.freelancerId === freelancer._id);
+      if (existing) return prev;
+      return [conv, ...prev];
+    });
+    setSelectedConversation(conv);
+    setMessages(getStoredMessages(conversationKey));
+  };
+
+  const openFreelancerProfile = async (conversation: Conversation) => {
+    let freelancer = conversation.freelancer;
+    if (!freelancer && conversation.freelancerId) {
+      if (freelancersDirectoryRef.current.length === 0) {
+        freelancersDirectoryRef.current = await fetchFreelancerDirectory();
+      }
+      freelancer = await resolveFreelancerById(
+        conversation.freelancerId,
+        freelancersDirectoryRef.current
+      );
+      if (freelancer) {
+        setSelectedConversation((prev) =>
+          prev && prev.freelancerId === conversation.freelancerId
+            ? { ...prev, freelancer }
+            : prev
+        );
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.freelancerId === conversation.freelancerId ? { ...c, freelancer } : c
+          )
+        );
+      }
+    }
+    if (freelancer) {
+      setProfileFreelancer(freelancer);
+      setShowProfileModal(true);
+    } else {
+      alert("Could not load this freelancer's profile. Try again from Find Freelancers.");
+    }
+  };
   const chatHeaderMenuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -350,11 +567,11 @@ const MessagesTab: React.FC = () => {
     const handleNewMessage = (messageData: StoredMessage) => {
       console.log("📨 MessagesTab handleNewMessage called!");
       console.log("📨 Received message via WebSocket:", messageData);
-      
+
       // Get current values from refs
       const currentUser = user;
       const currentSelectedConv = selectedConversationRef.current;
-      
+
       console.log("📥 Message details:", {
         messageId: messageData._id || messageData.id,
         senderId: getUserId(messageData.senderId),
@@ -406,10 +623,10 @@ const MessagesTab: React.FC = () => {
       const backendConversationId = messageData.conversationId || [senderId, receiverId].sort().join("_");
       const targetFreelancerId = senderId === currentUser?._id ? receiverId : senderId;
       const frontendConversationId = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
-      
+
       // Check if this is our own message (sender receiving confirmation)
       const isOwnMessage = senderId === currentUser?._id;
-      
+
       // Check for duplicates using message ID only
       const messageId = messageData._id || messageData.id;
       if (messageId) {
@@ -419,7 +636,7 @@ const MessagesTab: React.FC = () => {
         }
         processedMessageIdsRef.current.add(messageId);
       }
-      
+
       // For sender's own messages: try to replace temp message instead of adding new one
       if (isOwnMessage) {
         console.log("📨 Sender receiving confirmation for own message:", {
@@ -428,21 +645,26 @@ const MessagesTab: React.FC = () => {
           senderId,
           receiverId,
         });
-        
+
         setMessages((prev) => {
           console.log("🔍 Searching for temp message in state, total messages:", prev.length);
-          
+
           // Find temp message with matching content
           const tempIndex = prev.findIndex((m, idx) => {
-            const isTemp = m._id && m._id.startsWith("temp_");
+            const mId = m._id || m.id;
+            const clientId = messageData.clientMessageId;
+            if (clientId && (mId === clientId || m.clientMessageId === clientId)) {
+              return true;
+            }
+            const isTemp = mId && String(mId).startsWith("temp_");
             const matchesSender = getUserId(m.senderId) === senderId;
             const matchesReceiver = getUserId(m.receiverId) === receiverId;
             const matchesContent = m.message === messageData.message;
-            
+
             if (isTemp) {
-              console.log(`  Message ${idx}: temp=${isTemp}, sender=${matchesSender}, receiver=${matchesReceiver}, content=${matchesContent}`, m._id);
+              console.log(`  Message ${idx}: temp=${isTemp}, sender=${matchesSender}, receiver=${matchesReceiver}, content=${matchesContent}`, mId);
             }
-            
+
             return isTemp && matchesSender && matchesReceiver && matchesContent;
           });
 
@@ -458,7 +680,7 @@ const MessagesTab: React.FC = () => {
             };
             return updated;
           }
-          
+
           console.log("⚠️ No temp message found, checking if real message already exists");
           // If no temp message found, check if real message already exists
           const exists = prev.some(m => {
@@ -469,12 +691,12 @@ const MessagesTab: React.FC = () => {
             }
             return matches;
           });
-          
+
           if (exists) {
             console.log("⏭️ Message already exists, skipping");
             return prev;
           }
-          
+
           console.log("➕ Adding confirmed message (no temp found)");
           return [...prev, {
             ...messageData,
@@ -484,12 +706,12 @@ const MessagesTab: React.FC = () => {
             messageType: messageData.messageType,
           }];
         });
-        
+
         // Scroll to bottom
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
-        
+
         // Still need to persist and update conversation list, so don't return here
         // Continue to the persistence logic below
       }
@@ -511,7 +733,7 @@ const MessagesTab: React.FC = () => {
       // If this message belongs to the current conversation, add/replace it in messages
       if (isCurrentConversation) {
         console.log("✅ Message belongs to current conversation, adding to UI");
-        
+
         // Show browser notification (only for received messages, not own)
         if (!isOwnMessage && Notification.permission === "granted") {
           new Notification("New Message", {
@@ -519,7 +741,7 @@ const MessagesTab: React.FC = () => {
             icon: "/Logo.png",
           });
         }
-        
+
         // For sender's own messages: handled above (temp message replacement)
         // For receiver's messages: add to state
         if (!isOwnMessage) {
@@ -662,12 +884,21 @@ const MessagesTab: React.FC = () => {
     if (!user?._id) return;
 
     const loadConversations = async () => {
+      if (freelancersDirectoryRef.current.length === 0) {
+        freelancersDirectoryRef.current =
+          availableFreelancers.length > 0
+            ? availableFreelancers
+            : await fetchFreelancerDirectory();
+      }
+      const directory = freelancersDirectoryRef.current;
+
       const allKeys = Object.keys(localStorage);
       const conversationKeys = allKeys.filter(
         (key) => key.startsWith("conversation_") && key.includes(user._id)
       );
 
       const convs: Conversation[] = [];
+      const processedOtherIds = new Set<string>();
 
       const mergedByKey = new Map<string, { key: string; messages: StoredMessage[]; lastMessage: StoredMessage }>();
       const bestKeyByIdentity = new Map<string, { key: string; time: number }>();
@@ -749,37 +980,33 @@ const MessagesTab: React.FC = () => {
           }
         }
 
-        // Try to fetch freelancer data
-        try {
-          const freelancers = await apiService.getFreelancersWithStatus();
-          const freelancer = freelancers.find((f: FreelancerWithStatus) => f._id === otherId);
-          const freelancerProfile = freelancer?.profile || {};
-          const freelancerName = freelancer
-            ? `${freelancerProfile.firstName || ""} ${freelancerProfile.lastName || ""}`.trim() || freelancer.email
-            : lastMessage.receiverName || "Unknown";
+        if (processedOtherIds.has(otherId)) continue;
+        processedOtherIds.add(otherId);
 
-          convs.push({
-            id: normalizedKey,
-            freelancerId: otherId,
-            freelancerName: freelancerName,
-            freelancerEmail: freelancer?.email || lastMessage.receiverEmail || lastMessage.senderEmail || "",
-            lastMessage: lastMessage.message,
-            lastMessageTime: lastMessage.timestamp || lastMessage.createdAt || new Date().toISOString(),
-            unreadCount: 0,
-            freelancer: freelancer,
-          });
-        } catch (error) {
-          // If freelancer not found, still show conversation
-          convs.push({
-            id: normalizedKey,
-            freelancerId: otherId,
-            freelancerName: lastMessage.receiverName || "Unknown",
-            freelancerEmail: lastMessage.receiverEmail || lastMessage.senderEmail || "",
-            lastMessage: lastMessage.message,
-            lastMessageTime: lastMessage.timestamp || lastMessage.createdAt || new Date().toISOString(),
-            unreadCount: 0,
-          });
+        let freelancer =
+          directory.find((f: FreelancerWithStatus) => f._id === otherId) ||
+          (await resolveFreelancerById(otherId, directory));
+
+        if (freelancer && !directory.some((f) => f._id === otherId)) {
+          directory.push(freelancer);
+          freelancersDirectoryRef.current = directory;
         }
+
+        const freelancerName =
+          getFreelancerDisplayName(freelancer, lastMessage.receiverName || lastMessage.senderName || "Unknown");
+
+        convs.push({
+          id: normalizedKey,
+          freelancerId: otherId,
+          freelancerName,
+          freelancerEmail:
+            freelancer?.email || lastMessage.receiverEmail || lastMessage.senderEmail || "",
+          lastMessage: lastMessage.message,
+          lastMessageTime:
+            lastMessage.timestamp || lastMessage.createdAt || new Date().toISOString(),
+          unreadCount: 0,
+          freelancer,
+        });
       }
 
       // Persist merged messages to normalized keys and remove duplicates
@@ -813,7 +1040,7 @@ const MessagesTab: React.FC = () => {
     return () => {
       window.removeEventListener('messageSent', handleMessageSent);
     };
-  }, [user?._id]);
+  }, [user?._id, availableFreelancers]);
 
   const displayConversations = useMemo(
     () =>
@@ -867,14 +1094,29 @@ const MessagesTab: React.FC = () => {
         if (existingMessages.length > 0) {
           // Conversation exists in localStorage, create it
           const lastMessage = existingMessages[existingMessages.length - 1];
+          let freelancerFromStorage: FreelancerWithStatus | undefined;
+          if (freelancersDirectoryRef.current.length === 0) {
+            freelancersDirectoryRef.current =
+              availableFreelancers.length > 0
+                ? availableFreelancers
+                : await fetchFreelancerDirectory();
+          }
+          freelancerFromStorage = await resolveFreelancerById(
+            freelancerId,
+            freelancersDirectoryRef.current
+          );
           conv = {
             id: conversationKey,
             freelancerId: freelancerId,
-            freelancerName: lastMessage.receiverName || "Unknown",
+            freelancerName: getFreelancerDisplayName(
+              freelancerFromStorage,
+              lastMessage.receiverName || lastMessage.senderName || "Unknown"
+            ),
             freelancerEmail: lastMessage.receiverEmail || lastMessage.senderEmail || "",
             lastMessage: lastMessage.message,
             lastMessageTime: lastMessage.timestamp || lastMessage.createdAt || new Date().toISOString(),
             unreadCount: 0,
+            freelancer: freelancerFromStorage,
           };
         } else {
           // New conversation - fetch freelancer data
@@ -985,7 +1227,7 @@ const MessagesTab: React.FC = () => {
         })
         : conversationMessages;
       setMessages(filteredLocalMessages);
-      
+
       // If API failed but we have localStorage messages, try to sync them to API in background
       if (filteredLocalMessages.length > 0) {
         console.log("Messages loaded from localStorage for persistence");
@@ -1004,7 +1246,7 @@ const MessagesTab: React.FC = () => {
     try {
       const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
       const existingMessages = getStoredMessages(conversationKey);
-      
+
       // Only save if we have new messages or different count
       if (messages.length !== existingMessages.length) {
         localStorage.setItem(conversationKey, JSON.stringify(messages));
@@ -1789,33 +2031,87 @@ const MessagesTab: React.FC = () => {
             } ${selectedConversation ? "hidden md:block" : ""}`}
         >
           {displayConversations.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-12 text-center h-full flex items-center justify-center"
-            >
-              <div>
-                <motion.div
-                  className={`w-24 h-24 rounded-full mx-auto mb-6 ${darkMode
-                    ? "bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-cyan-500/30"
-                    : "bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-cyan-200"
-                    } flex items-center justify-center`}
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <MessageSquare className={`w-12 h-12 ${darkMode ? "text-gray-600" : "text-gray-400"
-                    }`} />
-                </motion.div>
-                <p className={`text-lg font-semibold mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                  No messages yet
-                </p>
-                <p className={`text-sm ${darkMode ? "text-gray-500" : "text-gray-500"
-                  }`}>
-                  Start a conversation by messaging a freelancer
-                </p>
-              </div>
-            </motion.div>
+            <div className="p-4 h-full flex flex-col">
+              <p className={`text-sm font-semibold mb-1 ${darkMode ? "text-gray-200" : "text-gray-800"}`}>
+                No messages yet
+              </p>
+              <p className={`text-xs mb-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                Pick a freelancer below to start chatting
+              </p>
+
+              {!isClient ? (
+                <div className={`text-sm p-4 rounded-lg ${darkMode ? "bg-amber-500/10 text-amber-200" : "bg-amber-50 text-amber-800"}`}>
+                  Switch to your <strong>client</strong> account to message freelancers.
+                </div>
+              ) : freelancersLoading ? (
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Loading freelancers...</p>
+              ) : browseLoadError ? (
+                <div className="space-y-3">
+                  <p className={`text-sm ${darkMode ? "text-red-400" : "text-red-600"}`}>{browseLoadError}</p>
+                  {onGoToFindFreelancers && (
+                    <button
+                      type="button"
+                      onClick={onGoToFindFreelancers}
+                      className="w-full py-2 rounded-lg bg-cyan-600 text-white text-sm font-medium hover:bg-cyan-500"
+                    >
+                      Open Find Freelancers
+                    </button>
+                  )}
+                </div>
+              ) : browseFreelancers.length === 0 ? (
+                <div className="space-y-3 text-center">
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                    No freelancers registered yet. Sign up another account as a freelancer to test messaging.
+                  </p>
+                  {onGoToFindFreelancers && (
+                    <button
+                      type="button"
+                      onClick={onGoToFindFreelancers}
+                      className="w-full py-2 rounded-lg border border-cyan-500 text-cyan-500 text-sm font-medium hover:bg-cyan-500/10"
+                    >
+                      Browse Find Freelancers
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar min-h-0">
+                  {browseFreelancers.map((freelancer) => {
+                    const profile = freelancer.profile || {};
+                    const name = getFreelancerDisplayName(freelancer);
+                    const skill = profile.primarySkill || profile.skills?.[0] || "Freelancer";
+                    return (
+                      <button
+                        key={freelancer._id}
+                        type="button"
+                        onClick={() => startConversationWithFreelancer(freelancer)}
+                        className={`w-full text-left p-3 rounded-xl border transition-colors ${darkMode
+                          ? "bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 hover:bg-gray-800"
+                          : "bg-white border-gray-200 hover:border-cyan-400 hover:bg-cyan-50/50"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 ${darkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"
+                              }`}
+                          >
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`font-semibold text-sm truncate ${darkMode ? "text-white" : "text-gray-900"}`}>
+                              {name}
+                            </p>
+                            <p className={`text-xs truncate ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                              {skill}
+                            </p>
+                          </div>
+                          <span className="text-xs font-medium text-cyan-500 shrink-0">Message</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="divide-y-2 divide-cyan-500/10 dark:divide-cyan-500/20">
               {displayConversations.map((conv, index) => (
@@ -1899,6 +2195,16 @@ const MessagesTab: React.FC = () => {
                   }`}
               >
                 <div className="flex items-center gap-2">
+                  {/* Mobile back button — returns to conversations list */}
+                  <motion.button
+                    className={`md:hidden p-2 rounded-lg mr-0.5 ${darkMode ? "text-gray-300 hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
+                    onClick={() => setSelectedConversation(null)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    title="Back to conversations"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </motion.button>
                   <motion.div
                     className={`w-10 h-10 rounded-lg ${darkMode
                       ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
@@ -1906,7 +2212,7 @@ const MessagesTab: React.FC = () => {
                       } flex items-center justify-center shadow-sm cursor-pointer`}
                     whileHover={{ scale: 1.05 }}
                     transition={{ type: "spring", stiffness: 400 }}
-                    onClick={() => setShowProfileModal(true)}
+                    onClick={() => openFreelancerProfile(selectedConversation)}
                   >
                     <span className={`text-base font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
                       }`}>
@@ -1915,7 +2221,7 @@ const MessagesTab: React.FC = () => {
                   </motion.div>
                   <div
                     className="cursor-pointer"
-                    onClick={() => setShowProfileModal(true)}
+                    onClick={() => openFreelancerProfile(selectedConversation)}
                   >
                     <h3 className={`font-bold text-base mb-0.5 hover:underline ${darkMode ? "text-white" : "text-gray-900"
                       }`}>
@@ -1929,20 +2235,18 @@ const MessagesTab: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1.5 relative">
                   {/* WebSocket Connection Status */}
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs" 
-                       title={connected ? "Real-time messaging active" : "Connecting..."}>
-                    <div className={`w-2 h-2 rounded-full ${
-                      connected 
-                        ? "bg-green-500 animate-pulse" 
-                        : "bg-yellow-500 animate-pulse"
-                    }`} />
-                    <span className={`text-xs ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                    title={connected ? "Real-time messaging active" : "Connecting..."}>
+                    <div className={`w-2 h-2 rounded-full ${connected
+                      ? "bg-green-500 animate-pulse"
+                      : "bg-yellow-500 animate-pulse"
+                      }`} />
+                    <span className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-600"
+                      }`}>
                       {connected ? "Live" : "Connecting"}
                     </span>
                   </div>
-                  
+
                   {/* Video Call Button */}
                   <motion.button
                     onClick={initiateVideoCall}
@@ -1989,7 +2293,9 @@ const MessagesTab: React.FC = () => {
                           {/* View Profile Option */}
                           <button
                             onClick={() => {
-                              setShowProfileModal(true);
+                              if (selectedConversation) {
+                                openFreelancerProfile(selectedConversation);
+                              }
                               setChatHeaderMenuOpen(false);
                             }}
                             className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
@@ -2096,7 +2402,7 @@ const MessagesTab: React.FC = () => {
                           </motion.div>
                         )}
                         {/* Message Container with Options Menu */}
-                        <div className="relative group">
+                        <div className="relative group max-w-[75%]">
                           {/* 3-Dot Options Menu Button */}
                           <div className={`absolute ${isOwnMessage ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
                             <motion.button
@@ -2120,7 +2426,7 @@ const MessagesTab: React.FC = () => {
                                 initial={{ opacity: 0, scale: 0.9, y: -10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                                className={`absolute ${isOwnMessage ? 'right-0' : 'left-0'} top-full mt-1 z-20 min-w-[160px] rounded-xl shadow-xl overflow-hidden ${darkMode
+                                className={`absolute ${isOwnMessage ? 'right-0' : 'left-0'} top-2 z-20 min-w-[160px] rounded-xl shadow-xl overflow-hidden ${darkMode
                                   ? "bg-gray-800 border border-gray-700"
                                   : "bg-white border border-gray-200"
                                   }`}
@@ -2207,13 +2513,14 @@ const MessagesTab: React.FC = () => {
                           </AnimatePresence>
 
                           <motion.div
-                            className={`max-w-[75%] rounded-xl pl-12 pr-4 py-3 shadow-sm ${isOwnMessage
-                              ? darkMode
-                                ? "bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
-                                : "bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
-                              : darkMode
-                                ? "bg-gray-800/80 backdrop-blur-xl text-white border border-white/10"
-                                : "bg-white text-black border border-gray-200"
+                            className={`min-w-[140px] rounded-xl px-4 py-3 shadow-sm ${hasVoice ? "w-[220px] sm:w-[260px]" : "w-fit"
+                              } ${isOwnMessage
+                                ? darkMode
+                                  ? "bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
+                                  : "bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
+                                : darkMode
+                                  ? "bg-gray-800/80 backdrop-blur-xl text-white border border-white/10"
+                                  : "bg-white text-black border border-gray-200"
                               } ${isPinned ? (isOwnMessage ? "ring-2 ring-yellow-300/80" : "ring-2 ring-yellow-400/80") : ""}`}
                             whileHover={{ scale: 1.01 }}
                             transition={{ type: "spring", stiffness: 400 }}
@@ -2227,41 +2534,19 @@ const MessagesTab: React.FC = () => {
                             )}
                             {/* Voice Message Player */}
                             {hasVoice && (
-                              <div className={`mb-1.5 p-2.5 rounded-xl border ${isOwnMessage
+                              <div className={`mb-1.5 p-2 rounded-xl border ${isOwnMessage
                                 ? "bg-white/20 border-white/20"
                                 : darkMode
                                   ? "bg-white/10 border-white/10"
                                   : "bg-gray-100 border-gray-200"
                                 }`}>
-                                <div className="flex items-center gap-2">
-                                  <div className={`p-2 rounded-full ${isOwnMessage ? "bg-white/30" : darkMode ? "bg-cyan-500/30" : "bg-cyan-100"
-                                    }`}>
-                                    <Mic className={`w-3.5 h-3.5 ${isOwnMessage ? "text-white" : darkMode ? "text-cyan-400" : "text-cyan-600"
-                                      }`} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <audio
-                                        controls
-                                        src={msg.voiceData ?? undefined}
-                                        className="w-full h-8"
-                                        style={{
-                                          filter: isOwnMessage ? 'invert(1) brightness(2)' : 'none',
-                                          maxWidth: '220px'
-                                        }}
-                                      />
-                                    </div>
-                                    <div className="flex items-center justify-between mt-1">
-                                      <span className={`text-[10px] uppercase tracking-wide ${isOwnMessage ? "text-white/70" : darkMode ? "text-gray-400" : "text-gray-500"
-                                        }`}>
-                                        Voice message
-                                      </span>
-                                      <span className={`text-[10px] font-medium ${isOwnMessage ? "text-white/70" : darkMode ? "text-gray-400" : "text-gray-500"
-                                        }`}>
-                                        {Math.floor(voiceDuration / 60)}:{(voiceDuration % 60).toString().padStart(2, '0')}
-                                      </span>
-                                    </div>
-                                  </div>
+                                <div className="flex items-center gap-2 justify-between w-full">
+                                  <VoicePlayer
+                                    src={msg.voiceData || ""}
+                                    duration={voiceDuration}
+                                    isOwnMessage={isOwnMessage}
+                                    darkMode={darkMode}
+                                  />
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2277,16 +2562,15 @@ const MessagesTab: React.FC = () => {
                                         console.error("Failed to download voice message:", e);
                                       }
                                     }}
-                                    className={`p-1.5 rounded-full ${isOwnMessage
-                                      ? "bg-white/30 hover:bg-white/40"
+                                    className={`p-1.5 rounded-full flex-shrink-0 ${isOwnMessage
+                                      ? "bg-white/30 hover:bg-white/40 text-white"
                                       : darkMode
-                                        ? "bg-cyan-500/20 hover:bg-cyan-500/30"
-                                        : "bg-cyan-100 hover:bg-cyan-200"
+                                        ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300"
+                                        : "bg-cyan-100 hover:bg-cyan-200 text-cyan-700"
                                       }`}
                                     title="Download voice message"
                                   >
-                                    <Download className={`w-3 h-3 ${isOwnMessage ? "text-white" : darkMode ? "text-cyan-300" : "text-cyan-700"
-                                      }`} />
+                                    <Download className="w-3 h-3" />
                                   </button>
                                 </div>
                               </div>
@@ -3066,10 +3350,13 @@ const MessagesTab: React.FC = () => {
         )}
       </AnimatePresence>
       {/* Profile Modal */}
-      {showProfileModal && selectedConversation && selectedConversation.freelancer && (
+      {showProfileModal && profileFreelancer && (
         <FreelancerProfileModal
-          freelancer={selectedConversation.freelancer}
-          onClose={() => setShowProfileModal(false)}
+          freelancer={profileFreelancer}
+          onClose={() => {
+            setShowProfileModal(false);
+            setProfileFreelancer(null);
+          }}
         />
       )}
     </div>

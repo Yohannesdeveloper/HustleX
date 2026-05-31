@@ -6,6 +6,8 @@ interface StatusIndicatorProps {
   lastActive?: string;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
+  labelClassName?: string;
+  lastActiveClassName?: string;
 }
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({
@@ -13,6 +15,8 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   lastActive,
   size = "md",
   showLabel = false,
+  labelClassName = "",
+  lastActiveClassName = "",
 }) => {
   const sizeClasses = {
     sm: "w-2 h-2",
@@ -71,10 +75,10 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
         )}
       </div>
       {showLabel && (
-        <span className="text-sm font-medium">{config.label}</span>
+        <span className={`text-sm font-medium ${labelClassName}`}>{config.label}</span>
       )}
       {lastActive && (
-        <span className="text-xs opacity-70">
+        <span className={`text-xs opacity-70 ${lastActiveClassName}`}>
           {lastActive}
         </span>
       )}

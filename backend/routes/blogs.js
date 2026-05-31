@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 const Blog = require('../models/Blog');
 const { auth, adminAuth } = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
+const { cacheMiddleware, invalidatePattern } = require('../middleware/cache');
 
 // Get all blogs with pagination and filtering
-router.get('/', async (req, res) => {
+router.get('/', cacheMiddleware(120), async (req, res) => {
   try {
     const { page = 1, limit = 10, category, search } = req.query;
     const skip = (page - 1) * limit;
@@ -63,14 +66,24 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new blog post (admin only)
-router.post('/', auth, async (req, res) => {
+router.post('/', 
+  auth, 
+  requireRole('admin'),
+  [
+    body('title').trim().isLength({ min: 5, max: 200 }).withMessage('Title must be between 5 and 200 characters'),
+    body('content').trim().isLength({ min: 50, max: 50000 }).withMessage('Content must be between 50 and 50000 characters'),
+    body('category').trim().isLength({ min: 2, max: 50 }).withMessage('Category is required'),
+    body('readTime').isInt({ min: 1, max: 120 }).withMessage('Read time must be between 1 and 120 minutes'),
+    body('imageUrl').optional().isURL().withMessage('Image URL must be a valid URL'),
+  ],
+  async (req, res) => {
   try {
-    const { title, content, category, readTime, imageUrl } = req.body;
-
-    // Validate required fields
-    if (!title || !content || !category || !readTime) {
-      return res.status(400).json({ message: 'All required fields must be provided' });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
     }
+
+    const { title, content, category, readTime, imageUrl } = req.body;
 
     const blog = new Blog({
       title: title.trim(),

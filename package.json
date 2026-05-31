@@ -8,7 +8,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "worker": "npm run worker --prefix backend",
+    "worker:dev": "npm run worker:dev --prefix backend",
+    "dev:api": "npm run dev:stable --prefix backend",
+    "scale:redis": "npm run scale:redis --prefix backend",
+    "scale:finalize": "npm run scale:finalize --prefix backend",
+    "scale:start": "start-scale.bat"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
