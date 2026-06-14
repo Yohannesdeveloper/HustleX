@@ -9,7 +9,8 @@ const User = require("./models/User");
 // Load env from backend .env
 require("dotenv").config({ path: __dirname + "/.env" });
 
-const EMAIL = "yohannesfk123@gmail.com";
+const { getAdminEmail } = require("./config/admin");
+const EMAIL = getAdminEmail();
 
 const run = async () => {
   const uri = process.env.MONGODB_URI;

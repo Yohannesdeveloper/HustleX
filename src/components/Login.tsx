@@ -5,6 +5,7 @@ import { FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useAuth } from "../store/hooks";
 import { useAppSelector } from "../store/hooks";
 import { useTranslation } from "../hooks/useTranslation";
+import { isAdminAccount } from "../utils/admin";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ const Login: React.FC = () => {
 
       if (!searchParams.get("redirect")) {
         // Admin users go to admin panel
-        if (loggedInUser.roles?.includes('admin')) {
+        if (isAdminAccount(loggedInUser)) {
           finalRedirectPath = "/admin/blog";
         } else if (loggedInUser.currentRole === "client") {
           finalRedirectPath = "/dashboard/hiring";

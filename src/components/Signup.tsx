@@ -7,6 +7,7 @@ import { useAppSelector } from "../store/hooks";
 import { useTranslation } from "../hooks/useTranslation";
 import apiService from "../services/api";
 import { getBackendApiUrlSync } from "../utils/portDetector";
+import { isAdminAccount } from "../utils/admin";
 import { RegisterSEO, LoginSEO } from "../components/SEO";
 
 const Signup: React.FC = () => {
@@ -138,27 +139,26 @@ const Signup: React.FC = () => {
       // Determine the role to use (selected role or current role)
       const targetRole = selectedRoleForLogin || loggedInUser?.currentRole || 'freelancer';
 
-      // If adding a new role, add it after login
-      if (selectedRoleForLogin && !existingUser.roles?.includes(selectedRoleForLogin)) {
-        try {
-          await addRole(selectedRoleForLogin as 'freelancer' | 'client');
-        } catch (roleError: any) {
-          console.error('Error adding role:', roleError);
-          // Continue anyway - user can add role later
-        }
-      } else if (selectedRoleForLogin && loggedInUser?.currentRole !== selectedRoleForLogin) {
-        // Switch to selected role if different from current
-        try {
-          await switchRole(selectedRoleForLogin as 'freelancer' | 'client');
-        } catch (switchError: any) {
-          console.error('Error switching role:', switchError);
-          // Continue anyway
+      // Admin role is managed server-side — skip add/switch role APIs
+      if (selectedRoleForLogin && selectedRoleForLogin !== 'admin') {
+        if (!existingUser.roles?.includes(selectedRoleForLogin)) {
+          try {
+            await addRole(selectedRoleForLogin as 'freelancer' | 'client');
+          } catch (roleError: any) {
+            console.error('Error adding role:', roleError);
+          }
+        } else if (loggedInUser?.currentRole !== selectedRoleForLogin) {
+          try {
+            await switchRole(selectedRoleForLogin as 'freelancer' | 'client');
+          } catch (switchError: any) {
+            console.error('Error switching role:', switchError);
+          }
         }
       }
 
       // Navigate based on role and profile completion status
       // Priority 1: Admin users always go to admin panel
-      if (loggedInUser?.roles?.includes('admin')) {
+      if (isAdminAccount(loggedInUser)) {
         navigate('/admin/blog', { replace: true });
         return;
       }
@@ -488,7 +488,7 @@ const Signup: React.FC = () => {
               </h3>
 
               {/* Admin accounts: show ONLY admin option for the designated admin email */}
-              {existingUser.email?.toLowerCase() === 'hustlexet@gmail.com' ? (
+              {isAdminAccount(existingUser) ? (
                 <>
                   <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     This is an administrator account. Please sign in with your admin credentials.

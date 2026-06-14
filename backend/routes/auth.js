@@ -5,6 +5,10 @@ const User = require("../models/User");
 const { sendMail } = require("../services/mail");
 const Company = require("../models/Company");
 const { auth } = require("../middleware/auth");
+const {
+  ensureAdminRole,
+  toAuthUserPayload,
+} = require("../config/admin");
 
 const router = express.Router();
 
@@ -113,6 +117,7 @@ router.post(
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
+      await ensureAdminRole(user);
 
       const token = generateToken(user._id);
 
@@ -125,15 +130,7 @@ router.post(
 
       res.json({
         token,
-        user: {
-          _id: user._id,
-          email: user.email,
-          roles: user.roles,
-          currentRole: user.currentRole,
-          role: user.currentRole, // For backward compatibility
-          profile: user.profile,
-          hasCompanyProfile, // For client profile completion check
-        },
+        user: toAuthUserPayload(user, { hasCompanyProfile }),
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -289,19 +286,10 @@ router.get("/me", auth, async (req, res) => {
       hasCompanyProfile = !!company;
     }
 
-    // For admin users, use 'admin' as the effective currentRole
-    const effectiveRole = req.user.roles?.includes("admin") ? "admin" : req.user.currentRole;
+    await ensureAdminRole(req.user);
 
     res.json({
-      user: {
-        _id: req.user._id,
-        email: req.user.email,
-        roles: req.user.roles,
-        currentRole: effectiveRole,
-        role: effectiveRole, // For backward compatibility
-        profile: req.user.profile,
-        hasCompanyProfile, // For client profile completion check
-      },
+      user: toAuthUserPayload(req.user, { hasCompanyProfile }),
     });
   } catch (error) {
     console.error("Get user error:", error);
@@ -462,22 +450,14 @@ router.get("/check-user", async (req, res) => {
     }
 
     // Check if user exists
-    const user = await User.findOne({ email: email.toLowerCase() }).lean();
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Safely construct the response
-    const safeUser = {
-      _id: user._id,
-      email: user.email,
-      roles: user.roles || [],
-      currentRole: user.currentRole || (user.roles && user.roles[0]) || null,
-      role: user.currentRole || (user.roles && user.roles[0]) || null, // For backward compatibility
-      profile: user.profile || {},
-    };
+    await ensureAdminRole(user);
 
-    res.json({ user: safeUser });
+    res.json({ user: toAuthUserPayload(user) });
   } catch (error) {
     console.error("Check user error:", error);
     console.error("Error details:", error.stack);

@@ -27,6 +27,11 @@ const initialState: AuthState = {
 // Helper to check and sync persisted role
 const syncPersistedRole = async (user: User): Promise<User> => {
   try {
+    // Admin accounts should not be switched to a non-admin persisted role
+    if (user.roles.includes("admin")) {
+      return user;
+    }
+
     const persistedRole = readPersistedActiveRole();
     if (
       persistedRole &&
@@ -177,7 +182,9 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = !!action.payload;
         state.loading = false;
-        if (action.payload?.currentRole) {
+        if (action.payload?.roles?.includes("admin")) {
+          persistActiveRole("admin");
+        } else if (action.payload?.currentRole) {
           persistActiveRole(action.payload.currentRole as ActiveRole);
         }
       })
@@ -194,7 +201,9 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
         state.loading = false;
-        if (action.payload?.currentRole) {
+        if (action.payload?.roles?.includes("admin")) {
+          persistActiveRole("admin");
+        } else if (action.payload?.currentRole) {
           persistActiveRole(action.payload.currentRole as ActiveRole);
         }
       })
