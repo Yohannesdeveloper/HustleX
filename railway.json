@@ -1,0 +1,25 @@
+{
+  "services": [
+    {
+      "name": "hustlex-api",
+      "build": {
+        "context": "backend"
+      },
+      "environments": [
+        "production"
+      ],
+      "hasPublicDomain": true
+    },
+    {
+      "name": "hustlex-frontend",
+      "build": {
+        "context": ".",
+        "dockerfile": "frontend/Dockerfile"
+      },
+      "environments": [
+        "production"
+      ],
+      "hasPublicDomain": true
+    }
+  ]
+}
