@@ -2,12 +2,12 @@ import type { User } from "../store/authSlice";
 
 const STORAGE_KEY = "hustlex_active_role";
 
-export type ActiveRole = "freelancer" | "client";
+export type ActiveRole = "freelancer" | "client" | "admin";
 
 export function getActiveRole(user: User | null | undefined): ActiveRole | null {
   if (!user) return null;
   const role = user.currentRole || user.role;
-  if (role === "client" || role === "freelancer") return role;
+  if (role === "client" || role === "freelancer" || role === "admin") return role;
   return null;
 }
 
@@ -17,6 +17,10 @@ export function isClientMode(user: User | null | undefined): boolean {
 
 export function isFreelancerMode(user: User | null | undefined): boolean {
   return getActiveRole(user) === "freelancer";
+}
+
+export function isAdminMode(user: User | null | undefined): boolean {
+  return getActiveRole(user) === "admin";
 }
 
 export function persistActiveRole(role: ActiveRole): void {
@@ -30,7 +34,7 @@ export function persistActiveRole(role: ActiveRole): void {
 export function readPersistedActiveRole(): ActiveRole | null {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
-    if (value === "freelancer" || value === "client") return value;
+    if (value === "freelancer" || value === "client" || value === "admin") return value;
   } catch {
     // ignore storage errors
   }
@@ -46,5 +50,6 @@ export function clearPersistedActiveRole(): void {
 }
 
 export function dashboardPathForRole(role: ActiveRole): string {
+  if (role === "admin") return "/admin/dashboard";
   return role === "client" ? "/dashboard/hiring" : "/dashboard/freelancer";
 }
