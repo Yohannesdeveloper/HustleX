@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { generateUniqueSlug } = require("../utils/slugify");
 
 const userSchema = new mongoose.Schema(
   {
@@ -28,7 +29,7 @@ const userSchema = new mongoose.Schema(
     },
     currentRole: {
       type: String,
-      enum: ["freelancer", "client"],
+      enum: ["freelancer", "client", "admin"],
       default: "freelancer",
     },
     profile: {
@@ -96,11 +97,27 @@ const userSchema = new mongoose.Schema(
       expiresAt: Date, // Calculated as subscribedAt + 1 month
       cancelledAt: Date,
       paymentMethod: String,
+      paymentReceipt: String,
       status: {
         type: String,
         enum: ["active", "cancelled", "expired", "pending_approval"],
         default: "active",
       },
+    },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+    },
+    seo: {
+      metaTitle: String,
+      metaDescription: String,
+      keywords: [String],
+      canonicalUrl: String,
+      structuredData: mongoose.Schema.Types.Mixed,
+      ogImage: String,
     },
   },
   {
@@ -119,6 +136,36 @@ userSchema.pre("save", async function (next) {
   } catch (error) {
     next(error);
   }
+});
+
+// Generate unique slug and default SEO fields before saving
+userSchema.pre("save", async function (next) {
+  if (
+    (this.isModified("profile.firstName") || this.isModified("profile.lastName") || !this.slug) &&
+    this.profile && (this.profile.firstName || this.profile.lastName)
+  ) {
+    try {
+      const name = `${this.profile.firstName || ""} ${this.profile.lastName || ""}`.trim();
+      this.slug = await generateUniqueSlug(this.constructor, name, "slug", this._id);
+      
+      // Establish defaults for SEO fields
+      if (!this.seo) this.seo = {};
+      if (!this.seo.metaTitle) {
+        this.seo.metaTitle = `${name} | Elite ${this.profile.primarySkill || "Freelancer"} on HustleX`;
+      }
+      if (!this.seo.metaDescription) {
+        this.seo.metaDescription = this.profile.bio 
+          ? this.profile.bio.substring(0, 150)
+          : `Hire ${name}, a professional ${this.profile.primarySkill || "freelancer"} on HustleX. Review portfolio, hourly rates, and certifications.`;
+      }
+      if (!this.seo.canonicalUrl) {
+        this.seo.canonicalUrl = `https://hustlex.com/freelancers/${this.slug}`;
+      }
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
 });
 
 // Virtual for backward compatibility - returns currentRole as role

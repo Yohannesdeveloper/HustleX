@@ -8,6 +8,7 @@ const SubscriptionAdmin: React.FC = () => {
     const token = localStorage.getItem("token");
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
 
     // Password protection state
     const [isPasswordVerified, setIsPasswordVerified] = useState(false);
@@ -20,6 +21,14 @@ const SubscriptionAdmin: React.FC = () => {
         }
     }, [token, isPasswordVerified]);
 
+    const getBaseUrl = () => {
+        return window.location.hostname.includes("devtunnels")
+            ? `https://${window.location.hostname}`
+            : process.env.NODE_ENV === "production"
+                ? "https://your-domain.com"
+                : getBackendUrlSync();
+    };
+
     const fetchSubscriptions = async () => {
         if (!token) {
             console.log("No token found, stopping load.");
@@ -27,25 +36,16 @@ const SubscriptionAdmin: React.FC = () => {
             return;
         }
         try {
-            const baseUrl = window.location.hostname.includes("devtunnels")
-                ? `https://${window.location.hostname}`
-                : process.env.NODE_ENV === "production"
-                    ? "https://your-domain.com"
-                    : getBackendUrlSync();
-
-            // Using JobModeration header as this seems to be the convention for admin bypass/auth in this app
+            const baseUrl = getBaseUrl();
             const response = await axios.get(`${baseUrl}/api/pricing/admin/pending-subscriptions`, {
                 headers: { Authorization: `Bearer ${token}`, "x-admin-code": "JobModeration" }
             });
-            // Handle potential structure differences. The original code used (response.data as any).subscriptions
             const data = response.data as any;
             setSubscriptions(data.subscriptions || []);
         } catch (error: any) {
             console.error("Error fetching subscriptions", error);
             if (error.response?.status === 401 || error.response?.status === 403) {
-                // Redirect to login or show clear error
                 alert("Session expired or unauthorized. Please login again.");
-                // window.location.href = "/login"; // Optional: redirect
             }
         } finally {
             setLoading(false);
@@ -54,12 +54,7 @@ const SubscriptionAdmin: React.FC = () => {
 
     const handleApprove = async (userId: string) => {
         try {
-            const baseUrl = window.location.hostname.includes("devtunnels")
-                ? `https://${window.location.hostname}`
-                : process.env.NODE_ENV === "production"
-                    ? "https://your-domain.com"
-                    : getBackendUrlSync();
-
+            const baseUrl = getBaseUrl();
             await axios.post(`${baseUrl}/api/pricing/admin/approve/${userId}`, {}, {
                 headers: { Authorization: `Bearer ${token}`, "x-admin-code": "JobModeration" }
             });
@@ -73,12 +68,7 @@ const SubscriptionAdmin: React.FC = () => {
 
     const handleReject = async (userId: string) => {
         try {
-            const baseUrl = window.location.hostname.includes("devtunnels")
-                ? `https://${window.location.hostname}`
-                : process.env.NODE_ENV === "production"
-                    ? "https://your-domain.com"
-                    : getBackendUrlSync();
-
+            const baseUrl = getBaseUrl();
             await axios.post(`${baseUrl}/api/pricing/admin/reject/${userId}`, {}, {
                 headers: { Authorization: `Bearer ${token}`, "x-admin-code": "JobModeration" }
             });
@@ -98,6 +88,25 @@ const SubscriptionAdmin: React.FC = () => {
         } else {
             setPasswordError("Incorrect password. Access denied.");
         }
+    };
+
+    // Resolve receipt URL to absolute URL
+    // Always extract just the path and resolve against current base URL
+    // to avoid broken localhost URLs when accessed from different hostnames
+    const getReceiptUrl = (receiptUrl: string) => {
+        if (!receiptUrl) return "";
+        // If it's already a full URL, extract just the path portion
+        let urlPath = receiptUrl;
+        try {
+            const parsed = new URL(receiptUrl);
+            urlPath = parsed.pathname;
+        } catch {
+            // Not a full URL, use as-is
+        }
+        const baseUrl = getBaseUrl();
+        return urlPath.startsWith("/")
+            ? `${baseUrl}${urlPath}`
+            : `${baseUrl}/${urlPath}`;
     };
 
     if (!isPasswordVerified) {
@@ -142,8 +151,39 @@ const SubscriptionAdmin: React.FC = () => {
     }
 
     return (
-        <div className="p-8 max-w-6xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Subscription Approvals</h1>
+
+            {/* Receipt Preview Modal */}
+            {viewingReceipt && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+                    onClick={() => setViewingReceipt(null)}
+                >
+                    <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto p-4 relative" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => setViewingReceipt(null)}
+                            className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl font-bold"
+                        >
+                            ×
+                        </button>
+                        <h3 className="text-lg font-bold mb-4">Payment Receipt</h3>
+                        <img
+                            src={viewingReceipt}
+                            alt="Payment Receipt"
+                            className="w-full h-auto rounded-lg border"
+                            onError={(e) => {
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const errorMsg = document.createElement('div');
+                                errorMsg.className = 'p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-center';
+                                errorMsg.innerHTML = '<strong>Failed to load image</strong><br><small>' + viewingReceipt + '</small>';
+                                img.parentNode?.insertBefore(errorMsg, img.nextSibling);
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 {loading ? (
@@ -160,47 +200,80 @@ const SubscriptionAdmin: React.FC = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested At</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {subscriptions.length > 0 ? (
-                                    subscriptions.map(sub => (
-                                        <tr key={sub._id}>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{sub.profile?.firstName} {sub.profile?.lastName || 'N/A'}</div>
-                                                <div className="text-sm text-gray-500">{sub.email}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                    {sub.subscription.planName}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {sub.subscription.price} {sub.subscription.currency}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {new Date(sub.subscription.subscribedAt).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button
-                                                    onClick={() => handleApprove(sub._id)}
-                                                    className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded mr-3 transition-colors"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => handleReject(sub._id)}
-                                                    className="text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors"
-                                                >
-                                                    Reject
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    subscriptions.map(sub => {
+                                        const receiptUrl = sub.subscription?.paymentReceipt || sub.receiptUrl;
+                                        const fullReceiptUrl = receiptUrl ? getReceiptUrl(receiptUrl) : null;
+                                        return (
+                                            <tr key={sub._id}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">{sub.profile?.firstName} {sub.profile?.lastName || 'N/A'}</div>
+                                                    <div className="text-sm text-gray-500">{sub.email}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                        {sub.subscription.planName}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {sub.subscription.price} {sub.subscription.currency}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {new Date(sub.subscription.subscribedAt).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    {fullReceiptUrl ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <img
+                                                                src={fullReceiptUrl}
+                                                                alt="Receipt thumbnail"
+                                                                className="w-12 h-12 object-cover rounded border cursor-pointer hover:opacity-80"
+                                                                onClick={() => setViewingReceipt(fullReceiptUrl)}
+                                                                onError={(e) => {
+                                                                    console.error("Failed to load receipt image:", fullReceiptUrl);
+                                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                                }}
+                                                            />
+                                                            <button
+                                                                onClick={() => setViewingReceipt(fullReceiptUrl)}
+                                                                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                </svg>
+                                                                View
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic text-xs">No receipt</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <button
+                                                        onClick={() => handleApprove(sub._id)}
+                                                        className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded mr-3 transition-colors"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(sub._id)}
+                                                        className="text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                                             No pending subscriptions found.
                                         </td>
                                     </tr>

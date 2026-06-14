@@ -23,7 +23,6 @@ import {
   FaCheckCircle,
   FaArrowRight,
   FaStar,
-  FaPlayCircle,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "../hooks/useTranslation";
@@ -172,36 +171,36 @@ A well-written job posting receives 3x more quality proposals!`,
     },
     {
       id: "3",
-      title: "Secure payments and milestones explained",
+      title: "Secure payments explained",
       category: "billing",
-      content: `HustleX uses an escrow system to protect both clients and freelancers. Here's how it works:
+      content: `HustleX provides a secure environment for payments between clients and freelancers.
 
 **For Clients:**
-1. **Fund Escrow**: When you hire a freelancer, you'll fund the project amount into escrow.
-2. **Milestone Payments**: Break your project into milestones. Each milestone has a specific deliverable and payment amount.
-3. **Release Payment**: Once a milestone is completed and you're satisfied, release the payment.
+1. **Agree on Terms**: When you hire a freelancer, agree on payment terms upfront.
+2. **Project Phases**: Break your project into phases. Each phase has a specific deliverable and payment amount.
+3. **Release Payment**: Once a phase is completed and you're satisfied, process the payment.
 4. **Dispute Resolution**: If there's an issue, you can request changes or open a dispute. HustleX will mediate.
 
 **For Freelancers:**
-1. **Secure Payment**: Funds are held in escrow, so you're guaranteed payment for completed work.
-2. **Milestone Approval**: Submit your work for each milestone. The client reviews and approves.
-3. **Payment Release**: Once approved, payment is released to your account.
+1. **Secure Payment**: Payments are processed directly between you and the client.
+2. **Work Approval**: Submit your work for each phase. The client reviews and approves.
+3. **Payment Processing**: Once approved, payment is processed to your account.
 4. **Withdrawal**: You can withdraw funds to your bank account or payment method.
 
-**Milestone Best Practices:**
-- Break large projects into 3-5 milestones
-- Set clear deliverables for each milestone
+**Best Practices:**
+- Break large projects into 3-5 phases
+- Set clear deliverables for each phase
 - Agree on review timeframes (typically 3-7 days)
 - Communicate clearly about expectations
 
 **Payment Methods:**
-- Credit/Debit Cards
+- Telebirr (Ethiopian mobile money)
+- CBE Birr (Commercial Bank of Ethiopia)
 - Bank Transfer
-- Mobile Money (where available)
-- PayPal
+- Awash Bank
 
 All transactions are secure and encrypted.`,
-      tags: ["payment", "milestone", "escrow", "billing"],
+      tags: ["payment", "billing"],
       views: 2100,
       helpful: 145,
     },
@@ -386,8 +385,7 @@ Remember: Quality over quantity. A well-crafted proposal beats 10 generic ones!`
 
 4. **Send an Offer**:
    - Once you've selected a freelancer, click "Hire" on their proposal.
-   - Define the project scope, milestones, and payment terms clearly.
-   - Fund the first milestone to start the contract.
+   - Define the project scope and payment terms clearly.
 
 5. **Onboarding**:
    - Share necessary access, files, and brand guidelines immediately.
@@ -400,7 +398,7 @@ Taking time to vet candidates saves time and ensures a smoother project workflow
     },
     {
       id: "8",
-      title: "Managing projects and milestones",
+      title: "Managing projects",
       category: "client",
       content: `Effective project management ensures timely delivery and high-quality results. Here's how to manage your contracts on HustleX:
 
@@ -409,22 +407,22 @@ Taking time to vet candidates saves time and ensures a smoother project workflow
 - Use the HustleX chat for all project-related discussions to keep a record.
 - Be responsive to freelancer queries to avoid bottlenecks.
 
-**2. Managing Milestones**:
+**2. Managing Deliverables**:
 - **Review**: When a freelancer submits work, review it promptly.
 - **Feedback**: Provide specific, constructive feedback if revisions are needed.
-- **Approval**: Only approve a milestone when you are satisfied with the deliverable.
-- **Next Steps**: Activate the next milestone immediately to keep momentum.
+- **Approval**: Approve deliverables when you are satisfied with the work.
+- **Next Steps**: Move to the next phase to keep momentum.
 
 **3. Scope Creep**:
 - Stick to the original project scope.
-- If you need additional work, create a new milestone or bonus payment for the extra tasks.
+- If you need additional work, create a new phase or bonus payment for the extra tasks.
 
 **4. Ending the Contract**:
 - Once all work is completed and paid for, end the contract.
 - Leave detailed feedback and a rating—it helps the freelancer and the community.
 
 Organized management leads to happy freelancers and successful projects!`,
-      tags: ["management", "milestones", "client"],
+      tags: ["management", "client"],
       views: 720,
       helpful: 48,
     },
@@ -617,38 +615,6 @@ However, make sure you can deliver quality work on time for all projects. Overco
     },
   ];
 
-  const tutorials = [
-    {
-      id: "tut1",
-      title: "Getting Started with HustleX",
-      duration: "5:30",
-      category: "getting-started",
-    },
-    {
-      id: "tut2",
-      title: "Creating Your Freelancer Profile",
-      duration: "8:15",
-      category: "getting-started",
-    },
-    {
-      id: "tut3",
-      title: "How to Post Your First Job",
-      duration: "6:45",
-      category: "using-hustlex",
-    },
-    {
-      id: "tut4",
-      title: "Writing Winning Proposals",
-      duration: "10:20",
-      category: "freelancer",
-    },
-    {
-      id: "tut5",
-      title: "Understanding Payments & Milestones",
-      duration: "7:10",
-      category: "billing",
-    },
-  ];
 
   const filteredArticles = articles.filter((article) => {
     const matchesQuery =
@@ -722,7 +688,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
                     <input
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search articles, FAQs, tutorials, or topics..."
+                      placeholder="Search articles, FAQs, or topics..."
                       className={`flex-1 outline-none bg-transparent text-lg ${darkMode
                         ? "text-white placeholder:text-white/50"
                         : "text-black placeholder:text-black/50"
@@ -1088,73 +1054,6 @@ However, make sure you can deliver quality work on time for all projects. Overco
               </div>
             </motion.section>
 
-            {/* Video Tutorials */}
-            {!query && !selectedCategory && (
-              <motion.section
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="px-6 py-12"
-              >
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex items-center justify-between mb-8">
-                    <h2 className={`text-3xl sm:text-4xl font-bold ${darkMode ? "text-white" : "text-black"}`}>
-                      Video Tutorials
-                    </h2>
-                    <button
-                      className={`px-4 py-2 rounded-full text-sm font-medium ${darkMode
-                        ? "bg-white/10 text-white hover:bg-white/20"
-                        : "bg-black/10 text-black hover:bg-black/20"
-                        } transition`}
-                    >
-                      View All
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {tutorials.map((tut, i) => (
-                      <motion.div
-                        key={tut.id}
-                        initial={{ y: 20, opacity: 0 }}
-                        whileInView={{ y: 0, opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1, duration: 0.4 }}
-                        className={`rounded-xl border overflow-hidden ${darkMode
-                          ? "bg-black/50 border-white/10 hover:border-cyan-500/50"
-                          : "bg-white border-black/10 hover:border-cyan-500/50"
-                          } shadow-lg hover:shadow-xl transition-all cursor-pointer group`}
-                      >
-                        <div
-                          className={`h-48 flex items-center justify-center bg-gradient-to-br ${categories.find((c) => c.id === tut.category)?.color || "from-gray-500 to-gray-600"
-                            } relative`}
-                        >
-                          <FaPlayCircle className="text-6xl text-white/80 group-hover:text-white group-hover:scale-110 transition-transform" />
-                          <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-1 rounded text-sm">
-                            {tut.duration}
-                          </div>
-                        </div>
-                        <div className="p-5">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium mb-3 inline-block ${darkMode
-                              ? "bg-cyan-500/20 text-cyan-400"
-                              : "bg-cyan-100 text-cyan-700"
-                              }`}
-                          >
-                            {
-                              categories.find((c) => c.id === tut.category)
-                                ?.title
-                            }
-                          </span>
-                          <h3 className={`font-bold text-lg ${darkMode ? "text-white" : "text-black"}`}>
-                            {tut.title}
-                          </h3>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </motion.section>
-            )}
 
             {/* Contact Support Section */}
             <motion.section

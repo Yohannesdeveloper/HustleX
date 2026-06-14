@@ -5,21 +5,10 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { motion } from "framer-motion";
 import { getAuth } from "firebase/auth";
+import { categories } from "../constants/skills";
 
-const categories = [
-  "Web & App Development",
-  "Design & Graphics",
-  "Writing & Translation",
-  "Marketing",
-  "Sales",
-  "Customer Support",
-  "Data Science & Analytics",
-  "Finance & Accounting",
-  "Human Resources",
-  "Legal",
-  "Project Management",
-  "Other",
-];
+// Expanded, specific job categories
+// (imported from ../constants/skills)
 
 const experienceLevels = [
   "Internship",

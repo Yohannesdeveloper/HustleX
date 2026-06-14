@@ -73,7 +73,7 @@ const BlogAdmin: React.FC = () => {
         title,
         content,
         category,
-        readTime,
+        readTime: String(Math.max(1, Math.ceil(content.trim().split(/\s+/).filter(Boolean).length / 200))),
         imageUrl,
       });
       setSuccess("Published successfully");
@@ -84,7 +84,11 @@ const BlogAdmin: React.FC = () => {
       setImagePreview(null);
       setTimeout(() => navigate("/blog"), 800);
     } catch (err: any) {
-      setError(err?.message || "Failed to publish");
+      const data = err?.response?.data;
+      const validationErrors = data?.errors?.map((e: any) => e.msg).join(', ');
+      const msg = validationErrors || data?.message || err?.message || "Failed to publish";
+      console.error('Blog create error:', data || err);
+      setError(msg);
     } finally {
       setLoading(false);
     }

@@ -358,6 +358,67 @@ export interface Translations {
     upgradeToPostMore: string;
     upgradePlan: string;
     required: string;
+    createAttractiveListing: string;
+    canPostJobs: string;
+    cannotPostJobs: string;
+    lifetimeJobsPosted: string;
+    totalJobsPosted: string;
+    monthlyJobsPosted: string;
+    unlimitedLabel: string;
+    remainingLabel: string;
+    expiresLabel: string;
+    upgradeMessage: string;
+    freeTrialLimitReached: string;
+    upgradeRequired: string;
+    jobLimitMessage: string;
+    needHelp: string;
+    contactSupport: string;
+    jobDetails: string;
+    jobSite: string;
+    selectJobSite: string;
+    jobSector: string;
+    selectJobSector: string;
+    educationalQualification: string;
+    selectEducation: string;
+    highSchool: string;
+    associateDegree: string;
+    bachelorsDegree: string;
+    mastersDegree: string;
+    professionalCertification: string;
+    otherEducation: string;
+    genderPreferenceLabel: string;
+    selectGenderPref: string;
+    jobDeadlineOptional: string;
+    defaultDays: string;
+    vacanciesOptional: string;
+    numberOfVacancies: string;
+    skillsAndExpertise: string;
+    maxLeft: string;
+    maximumSkillsReached: string;
+    typeToSearchSkills: string;
+    noSkillsMatching: string;
+    allSkillsSelected: string;
+    tellUsAboutJob: string;
+    jobDescriptionLabel: string;
+    quickTip: string;
+    charsLeft: string;
+    workLocationSection: string;
+    countryLabel: string;
+    cityLabel: string;
+    enterCityPlaceholder: string;
+    workAddressOptional: string;
+    enterWorkAddress: string;
+    additionalInfo: string;
+    compensationTypeLabel: string;
+    selectCompensationType: string;
+    compensationAmountLabel: string;
+    addSalaryPlaceholder: string;
+    publicLabel: string;
+    jobLinkOptional: string;
+    goBack: string;
+    continueBtn: string;
+    postingBtn: string;
+    freeTrial: string;
   };
 
   // FAQ
@@ -515,7 +576,7 @@ const translations: Record<Language, Translations> = {
       },
       securePayments: {
         title: "Secure Payments",
-        desc: "Safe and reliable payment system with escrow protection for both parties.",
+        desc: "Safe and reliable payment system for both parties.",
       },
       realTimeChat: {
         title: "Real-Time Communication",
@@ -606,7 +667,7 @@ const translations: Record<Language, Translations> = {
       inEthiopia: "in Ethiopia",
     },
     chatBot: {
-      greeting: "Hello! 👋 I'm HustleX Assistant. I can help you learn about our platform, find freelancers, post jobs, and answer any questions you have. How can I assist you today?",
+      greeting: "Hello! 👋 I'm HustleX AI, your intelligent assistant. I can help you with posting jobs, finding freelancers, creating contracts, managing milestones, payments, profile optimization, bidding strategies, and much more. What would you like to know?",
       placeholder: "Ask me anything about HustleX...",
       thinking: "Thinking...",
       online: "Online",
@@ -931,6 +992,67 @@ const translations: Record<Language, Translations> = {
       upgradeToPostMore: "Please upgrade your plan to continue posting jobs.",
       upgradePlan: "Upgrade Plan",
       required: "Required",
+      createAttractiveListing: "Create an attractive job listing to find the best talent",
+      canPostJobs: "✅ You can post jobs",
+      cannotPostJobs: "❌ Cannot post jobs",
+      lifetimeJobsPosted: "Lifetime jobs posted:",
+      totalJobsPosted: "Total jobs posted:",
+      monthlyJobsPosted: "Monthly jobs posted:",
+      unlimitedLabel: "Unlimited",
+      remainingLabel: "remaining",
+      expiresLabel: "Expires:",
+      upgradeMessage: "Please upgrade your plan to post jobs.",
+      freeTrialLimitReached: "Free Trial Limit Reached",
+      upgradeRequired: "Upgrade Required",
+      jobLimitMessage: "You've reached your job posting limit. Upgrade to a paid plan to continue hiring the best talent on HustleX.",
+      needHelp: "Need help?",
+      contactSupport: "Contact our support team",
+      jobDetails: "Job Details",
+      jobSite: "Job Site",
+      selectJobSite: "Select Job Site",
+      jobSector: "Job Sector",
+      selectJobSector: "Select Job Sector",
+      educationalQualification: "Educational Qualification (optional)",
+      selectEducation: "Select Education",
+      highSchool: "High School",
+      associateDegree: "Associate Degree",
+      bachelorsDegree: "Bachelor's Degree",
+      mastersDegree: "Master's Degree",
+      professionalCertification: "Professional Certification",
+      otherEducation: "Other",
+      genderPreferenceLabel: "Gender Preference *",
+      selectGenderPref: "Select Gender",
+      jobDeadlineOptional: "Job Deadline (optional)",
+      defaultDays: "Default: 15 days",
+      vacanciesOptional: "Vacancies (optional)",
+      numberOfVacancies: "Number of Vacancies",
+      skillsAndExpertise: "Skills and Expertise",
+      maxLeft: "Max 6",
+      maximumSkillsReached: "Maximum skills reached",
+      typeToSearchSkills: "Type to search skills...",
+      noSkillsMatching: "No skills matching",
+      allSkillsSelected: "All skills selected",
+      tellUsAboutJob: "Tell us about your job",
+      jobDescriptionLabel: "Job Description *",
+      quickTip: "Quick Tip! Create a high quality job post to attract top talents on HustleX!!",
+      charsLeft: "chars left",
+      workLocationSection: "Work Location",
+      countryLabel: "Country",
+      cityLabel: "City *",
+      enterCityPlaceholder: "Enter city",
+      workAddressOptional: "Work Address (optional)",
+      enterWorkAddress: "Enter work address",
+      additionalInfo: "Additional Information",
+      compensationTypeLabel: "Salary/Compensation Type *",
+      selectCompensationType: "Select Compensation Type",
+      compensationAmountLabel: "Salary/Compensation Amount & Currency (optional)",
+      addSalaryPlaceholder: "Please add the salary...",
+      publicLabel: "Public",
+      jobLinkOptional: "Job Link (Optional)",
+      goBack: "Go Back",
+      continueBtn: "Continue",
+      postingBtn: "Posting...",
+      freeTrial: "Free Trial",
     },
   },
   am: {
@@ -969,7 +1091,7 @@ const translations: Record<Language, Translations> = {
       },
       securePayments: {
         title: "ደህንነቱ የተጠበቀ ክፍያ",
-        desc: "ለሁለቱም ወገኖች ከኢስክሮው ጥበቃ ጋር ደህንነቱ የተጠበቀ እና አስተማማኝ የክፍያ ስርዓት።",
+        desc: "ለሁለቱም ወገኖች ደህንነቱ የተጠበቀ እና አስተማማኝ የክፍያ ስርዓት።",
       },
       realTimeChat: {
         title: "በቀጥታ ግንኙነት",
@@ -1060,7 +1182,7 @@ const translations: Record<Language, Translations> = {
       inEthiopia: "ኢትዮጵያ ውስጥ ተሰራ",
     },
     chatBot: {
-      greeting: "ሰላም! 👋 እኔ HustleX ረዳት ነኝ። ስለ መድረካችን ማስተማር፣ ነጻ ሰራተኞችን ማግኘት፣ ስራዎችን ማስቀጠል እና ማንኛውም ጥያቄዎችን ማግለል ሊረዳዎ እችላለሁ። ዛሬ እንዴት ልረዳዎ እችላለሁ?",
+      greeting: "ሰላም! 👋 እኔ HustleX AI ነኝ። ስራ መለጠፍን፣ ነጻ ሰራተኛ መፈለግን፣ ኮንትራቶችን መፍጠርን፣ ማይልስቶኖችን ማስተዳደርን፣ ክፍያዎችን፣ ፕሮፋይል ማሻሻልን፣ የቢድ ስትራቴጂዎችን እና ሌሎችን ልረዳዎ እችላለሁ። ምን ማወቅ ይፈልጋሉ?",
       placeholder: "ስለ HustleX ማንኛውንም ጥያቄ ይጠይቁ...",
       thinking: "በማሰብ ላይ...",
       online: "በመስመር ላይ",
@@ -1387,6 +1509,67 @@ const translations: Record<Language, Translations> = {
       upgradeToPostMore: "ስራዎችን ለመቀጠል እቅድዎን ያሻሽሉ።",
       upgradePlan: "እቅድ አሻሽል",
       required: "ያስፈልጋል",
+      createAttractiveListing: "ምርጥ ችሎታዎችን ለማግኘት ማራኪ የስራ ዝርዝር ይፍጠሩ",
+      canPostJobs: "✅ ስራዎችን መለጠፍ ይችላሉ",
+      cannotPostJobs: "❌ ስራዎችን መለጠፍ አይችሉም",
+      lifetimeJobsPosted: "ለህይወት ጊዜ የተለጠፉ ስራዎች:",
+      totalJobsPosted: "ጠቅላላ የተለጠፉ ስራዎች:",
+      monthlyJobsPosted: "ወርሃዊ የተለጠፉ ስራዎች:",
+      unlimitedLabel: "ገደብ የለሽ",
+      remainingLabel: "ቀሪ",
+      expiresLabel: "የሚያበቃ:",
+      upgradeMessage: "ስራዎችን ለመለጠፍ እቅድዎን ያሻሽሉ።",
+      freeTrialLimitReached: "ነጻ ሙከራ ገደብ ደረሰ",
+      upgradeRequired: "ማሻሻያ ያስፈልጋል",
+      jobLimitMessage: "የስራ መለጠፍ ገደብዎ ላይ ደርሰዋል። ምርጥ ችሎታዎችን ለመቅጠር የክፍያ እቅድ ያሻሽሉ።",
+      needHelp: "እገዛ ይፈልጋሉ?",
+      contactSupport: "የድጋፍ ቡድናችንን ያግኙ",
+      jobDetails: "የስራ ዝርዝሮች",
+      jobSite: "የስራ ገጽ",
+      selectJobSite: "የስራ ገጽ ይምረጡ",
+      jobSector: "የስራ ዘርፍ",
+      selectJobSector: "የስራ ዘርፍ ይምረጡ",
+      educationalQualification: "የትምህርት ብቃት (አማራጭ)",
+      selectEducation: "ትምህርት ይምረጡ",
+      highSchool: "ሁለተኛ ደረጃ ትምህርት ቤት",
+      associateDegree: "አጋር ዲግሪ",
+      bachelorsDegree: "የመጀመሪያ ዲግሪ",
+      mastersDegree: "ማስተርስ ዲግሪ",
+      professionalCertification: "ሙያዊ ምስክር ወረቀት",
+      otherEducation: "ሌላ",
+      genderPreferenceLabel: "የጾታ ምርጫ *",
+      selectGenderPref: "ጾታ ይምረጡ",
+      jobDeadlineOptional: "የስራ መጨረሻ ቀን (አማራጭ)",
+      defaultDays: "ነባሪ: 15 ቀናት",
+      vacanciesOptional: "ባዶ ቦታዎች (አማራጭ)",
+      numberOfVacancies: "የባዶ ቦታዎች ብዛት",
+      skillsAndExpertise: "ችሎታዎች እና ሙያ",
+      maxLeft: "ከፍተኛ 6",
+      maximumSkillsReached: "ከፍተኛ ችሎታዎች ደረሱ",
+      typeToSearchSkills: "ችሎታዎችን ለመፈለግ ይተይቡ...",
+      noSkillsMatching: "ችሎታዎች አልተገኙም",
+      allSkillsSelected: "ሁሉም ችሎታዎች ተመርጠዋል",
+      tellUsAboutJob: "ስለ ስራዎ ይንገሩን",
+      jobDescriptionLabel: "የስራ መግለጫ *",
+      quickTip: "ፈጣን ምክር! በHustleX ላይ ከፍተኛ ችሎታዎችን ለመሳብ ጥራት ያለው የስራ ማስታወቂያ ይፍጠሩ!!",
+      charsLeft: "ፊደላት ቀሪ",
+      workLocationSection: "የስራ ቦታ",
+      countryLabel: "ሀገር",
+      cityLabel: "ከተማ *",
+      enterCityPlaceholder: "ከተማ ያስገቡ",
+      workAddressOptional: "የስራ አድራሻ (አማራጭ)",
+      enterWorkAddress: "የስራ አድራሻ ያስገቡ",
+      additionalInfo: "ተጨማሪ መረጃ",
+      compensationTypeLabel: "የደመወዝ/ካሳ አይነት *",
+      selectCompensationType: "የካሳ አይነት ይምረጡ",
+      compensationAmountLabel: "የደመወዝ/ካሳ መጠን እና ምንዛሬ (አማራጭ)",
+      addSalaryPlaceholder: "ደመወዝ ያስገቡ...",
+      publicLabel: "የህዝብ",
+      jobLinkOptional: "የስራ አገናኝ (አማራጭ)",
+      goBack: "ተመለስ",
+      continueBtn: "ቀጥል",
+      postingBtn: "እየተለጠፈ ነው...",
+      freeTrial: "ነጻ ሙከራ",
     },
   },
   ti: {
@@ -1425,7 +1608,7 @@ const translations: Record<Language, Translations> = {
       },
       securePayments: {
         title: "ዘረጋግጽ ክፍሊት",
-        desc: "ንኽልቲ ወገናት ምስ ኢስክሮው ምክልኻል ሰናይን ኣማኒን ናይ ክፍሊት ስርዓት።",
+        desc: "ንኽልቲ ወገናት ሰናይን ኣማኒን ናይ ክፍሊት ስርዓት።",
       },
       realTimeChat: {
         title: "ብቕጽበት ርክብ",
@@ -1516,7 +1699,7 @@ const translations: Record<Language, Translations> = {
       inEthiopia: "ኢትዮጵያ ውስጥ ተሰርሐ",
     },
     chatBot: {
-      greeting: "ሰላም! 👋 እኔ HustleX ሓጋዚ እየ። ብዛዕባ መድረና ንምምሃር፣ ነጻ ሰራሕተኛታት ምርካብ፣ ስራታት ምስክር እና ንኹሉ ሕቶታት ምልላይ ክሕግዘካ እኽእል እየ። ሎሚ ብኸመይ ክሕግዘካ እኽእል?",
+      greeting: "ሰላም! 👋 ኣነ HustleX AI እየ። ስራሕ ምልጣፍ፣ ሰራሕተኛ ምድላይ፣ ኮንትራት ምፍጣር፣ ማይልስቶን ምክትታል፣ ክፍሊት፣ ፕሮፋይል ምምሕያሽ፣ ናይ ቢድ ስትራተጂን ካልእን ክሕግዘኩም እኽእል። እንታይ ክትፈልጡ ትደልዩ?",
       placeholder: "ብዛዕባ HustleX ንኹሉ ሕቶ ሓቱ...",
       thinking: "ይሓስብ ኣሎ...",
       online: "ኣብ መስመር",
@@ -1841,6 +2024,67 @@ const translations: Record<Language, Translations> = {
       upgradeToPostMore: "ስራታት ንምቀጻል እቅድኻ ሻሽል።",
       upgradePlan: "እቅድ ሻሽል",
       required: "የድሊ",
+      createAttractiveListing: "ዝበለጸ ክእለት ንምርካብ ስሒብ ዝርዝር ስራ ፍጠር",
+      canPostJobs: "✅ ስራታት ክትለጥፍ ትኽእል",
+      cannotPostJobs: "❌ ስራታት ክትለጥፍ ኣይትኽእልን",
+      lifetimeJobsPosted: "ንህይወት ግዜ ዝተለጥፉ ስራታት:",
+      totalJobsPosted: "ጠቕላላ ዝተለጥፉ ስራታት:",
+      monthlyJobsPosted: "ወርሓዊ ዝተለጥፉ ስራታት:",
+      unlimitedLabel: "ደረት ዘይብሉ",
+      remainingLabel: "ዝተረፈ",
+      expiresLabel: "ዝውድኣሉ:",
+      upgradeMessage: "ስራታት ንምለጥፍ እቅድኻ ሻሽል።",
+      freeTrialLimitReached: "ናጻ ፈተነ ገደብ በጺሑ",
+      upgradeRequired: "ምሕያሽ የድሊ",
+      jobLimitMessage: "ናይ ስራ ምልጣፍ ገደብካ በጺሕካ። ዝበለጸ ክእለት ንምቝጻር ናይ ክፍሊት እቅድ ሻሽል።",
+      needHelp: "ሓገዝ የድልየካ?",
+      contactSupport: "ምስ ጋንታ ደገፍና ተራኸብ",
+      jobDetails: "ዝርዝር ስራ",
+      jobSite: "ቦታ ስራ",
+      selectJobSite: "ቦታ ስራ ምረጽ",
+      jobSector: "ዓውዲ ስራ",
+      selectJobSector: "ዓውዲ ስራ ምረጽ",
+      educationalQualification: "ትምህርታዊ ብቕዓት (ኣማራጺ)",
+      selectEducation: "ትምህርቲ ምረጽ",
+      highSchool: "ካልኣይ ደረጃ ቤት ትምህርቲ",
+      associateDegree: "ኣጋር ዲግሪ",
+      bachelorsDegree: "ቀዳማይ ዲግሪ",
+      mastersDegree: "ማስተርስ ዲግሪ",
+      professionalCertification: "ሞያዊ ምስክር ወረቐት",
+      otherEducation: "ካልእ",
+      genderPreferenceLabel: "መረጋገጺ ጾታ *",
+      selectGenderPref: "ጾታ ምረጽ",
+      jobDeadlineOptional: "ዕለት መወዳእታ (ኣማራጺ)",
+      defaultDays: "ነባሪ: 15 መዓልታት",
+      vacanciesOptional: "ባዶ ቦታታት (ኣማራጺ)",
+      numberOfVacancies: "ቁጽሪ ባዶ ቦታታት",
+      skillsAndExpertise: "ብልሒታትን ሞያን",
+      maxLeft: "ዝለዓለ 6",
+      maximumSkillsReached: "ዝለዓለ ብልሒታት በጺሕካ",
+      typeToSearchSkills: "ብልሒታት ንምድላይ ጸሓፍ...",
+      noSkillsMatching: "ዝሰማማዕ ብልሒታት ኣይተረኽበን",
+      allSkillsSelected: "ኩሎም ብልሒታት ተመሪጾም",
+      tellUsAboutJob: "ብዛዕባ ስራኻ ንገረና",
+      jobDescriptionLabel: "መግለጺ ስራ *",
+      quickTip: "ቅልጡፍ ምኽሪ! ኣብ HustleX ዝበለጸ ክእለት ንምስሓብ ጽቡቕ ስራ ፍጠር!!",
+      charsLeft: "ፊደላት ተረፈ",
+      workLocationSection: "ከባቢ ስራ",
+      countryLabel: "ሃገር",
+      cityLabel: "ከተማ *",
+      enterCityPlaceholder: "ከተማ ኣእቱ",
+      workAddressOptional: "ኣድራሻ ስራ (ኣማራጺ)",
+      enterWorkAddress: "ኣድራሻ ስራ ኣእቱ",
+      additionalInfo: "ተወሳኺ ሓበሬታ",
+      compensationTypeLabel: "ዓይነት ደሞዝ/ካሕሳ *",
+      selectCompensationType: "ዓይነት ካሕሳ ምረጽ",
+      compensationAmountLabel: "መጠን ደሞዝ/ካሕሳ & ምንዛሬ (ኣማራጺ)",
+      addSalaryPlaceholder: "ደሞዝ ኣእቱ...",
+      publicLabel: "ወግዓዊ",
+      jobLinkOptional: "ኣገናኝ ስራ (ኣማራጺ)",
+      goBack: "ተመለስ",
+      continueBtn: "ቀጽል",
+      postingBtn: "እናለግፍ ኣለና...",
+      freeTrial: "ናጻ ፈተነ",
     },
   },
   om: {
@@ -1879,7 +2123,7 @@ const translations: Record<Language, Translations> = {
       },
       securePayments: {
         title: "Kaffaltiinsa Nageenyaan",
-        desc: "Sisteemiin kaffaltii nageenyaan fi amanamaa qabxiiwwan lamaanis eegumsa qabu.",
+        desc: "Sisteemiin kaffaltii nageenyaan fi amanamaa qabxiiwwan lamaanis qabu.",
       },
       realTimeChat: {
         title: "Haqqii Yeroo Haaqaawaa",
@@ -1970,7 +2214,7 @@ const translations: Record<Language, Translations> = {
       inEthiopia: "Itoophiyaa keessatti hojjame",
     },
     chatBot: {
-      greeting: "Akkam! 👋 Ani HustleX Gargaaraa dha. Waa'ee meeshaa keenya barachuu, hojjattoota bilisaa argachuu, hojiiwwan baasuu fi gaaffilee hundaa deebisuun si gargaara. Har'a akkam si gargaara?",
+      greeting: "Akkam! 👋 Ani HustleX AI, gargaaraa keessani. Hojii baasuu, hojjataa bilisaa barbaaduu, koontrat uumuu, maayilistoonii bulchuu, kaffaltii, pirofaayilii fooyyessuu, tarsiimoo biid fi kanneen biroo isin gargaara. Maal beekuu barbaaddu?",
       placeholder: "Waa'ee HustleX hundaa gaafadhuu...",
       thinking: "Yaadaa jira...",
       online: "Online",
@@ -2233,6 +2477,67 @@ const translations: Record<Language, Translations> = {
       upgradeToPostMore: "Hojiiwwan itti fufuuf kaardii keessan guddisaa.",
       upgradePlan: "Kaardii Guddisaa",
       required: "Barbaachisa",
+      createAttractiveListing: "Ogummaa gaarii argachuuf gabaasa hojii hawwataa uumaa",
+      canPostJobs: "✅ Hojiiwwan maxxansuu dandeessu",
+      cannotPostJobs: "❌ Hojiiwwan maxxansuu hin dandeessu",
+      lifetimeJobsPosted: "Hojiiwwan yeroo hunda maxxansaman:",
+      totalJobsPosted: "Hojiiwwan waliigalaa maxxansaman:",
+      monthlyJobsPosted: "Hojiiwwan ji'aa maxxansaman:",
+      unlimitedLabel: "Daangaa hin qabu",
+      remainingLabel: "kan hafe",
+      expiresLabel: "Yeroo xumuru:",
+      upgradeMessage: "Hojiiwwan maxxansuuf kaardii keessan guddisaa.",
+      freeTrialLimitReached: "Daangaan Yaalii Bilisaa Ga'e",
+      upgradeRequired: "Guddisuun Barbaachisa",
+      jobLimitMessage: "Daangaa maxxansa hojii keessan ga'eera. Ogummaa gaarii fuuldura itti fufuuf kaardii kaffaltii guddisaa.",
+      needHelp: "Gargaarsa barbaadduu?",
+      contactSupport: "Garee deeggarsa keenyaa qunnamaa",
+      jobDetails: "Ibsa Hojii",
+      jobSite: "Bakka Hojii",
+      selectJobSite: "Bakka hojii filadhu",
+      jobSector: "Qooda Hojii",
+      selectJobSector: "Qooda hojii filadhu",
+      educationalQualification: "Barnoota (filannoo)",
+      selectEducation: "Barnoota filadhu",
+      highSchool: "Mana Barnootaa Sadarkaa Lammaffaa",
+      associateDegree: "Digirii Walitti Hidhamiinsa",
+      bachelorsDegree: "Digirii Jalqabaa",
+      mastersDegree: "Digirii Maastarii",
+      professionalCertification: "Ragaa Ogummaa",
+      otherEducation: "Kan biraa",
+      genderPreferenceLabel: "Filannoo Saala *",
+      selectGenderPref: "Saala filadhu",
+      jobDeadlineOptional: "Guyyaa Xumuraa (filannoo)",
+      defaultDays: "Durtii: Guyyaa 15",
+      vacanciesOptional: "Bakka Hojii (filannoo)",
+      numberOfVacancies: "Lakkoofsa Bakka Hojii",
+      skillsAndExpertise: "Dandeettii fi Ogummaa",
+      maxLeft: "Ol'aanaa 6",
+      maximumSkillsReached: "Dandeettii ol'aanaa ga'e",
+      typeToSearchSkills: "Dandeettii barbaaduuf barreessaa...",
+      noSkillsMatching: "Dandeettii walsimu hin argamne",
+      allSkillsSelected: "Dandeettii hunduu filataman",
+      tellUsAboutJob: "Waa'ee hojii keessan nu himaa",
+      jobDescriptionLabel: "Ibsa Hojii *",
+      quickTip: "Gorsa Ariifachaa! HustleX irratti ogummaa guddaa hawwachuuf hojii qulqullina qabduu uumaa!!",
+      charsLeft: "qubeewwan hafe",
+      workLocationSection: "Bakka Hojii",
+      countryLabel: "Biyyoolessaa",
+      cityLabel: "Magaalaa *",
+      enterCityPlaceholder: "Magaalaa galchaa",
+      workAddressOptional: "Teessoo Hojii (filannoo)",
+      enterWorkAddress: "Teessoo hojii galchaa",
+      additionalInfo: "Odeeffannoo Dabalataa",
+      compensationTypeLabel: "Gosa Mindaa/Kaffaltii *",
+      selectCompensationType: "Gosa kaffaltii filadhu",
+      compensationAmountLabel: "Hanga Mindaa/Kaffaltii & Qarshii (filannoo)",
+      addSalaryPlaceholder: "Mindaa galchaa...",
+      publicLabel: "Ummataaf",
+      jobLinkOptional: "Linkii Hojii (Filannoo)",
+      goBack: "Duubatti Deebi'i",
+      continueBtn: "Itti Fufi",
+      postingBtn: "Maxxansaa...",
+      freeTrial: "Yaaliin Bilisaa",
     },
     contactUs: {
       getInTouch: "Nu Qunnamsiisi",

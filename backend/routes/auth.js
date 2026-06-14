@@ -113,6 +113,7 @@ router.post(
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
+
       const token = generateToken(user._id);
 
       // Check if user has a company profile (for client role)
@@ -288,13 +289,16 @@ router.get("/me", auth, async (req, res) => {
       hasCompanyProfile = !!company;
     }
 
+    // For admin users, use 'admin' as the effective currentRole
+    const effectiveRole = req.user.roles?.includes("admin") ? "admin" : req.user.currentRole;
+
     res.json({
       user: {
         _id: req.user._id,
         email: req.user.email,
         roles: req.user.roles,
-        currentRole: req.user.currentRole,
-        role: req.user.currentRole, // For backward compatibility
+        currentRole: effectiveRole,
+        role: effectiveRole, // For backward compatibility
         profile: req.user.profile,
         hasCompanyProfile, // For client profile completion check
       },

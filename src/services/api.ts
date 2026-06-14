@@ -7,7 +7,7 @@ import {
   ApplicationResponse,
   FreelancerWithStatus,
 } from "../types";
-import { getBackendApiUrlSync, getBackendApiUrl } from "../utils/portDetector";
+import { getBackendApiUrlSync, getBackendApiUrl, getBackendUrlSync } from "../utils/portDetector";
 
 declare const window: any;
 
@@ -146,6 +146,10 @@ class ApiService {
     });
   }
 
+  clearUserCache(): void {
+    this.requestCache.delete("getCurrentUser");
+  }
+
   async getCurrentUser(): Promise<User> {
     const cacheKey = 'getCurrentUser';
     const now = Date.now();
@@ -174,11 +178,13 @@ class ApiService {
 
   async switchRole(role: "freelancer" | "client"): Promise<User> {
     const response = await axios.post(`${this.baseUrl}/auth/switch-role`, { role });
+    this.clearUserCache();
     return (response.data as { user: User }).user;
   }
 
   async addRole(role: "freelancer" | "client"): Promise<User> {
     const response = await axios.post(`${this.baseUrl}/auth/add-role`, { role });
+    this.clearUserCache();
     return (response.data as { user: User }).user;
   }
 
@@ -229,6 +235,7 @@ class ApiService {
   }
 
   logout(): void {
+    this.clearUserCache();
     this.clearToken();
   }
 
@@ -461,12 +468,36 @@ class ApiService {
 
   getFileUrl(filePath: string): string {
     if (!filePath) return "";
-    if (/^https?:\/\//i.test(filePath)) return filePath;
-    const apiOrigin = this.baseUrl.replace(/\/api\/?$/, "");
-    if (filePath.startsWith("/")) {
-      return `${apiOrigin}${filePath}`;
+
+    // Always derive the origin from the latest cached backend URL so that
+    // images rendered before async port-detection completes still point to
+    // the correct server (this.baseUrl may be stale at render time).
+    const latestBase = window.location.hostname.includes("devtunnels")
+      ? `https://${window.location.hostname}`
+      : getBackendUrlSync();
+
+    // If it's already an absolute URL, check if it's a phantom CDN URL
+    // that doesn't actually exist (e.g. CDN_ENABLED=false but CDN_URL was set).
+    // Rewrite those to use the real backend origin instead.
+    if (/^https?:\/\//i.test(filePath)) {
+      try {
+        const parsed = new URL(filePath);
+        const latestBaseUrl = new URL(latestBase);
+        // If the host is NOT the current backend host, it might be a phantom CDN.
+        // Check if the path looks like an /uploads/... path and rewrite it.
+        if (parsed.host !== latestBaseUrl.host && parsed.pathname.startsWith("/uploads/")) {
+          return `${latestBase}${parsed.pathname}`;
+        }
+      } catch {
+        // fall through if URL parsing fails
+      }
+      return filePath;
     }
-    return `${apiOrigin}/${filePath}`;
+
+    if (filePath.startsWith("/")) {
+      return `${latestBase}${filePath}`;
+    }
+    return `${latestBase}/${filePath}`;
   }
 
   // ✅ Updated sendPasswordResetOTP to send OTP via email
@@ -896,7 +927,7 @@ class ApiService {
   }
 
   // Subscribe to a pricing plan
-  async subscribeToPlan(planId: string, paymentMethod: string): Promise<any> {
+  async subscribeToPlan(planId: string, paymentMethod: string, paymentReceipt?: string): Promise<any> {
     const token = localStorage.getItem("token") || this.token;
     if (!token) {
       throw new Error("Authentication required");
@@ -905,12 +936,23 @@ class ApiService {
       const response = await axios.post(`${this.baseUrl}/pricing/subscribe`, {
         planId,
         paymentMethod,
+        paymentReceipt,
       });
       return response.data;
     } catch (error: any) {
       console.error("Subscribe to plan error:", error);
       throw error;
     }
+  }
+
+  // Upload payment receipt
+  async uploadReceipt(file: File): Promise<{ fileUrl: string }> {
+    const formData = new FormData();
+    formData.append("receipt", file);
+    const response = await axios.post(`${this.baseUrl}/upload/receipt`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data as { fileUrl: string };
   }
 
   // Delete a freelancer
@@ -929,7 +971,21 @@ class ApiService {
     };
   }
 
-  // Enhanced Messaging Methods have been removed
+  // Get public profile of user (freelancer or client) by ID or slug (public endpoint)
+  async getPublicProfile(idOrSlug: string): Promise<any> {
+    const response = await axios.get(`${this.baseUrl}/users/public/profile/${idOrSlug}`, {
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
+    });
+    return response.data;
+  }
+
+  // Get programmatic SEO landing page data (public endpoint)
+  async getProgrammaticSEOData(type: string, slug: string): Promise<any> {
+    const response = await axios.get(`${this.baseUrl}/seo/programmatic/${type}/${slug}`, {
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
+    });
+    return response.data;
+  }
 }
 
 export default new ApiService();

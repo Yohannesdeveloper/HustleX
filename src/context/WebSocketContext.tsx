@@ -17,6 +17,7 @@ interface WebSocketContextType {
     voiceData?: string | null;
     voiceDuration?: number;
     files?: any[];
+    clientMessageId?: string;
   }) => void;
   onMessage: (callback: (data: any) => void) => void;
   offMessage: (callback: (data: any) => void) => void;
@@ -218,6 +219,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       voiceData?: string | null;
       voiceDuration?: number;
       files?: any[];
+      clientMessageId?: string;
     }) => {
       if (socket && connected) {
         socket.emit("sendMessage", data);

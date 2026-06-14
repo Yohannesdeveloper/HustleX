@@ -296,6 +296,21 @@ const blogSchema = new mongoose.Schema({
   isPublished: {
     type: Boolean,
     default: true
+  },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true,
+  },
+  seo: {
+    metaTitle: String,
+    metaDescription: String,
+    keywords: [String],
+    canonicalUrl: String,
+    structuredData: mongoose.Schema.Types.Mixed,
+    ogImage: String,
   }
 }, {
   timestamps: true
@@ -304,5 +319,33 @@ const blogSchema = new mongoose.Schema({
 // Index for better query performance
 blogSchema.index({ category: 1, createdAt: -1 });
 blogSchema.index({ title: 'text', content: 'text' });
+blogSchema.index({ slug: 1 });
+
+// Generate unique slug and default SEO fields before saving
+const { generateUniqueSlug } = require("../utils/slugify");
+blogSchema.pre("save", async function (next) {
+  if (this.isModified("title") || !this.slug) {
+    try {
+      this.slug = await generateUniqueSlug(this.constructor, this.title, "slug", this._id);
+      
+      // Establish defaults for SEO fields
+      if (!this.seo) this.seo = {};
+      if (!this.seo.metaTitle) {
+        this.seo.metaTitle = `${this.title} | HustleX Blog`;
+      }
+      if (!this.seo.metaDescription) {
+        this.seo.metaDescription = this.content 
+          ? this.content.replace(/<[^>]*>/g, "").substring(0, 150).trim()
+          : `Read "${this.title}" by ${this.author || "Admin"} on the HustleX blog. Get tips on freelancing, remote work, and tech.`;
+      }
+      if (!this.seo.canonicalUrl) {
+        this.seo.canonicalUrl = `https://hustlex.com/blog/${this.slug}`;
+      }
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
 
 module.exports = mongoose.model('Blog', blogSchema);

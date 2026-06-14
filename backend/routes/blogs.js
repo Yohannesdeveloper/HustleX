@@ -7,7 +7,7 @@ const { requireRole } = require('../middleware/rbac');
 const { cacheMiddleware, invalidatePattern } = require('../middleware/cache');
 
 // Get all blogs with pagination and filtering
-router.get('/', cacheMiddleware(120), async (req, res) => {
+router.get('/', cacheMiddleware(30), async (req, res) => {
   try {
     const { page = 1, limit = 10, category, search } = req.query;
     const skip = (page - 1) * limit;
@@ -74,7 +74,7 @@ router.post('/',
     body('content').trim().isLength({ min: 50, max: 50000 }).withMessage('Content must be between 50 and 50000 characters'),
     body('category').trim().isLength({ min: 2, max: 50 }).withMessage('Category is required'),
     body('readTime').isInt({ min: 1, max: 120 }).withMessage('Read time must be between 1 and 120 minutes'),
-    body('imageUrl').optional().isURL().withMessage('Image URL must be a valid URL'),
+    body('imageUrl').optional({ values: 'falsy' }).isString().withMessage('Image URL must be a valid string'),
   ],
   async (req, res) => {
   try {
@@ -95,6 +95,8 @@ router.post('/',
     });
 
     const savedBlog = await blog.save();
+    // Bust GET cache so the new post is immediately visible
+    await invalidatePattern('cache:/api/blogs*');
     res.status(201).json(savedBlog);
   } catch (error) {
     console.error('Error creating blog:', error);
@@ -124,6 +126,8 @@ router.put('/:id', adminAuth, async (req, res) => {
       return res.status(404).json({ message: 'Blog not found' });
     }
 
+    // Bust GET cache so the update is immediately visible
+    await invalidatePattern('cache:/api/blogs*');
     res.json(blog);
   } catch (error) {
     console.error('Error updating blog:', error);
@@ -140,6 +144,8 @@ router.delete('/:id', adminAuth, async (req, res) => {
       return res.status(404).json({ message: 'Blog not found' });
     }
 
+    // Bust GET cache so the deletion is immediately visible
+    await invalidatePattern('cache:/api/blogs*');
     res.json({ message: 'Blog post deleted successfully' });
   } catch (error) {
     console.error('Error deleting blog:', error);

@@ -96,6 +96,7 @@ const Blog: React.FC = () => {
       const res = await apiService.getBlogs({
         search: search || undefined,
         category: category === "All" ? undefined : category,
+        limit: 100,
       });
       setBlogs(res.blogs || []);
     } catch (e) {
@@ -108,7 +109,7 @@ const Blog: React.FC = () => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search, category]);
 
   const filtered = blogs
     .filter((b) =>
@@ -227,8 +228,17 @@ const Blog: React.FC = () => {
                         alt={b.title}
                         loading="lazy"
                         className="w-full h-64 object-cover block"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
                       />
-                    ) : null}
+                    ) : (
+                      <div className={`w-full h-64 ${
+                        darkMode
+                          ? "bg-gradient-to-br from-cyan-900/40 via-blue-900/40 to-purple-900/40"
+                          : "bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50"
+                      }`} />
+                    )}
                     {/* Caption overlay at the bottom of the image */}
                     <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white p-4">
                       <h2 className="text-lg font-semibold line-clamp-1">{b.title}</h2>

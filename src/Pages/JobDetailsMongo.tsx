@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import Footer from "../components/Footer";
 import {
@@ -32,12 +32,14 @@ import {
   Layers,
   Eye,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 import apiService from "../services/api";
 import { useAppSelector } from "../store/hooks";
 import { useAuth } from "../store/hooks";
 import { useWebSocket } from "../context/WebSocketContext";
 import ApplicationSuccessAnimation from "../components/ApplicationSuccessAnimation";
+import SEO from "../components/SEO";
 
 // Role Switcher Component
 const RoleSwitcher: React.FC<{
@@ -115,6 +117,13 @@ interface JobPost {
   city?: string;
   jobLink?: string;
   visibility?: string;
+  similarJobs?: {
+    _id: string;
+    title: string;
+    workLocation?: string;
+    jobType?: string;
+    budget: string;
+  }[];
 }
 
 interface AppUser {
@@ -541,11 +550,83 @@ const JobDetailsMongo: React.FC = () => {
   // TypeScript assertion: job is guaranteed non-null here due to early returns above
   if (!job) return null; // Extra safety check for TypeScript
 
+  const cleanSnippet = job.description.replace(/<[^>]*>/g, "").substring(0, 160);
+  const canonicalUrl = `https://hustlex.com/job-details/${job._id}`;
+  const jobDate = job.createdAt
+    ? typeof job.createdAt === "string"
+      ? new Date(job.createdAt).toISOString()
+      : new Date((job.createdAt as any).seconds * 1000).toISOString()
+    : new Date().toISOString();
+
+  const jobPostingSchema = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": job.description,
+    "datePosted": jobDate,
+    "validThrough": job.deadline ? new Date(job.deadline).toISOString() : undefined,
+    "employmentType": "CONTRACTOR",
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.company || "HustleX Client",
+      "sameAs": job.companyWebsite || "https://hustlex.com"
+    },
+    "jobLocationType": "TELECOMMUTE",
+    "applicantLocationRequirements": {
+      "@type": "Country",
+      "name": "Worldwide"
+    },
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": job.budget,
+        "unitText": "Project"
+      }
+    }
+  };
+
+  const breadcrumbsSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://hustlex.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Jobs",
+        "item": "https://hustlex.com/job-listings"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": job.title,
+        "item": canonicalUrl
+      }
+    ]
+  };
+
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-black" : "bg-white"
         }`}
     >
+      <SEO
+        title={`${job.title} | ${job.company || "HustleX"} | Freelance Jobs`}
+        description={cleanSnippet}
+        keywords={job.skills || []}
+        canonical={canonicalUrl}
+        ogTitle={job.title}
+        ogDescription={cleanSnippet}
+        ogImage="https://hustlex.com/og-image-jobs.jpg"
+        structuredData={[jobPostingSchema, breadcrumbsSchema]}
+      />
 
 
       <div className="relative z-10">
@@ -636,16 +717,16 @@ const JobDetailsMongo: React.FC = () => {
               >
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex flex-col items-start gap-3 mb-3">
                       <h1
-                        className={`text-4xl font-bold drop-shadow-lg font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        className={`text-2xl sm:text-3xl md:text-4xl font-bold drop-shadow-lg font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
                           }`}
                       >
                         {job.title}
                       </h1>
                       {job.visibility && (
                         <div
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${job.visibility === "public"
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] whitespace-nowrap ${job.visibility === "public"
                             ? darkMode
                               ? "bg-green-500/20 text-green-400 border border-green-500/30"
                               : "bg-green-500/10 text-green-700 border border-green-500/20"
@@ -1253,6 +1334,48 @@ const JobDetailsMongo: React.FC = () => {
                       Create an account or sign in to submit your application
                     </p>
                   </div>
+                ) : userRole === "client" ? (
+                  <div className="space-y-4 text-center">
+                    <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center ${
+                      darkMode ? "bg-amber-500/20" : "bg-amber-100"
+                    }`}>
+                      <AlertTriangle className={`w-7 h-7 ${darkMode ? "text-amber-400" : "text-amber-600"}`} />
+                    </div>
+                    <h3
+                      className={`text-lg font-bold font-inter ${
+                        darkMode ? "text-amber-400" : "text-amber-600"
+                      }`}
+                    >
+                      Freelancer Account Required
+                    </h3>
+                    <p
+                      className={`text-sm font-inter ${
+                        darkMode ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    >
+                      You're currently signed in as a <strong>Client</strong>. To apply for jobs, you need a freelancer account.
+                    </p>
+                    <button
+                      onClick={() =>
+                        navigate(
+                          "/signup?redirect=" +
+                          encodeURIComponent(location.pathname)
+                        )
+                      }
+                      className={`w-full bg-gradient-to-r from-amber-500 to-orange-500 font-bold py-4 px-6 rounded-xl hover:from-amber-400 hover:to-orange-400 transition-all duration-300 shadow-amber-500/25 hover:shadow-amber-400/40 hover:scale-105 text-lg font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] text-white`}
+                    >
+                      Sign In as a Freelancer
+                    </button>
+                    <p
+                      className={`text-xs font-inter ${
+                        darkMode ? "text-gray-500" : "text-gray-400"
+                      }`}
+                    >
+                      {userRoles.includes("freelancer")
+                        ? "Switch to your freelancer role to apply"
+                        : "Create a freelancer account to start applying"}
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <button
@@ -1517,6 +1640,44 @@ const JobDetailsMongo: React.FC = () => {
                         </a>
                       </div>
                     )}
+                  </div>
+                </motion.div>
+              )}
+
+              {job.similarJobs && job.similarJobs.length > 0 && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <h3
+                    className={`text-xl font-bold mb-4 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    Similar Gigs
+                  </h3>
+                  <div className="space-y-3">
+                    {job.similarJobs.map((sj: any) => (
+                      <Link
+                        key={sj._id}
+                        to={`/job-details/${sj._id}`}
+                        className={`block p-3.5 rounded-xl border transition-all ${
+                          darkMode ? "bg-gray-950/40 border-gray-800 hover:border-cyan-500/30" : "bg-gray-50 border-gray-200 hover:border-cyan-400/50"
+                        } hover:shadow-sm`}
+                      >
+                        <h4 className={`font-bold text-sm truncate ${darkMode ? "text-white" : "text-gray-900"}`}>
+                          {sj.title}
+                        </h4>
+                        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                          <span>{sj.workLocation} ({sj.jobType})</span>
+                          <span className="font-bold text-cyan-500">{sj.budget} ETB</span>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 </motion.div>
               )}

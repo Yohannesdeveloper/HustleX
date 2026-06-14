@@ -49,6 +49,7 @@ interface FileAttachment {
 interface StoredMessage {
   _id?: string;
   id?: string;
+  clientMessageId?: string;
   senderId?: string | ChatUser;
   receiverId?: string | ChatUser;
   conversationId?: string;
@@ -100,16 +101,85 @@ const getConversationKeyFromData = (data: {
 }) => data.freelancerId || normalizeEmail(data.freelancerEmail) || normalizeName(data.freelancerName);
 
 const extractId = (value: unknown) => {
-  if (!value) return "";
-  if (typeof value === "string") return value;
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
   if (typeof value === "object") {
-    const candidate = value as { _id?: string; id?: string };
-    return candidate._id || candidate.id || "";
+    const candidate = value as { _id?: unknown; id?: unknown; toString?: () => string };
+    if (candidate._id != null) {
+      if (typeof candidate._id === "string") return candidate._id.trim();
+      if (typeof candidate._id === "object" && candidate._id !== null && "toString" in candidate._id) {
+        const nested = String((candidate._id as { toString: () => string }).toString()).trim();
+        if (nested && nested !== "[object Object]") return nested;
+      }
+    }
+    if (typeof candidate.id === "string") return candidate.id.trim();
+    if (typeof candidate.toString === "function") {
+      const asString = candidate.toString().trim();
+      if (/^[a-f0-9]{24}$/i.test(asString)) return asString;
+    }
   }
   return "";
 };
 
 const getUserId = (value?: string | ChatUser) => extractId(value);
+
+const isSameUser = (a: unknown, b: unknown) => {
+  const idA = getUserId(a as string | ChatUser);
+  const idB = getUserId(b as string | ChatUser);
+  return idA.length > 0 && idB.length > 0 && idA === idB;
+};
+
+const getNameFromChatUser = (chatUser?: ChatUser, fallback = ""): string => {
+  if (!chatUser) return fallback;
+  const profile = chatUser.profile || {};
+  const name = `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
+  return name || chatUser.email || fallback;
+};
+
+const getOtherPartyNameFromMessage = (
+  message: StoredMessage,
+  currentUserId: string,
+  otherUserId: string,
+  directoryEntry?: FreelancerWithStatus
+): string => {
+  let fromProfile = "";
+  if (isSameUser(message.senderId, otherUserId)) {
+    fromProfile = getNameFromChatUser(message.sender);
+  } else if (isSameUser(message.receiverId, otherUserId)) {
+    fromProfile = getNameFromChatUser(message.receiver);
+  }
+
+  const fromStoredName = isSameUser(message.senderId, currentUserId)
+    ? message.receiverName
+    : message.senderName;
+
+  return getFreelancerDisplayName(
+    directoryEntry,
+    fromProfile || fromStoredName || "Unknown"
+  );
+};
+
+const getMessageAvatarInitial = (
+  msg: StoredMessage,
+  isOwn: boolean,
+  currentUser: { _id?: string; email?: string; profile?: UserProfile } | null | undefined,
+  otherPartyName: string
+): string => {
+  if (isOwn) {
+    const ownName =
+      getNameFromChatUser(
+        currentUser
+          ? { _id: currentUser._id, email: currentUser.email, profile: currentUser.profile }
+          : undefined,
+        currentUser?.email || "You"
+      );
+    return ownName.charAt(0).toUpperCase() || "U";
+  }
+
+  const senderName = getNameFromChatUser(msg.sender, msg.senderName || otherPartyName);
+  return senderName.charAt(0).toUpperCase() || "?";
+};
 
 const parseStoredMessages = (raw: string | null): StoredMessage[] => {
   try {
@@ -318,6 +388,21 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   const [browseFreelancers, setBrowseFreelancers] = useState<FreelancerWithStatus[]>([]);
   const [browseLoadError, setBrowseLoadError] = useState<string | null>(null);
 
+  const loadMessagingDirectory = async (): Promise<FreelancerWithStatus[]> => {
+    if (availableFreelancers.length > 0) {
+      return availableFreelancers;
+    }
+    if (isClient) {
+      return fetchFreelancerDirectory();
+    }
+    const clients = await apiService.getClients();
+    return clients.map((c) => ({
+      ...c,
+      status: "offline" as const,
+      lastActive: undefined,
+    })) as unknown as FreelancerWithStatus[];
+  };
+
   useEffect(() => {
     if (availableFreelancers.length > 0) {
       freelancersDirectoryRef.current = availableFreelancers;
@@ -329,12 +414,12 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
   useEffect(() => {
     if (availableFreelancers.length > 0 || freelancersLoading) return;
-    if (!isClient || !user?._id) return;
+    if (!user?._id) return;
 
     let cancelled = false;
     (async () => {
       try {
-        const list = await fetchFreelancerDirectory();
+        const list = await loadMessagingDirectory();
         if (cancelled) return;
         const others = list.filter((f) => f._id !== user._id);
         freelancersDirectoryRef.current = list;
@@ -347,8 +432,12 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           setBrowseLoadError(
             err?.response?.data?.message ||
             (err?.response?.status === 403
-              ? "You need a client account to message freelancers."
-              : "Could not load freelancers. Start the backend (port 5000) and sign in as a client.")
+              ? isClient
+                ? "You need a client account to message freelancers."
+                : "You need a freelancer account to message clients."
+              : isClient
+                ? "Could not load freelancers. Start the backend and sign in as a client."
+                : "Could not load clients. Start the backend and sign in as a freelancer.")
           );
         }
       }
@@ -386,7 +475,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
     let freelancer = conversation.freelancer;
     if (!freelancer && conversation.freelancerId) {
       if (freelancersDirectoryRef.current.length === 0) {
-        freelancersDirectoryRef.current = await fetchFreelancerDirectory();
+        freelancersDirectoryRef.current = await loadMessagingDirectory();
       }
       freelancer = await resolveFreelancerById(
         conversation.freelancerId,
@@ -548,11 +637,16 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   const conversationsRef = useRef<Conversation[]>([]);
   const selectedConversationRef = useRef<Conversation | null>(null);
   const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  const userRef = useRef<typeof user>(user);
 
-  // Keep ref in sync with selectedConversation
+  // Keep refs in sync with state
   useEffect(() => {
     selectedConversationRef.current = selectedConversation;
   }, [selectedConversation]);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   // Join user to WebSocket when connected
   useEffect(() => {
@@ -569,7 +663,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       console.log("📨 Received message via WebSocket:", messageData);
 
       // Get current values from refs
-      const currentUser = user;
+      const currentUser = userRef.current;
       const currentSelectedConv = selectedConversationRef.current;
 
       console.log("📥 Message details:", {
@@ -625,7 +719,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       const frontendConversationId = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
 
       // Check if this is our own message (sender receiving confirmation)
-      const isOwnMessage = senderId === currentUser?._id;
+      const isOwnMessage = isSameUser(messageData.senderId, currentUser?._id);
 
       // Check for duplicates using message ID only
       const messageId = messageData._id || messageData.id;
@@ -657,8 +751,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               return true;
             }
             const isTemp = mId && String(mId).startsWith("temp_");
-            const matchesSender = getUserId(m.senderId) === senderId;
-            const matchesReceiver = getUserId(m.receiverId) === receiverId;
+            const matchesSender = isSameUser(m.senderId, senderId);
+            const matchesReceiver = isSameUser(m.receiverId, receiverId);
             const matchesContent = m.message === messageData.message;
 
             if (isTemp) {
@@ -785,8 +879,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         voiceDuration: messageData.voiceDuration,
         files: messageData.files || [],
         createdAt: messageData.createdAt || new Date().toISOString(),
-        senderName: messageData.sender?.email || "",
-        receiverName: messageData.receiver?.email || "",
+        senderName: getNameFromChatUser(messageData.sender, messageData.sender?.email || ""),
+        receiverName: getNameFromChatUser(messageData.receiver, messageData.receiver?.email || ""),
         sender: messageData.sender,
         receiver: messageData.receiver,
       });
@@ -837,7 +931,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
           const profile = messageData.sender?.profile || {};
           const senderName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || messageData.sender?.email || "Unknown";
-          const isSenderOwnMessage = getUserId(messageData.senderId) === currentUser?._id;
+          const isSenderOwnMessage = isSameUser(messageData.senderId, currentUser?._id);
           const fallbackName = currentSelectedConv?.freelancerName || senderName;
           const fallbackEmail = currentSelectedConv?.freelancerEmail || messageData.sender?.email || "";
 
@@ -885,10 +979,16 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
     const loadConversations = async () => {
       if (freelancersDirectoryRef.current.length === 0) {
-        freelancersDirectoryRef.current =
-          availableFreelancers.length > 0
-            ? availableFreelancers
-            : await fetchFreelancerDirectory();
+        if (availableFreelancers.length > 0) {
+          freelancersDirectoryRef.current = availableFreelancers;
+        } else {
+          try {
+            freelancersDirectoryRef.current = await loadMessagingDirectory();
+          } catch (err) {
+            console.warn("Could not load messaging directory, continuing with localStorage only:", err);
+            freelancersDirectoryRef.current = [];
+          }
+        }
       }
       const directory = freelancersDirectoryRef.current;
 
@@ -938,8 +1038,10 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         // Merge by conversation key (prefer freelancerId, then email/name)
         const conversationKey = getConversationKeyFromData({
           freelancerId: otherId,
-          freelancerEmail: lastMessage.receiverEmail || lastMessage.senderEmail,
-          freelancerName: lastMessage.receiverName || lastMessage.senderName,
+          freelancerEmail: isSameUser(lastMessage.senderId, user._id)
+            ? lastMessage.receiverEmail || lastMessage.senderEmail
+            : lastMessage.senderEmail || lastMessage.receiverEmail,
+          freelancerName: getOtherPartyNameFromMessage(lastMessage, user._id, otherId),
         });
         if (!conversationKey) continue;
 
@@ -992,8 +1094,12 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           freelancersDirectoryRef.current = directory;
         }
 
-        const freelancerName =
-          getFreelancerDisplayName(freelancer, lastMessage.receiverName || lastMessage.senderName || "Unknown");
+        const freelancerName = getOtherPartyNameFromMessage(
+          lastMessage,
+          user._id,
+          otherId,
+          freelancer
+        );
 
         convs.push({
           id: normalizedKey,
@@ -1099,7 +1205,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
             freelancersDirectoryRef.current =
               availableFreelancers.length > 0
                 ? availableFreelancers
-                : await fetchFreelancerDirectory();
+                : await loadMessagingDirectory();
           }
           freelancerFromStorage = await resolveFreelancerById(
             freelancerId,
@@ -1382,44 +1488,43 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       }
     }
 
-    // Optimistically add message to UI (only if WebSocket is not connected)
-    // When WebSocket is connected, we'll get real-time confirmation from backend
-    if (!connected || !socket) {
-      const tempMessage = {
-        _id: `temp_${Date.now()}`,
-        conversationId,
-        senderId: user._id,
-        receiverId: selectedConversation.freelancerId,
-        message: displayMessage,
-        messageType,
-        voiceData: voiceDataUrl,
-        voiceDuration: recordingTime,
-        files: fileAttachments,
-        createdAt: new Date().toISOString(),
-        sender: {
-          _id: user._id,
-          email: user.email,
-          profile: user.profile,
-        },
-      };
+    // Always add optimistic message to UI for instant feedback
+    const tempMessageId = `temp_${Date.now()}`;
+    const tempMessage: StoredMessage = {
+      _id: tempMessageId,
+      id: tempMessageId,
+      conversationId,
+      senderId: user._id,
+      receiverId: selectedConversation.freelancerId,
+      message: displayMessage,
+      messageType,
+      voiceData: voiceDataUrl,
+      voiceDuration: recordingTime,
+      files: fileAttachments,
+      createdAt: new Date().toISOString(),
+      sender: {
+        _id: user._id,
+        email: user.email,
+        profile: user.profile,
+      },
+    };
 
-      setMessages((prev) => [...prev, tempMessage]);
+    setMessages((prev) => [...prev, tempMessage]);
 
-      // Persist optimistic message to localStorage for refresh safety
-      persistMessageToLocalStorage(conversationId, {
-        id: tempMessage._id,
-        senderId: user._id,
-        receiverId: selectedConversation.freelancerId,
-        message: displayMessage,
-        messageType,
-        voiceData: voiceDataUrl,
-        voiceDuration: recordingTime,
-        files: fileAttachments,
-        timestamp: tempMessage.createdAt,
-        senderName: `${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}`.trim() || user?.email,
-        receiverName: selectedConversation.freelancerName,
-      });
-    }
+    // Persist optimistic message to localStorage for refresh safety
+    persistMessageToLocalStorage(conversationId, {
+      id: tempMessageId,
+      senderId: user._id,
+      receiverId: selectedConversation.freelancerId,
+      message: displayMessage,
+      messageType,
+      voiceData: voiceDataUrl,
+      voiceDuration: recordingTime,
+      files: fileAttachments,
+      timestamp: tempMessage.createdAt,
+      senderName: `${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}`.trim() || user?.email,
+      receiverName: selectedConversation.freelancerName,
+    });
 
     // Send via WebSocket if connected
     if (connected && socket) {
@@ -1440,26 +1545,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         voiceDuration: recordingTime,
         files: fileAttachments,
         conversationId: backendConversationId,
+        clientMessageId: tempMessageId,
       });
-    } else {
-      // Fallback to localStorage if WebSocket not connected
-      const normalizedKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
-      const existingMessages = getStoredMessages(normalizedKey);
-      const message = {
-        id: Date.now().toString(),
-        senderId: user._id,
-        receiverId: selectedConversation.freelancerId,
-        message: displayMessage,
-        messageType,
-        voiceData: voiceDataUrl,
-        voiceDuration: recordingTime,
-        files: fileAttachments,
-        timestamp: new Date().toISOString(),
-        senderName: `${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}`.trim() || user?.email,
-        receiverName: selectedConversation.freelancerName,
-      };
-      existingMessages.push(message);
-      localStorage.setItem(normalizedKey, JSON.stringify(existingMessages));
     }
 
     // Clear reply state after sending
@@ -1805,7 +1892,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       return;
     }
 
-    const isOwnMessage = getUserId(message.senderId) === user?._id;
+    const isOwnMessage = isSameUser(message.senderId, user?._id);
     if (!isOwnMessage) {
       console.error("Unauthorized: Cannot edit other user's message");
       return;
@@ -2036,15 +2123,11 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                 No messages yet
               </p>
               <p className={`text-xs mb-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                Pick a freelancer below to start chatting
+                {isClient ? "Pick a freelancer below to start chatting" : "Pick a client below to start chatting"}
               </p>
 
-              {!isClient ? (
-                <div className={`text-sm p-4 rounded-lg ${darkMode ? "bg-amber-500/10 text-amber-200" : "bg-amber-50 text-amber-800"}`}>
-                  Switch to your <strong>client</strong> account to message freelancers.
-                </div>
-              ) : freelancersLoading ? (
-                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Loading freelancers...</p>
+              {freelancersLoading ? (
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>{isClient ? "Loading freelancers..." : "Loading clients..."}</p>
               ) : browseLoadError ? (
                 <div className="space-y-3">
                   <p className={`text-sm ${darkMode ? "text-red-400" : "text-red-600"}`}>{browseLoadError}</p>
@@ -2061,7 +2144,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               ) : browseFreelancers.length === 0 ? (
                 <div className="space-y-3 text-center">
                   <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                    No freelancers registered yet. Sign up another account as a freelancer to test messaging.
+                    {isClient ? "No freelancers registered yet." : "No clients registered yet."}
                   </p>
                   {onGoToFindFreelancers && (
                     <button
@@ -2369,8 +2452,14 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   </motion.div>
                 ) : (
                   messages.map((msg, index) => {
-                    const isOwnMessage = getUserId(msg.senderId) === user?._id;
-                    const messageId = msg._id || msg.id || `msg_${msg.createdAt}_${msg.senderId}`;
+                    const isOwnMessage = isSameUser(msg.senderId, user?._id);
+                    const messageId = msg._id || msg.id || `msg_${msg.createdAt}_${getUserId(msg.senderId)}`;
+                    const avatarInitial = getMessageAvatarInitial(
+                      msg,
+                      isOwnMessage,
+                      user,
+                      selectedConversation.freelancerName
+                    );
                     // Show edited text in real-time if this message is being edited
                     const messageText = editingMessageId === messageId ? newMessage : msg.message;
                     const timestamp = msg.createdAt || msg.timestamp || new Date().toISOString();
@@ -2397,7 +2486,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                           >
                             <span className={`text-[10px] font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
                               }`}>
-                              {selectedConversation.freelancerName.charAt(0).toUpperCase()}
+                              {avatarInitial}
                             </span>
                           </motion.div>
                         )}
@@ -2671,7 +2760,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                           >
                             <span className={`text-[10px] font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
                               }`}>
-                              {user?.profile?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || "U"}
+                              {avatarInitial}
                             </span>
                           </motion.div>
                         )}

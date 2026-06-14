@@ -36,7 +36,8 @@ function resolvePublicUrl(storagePath) {
 
   const normalized = storagePath.startsWith("/") ? storagePath : `/${storagePath}`;
 
-  if (process.env.CDN_URL) {
+  // Only use CDN when CDN_ENABLED is explicitly "true" (not just when CDN_URL is set)
+  if (process.env.CDN_ENABLED === "true" && process.env.CDN_URL) {
     const base = process.env.CDN_URL.replace(/\/$/, "");
     return `${base}${normalized}`;
   }
@@ -54,6 +55,7 @@ function resolvePublicUrl(storagePath) {
 
   return normalized;
 }
+
 
 /**
  * Save multer memory file to S3 or local disk. Returns paths for DB + client.

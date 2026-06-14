@@ -92,7 +92,22 @@ router.get("/:id", async (req, res) => {
       "email profile"
     );
     if (!job) return res.status(404).json({ message: "Job not found" });
-    res.json(job);
+
+    // Fetch similar jobs for internal linking
+    const similarJobs = await Job.find({
+      category: job.category,
+      _id: { $ne: job._id },
+      isActive: true,
+      approved: true
+    })
+      .limit(5)
+      .select("title budget category jobType workLocation deadline createdAt")
+      .lean();
+
+    res.json({
+      ...job.toObject(),
+      similarJobs
+    });
   } catch (error) {
     console.error("Get job error:", error);
     res.status(500).json({ message: "Server error" });

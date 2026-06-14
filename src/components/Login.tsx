@@ -86,15 +86,16 @@ const Login: React.FC = () => {
         }
       }
 
-      // Determine redirect path based on user role and profile completion
+      // Determine redirect path based on user role
       let finalRedirectPath = redirectPath;
 
       if (!searchParams.get("redirect")) {
-        // Navigate based on role
-        if (loggedInUser.currentRole === "client") {
+        // Admin users go to admin panel
+        if (loggedInUser.roles?.includes('admin')) {
+          finalRedirectPath = "/admin/blog";
+        } else if (loggedInUser.currentRole === "client") {
           finalRedirectPath = "/dashboard/hiring";
         } else {
-          // Default to freelancer dashboard for freelancer or other roles
           finalRedirectPath = "/dashboard/freelancer";
         }
       }
@@ -133,11 +134,14 @@ const Login: React.FC = () => {
           }`}
       >
         <h2
-          className={`text-3xl font-bold mb-6 text-center drop-shadow-lg ${darkMode ? "text-cyan-400" : "text-cyan-600"
+          className={`text-3xl font-bold mb-2 text-center drop-shadow-lg ${darkMode ? "text-cyan-400" : "text-cyan-600"
             }`}
         >
-          Login
+          Admin Login
         </h2>
+        <p className={`text-center text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          HustleX Administrator Access
+        </p>
 
         {signupMessage && (
           <div className={`p-4 rounded-xl border mb-4 ${darkMode ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-cyan-50 border-cyan-200'
@@ -255,20 +259,10 @@ const Login: React.FC = () => {
         </form>
 
         <p
-          className={`text-center mt-6 text-sm ${darkMode ? "text-gray-300" : "text-gray-600"
+          className={`text-center mt-6 text-sm ${darkMode ? "text-gray-500" : "text-gray-400"
             }`}
         >
-          {t.login.dontHaveAccount}{" "}
-          <a
-            href={`/signup${location.search ? `?${location.search.split("?")[1]}` : ""
-              }`}
-            className={`underline transition-colors duration-300 ${darkMode
-              ? "text-cyan-400 hover:text-cyan-300"
-              : "text-cyan-600 hover:text-cyan-500"
-              }`}
-          >
-            {t.login.signUp}
-          </a>
+          Authorized personnel only.
         </p>
       </div>
     </div>

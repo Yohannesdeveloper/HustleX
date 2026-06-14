@@ -8,6 +8,7 @@ import { FaUser, FaSun, FaMoon, FaSignOutAlt, FaBriefcase, FaUserTie } from "rea
 import { MoreVertical, Loader2 } from "lucide-react";
 import { toggleTheme } from "../store/themeSlice";
 import { logout, switchRole, addRole } from "../store/authSlice";
+import { getActiveRole, persistActiveRole } from "../utils/activeRole";
 
 const FloatingDarkModeToggle: React.FC<{ showProfileOption?: boolean }> = ({ showProfileOption = true }) => {
   const dispatch = useAppDispatch();
@@ -21,7 +22,7 @@ const FloatingDarkModeToggle: React.FC<{ showProfileOption?: boolean }> = ({ sho
   const menuRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; right: number } | null>(null);
 
-  const userRole = user?.currentRole || user?.role || "";
+  const userRole = getActiveRole(user) || "";
   const userRoles: string[] = user?.roles || (userRole ? [userRole] : []);
   const isFreelancer = userRole === "freelancer";
   const isClient = userRole === "client";
@@ -62,12 +63,13 @@ const FloatingDarkModeToggle: React.FC<{ showProfileOption?: boolean }> = ({ sho
     setMenuOpen(false);
     try {
       if (isAdding) {
-        // Add the new role first, then switch to it
+        // Add the new role first, then switch to it (explicit user action)
         await dispatch(addRole(targetRole as "freelancer" | "client")).unwrap();
         await dispatch(switchRole(targetRole as "freelancer" | "client")).unwrap();
       } else {
         await dispatch(switchRole(targetRole as "freelancer" | "client")).unwrap();
       }
+      persistActiveRole(targetRole as "freelancer" | "client");
       if (targetRole === "client") {
         // If they already have the client profile, go directly to hiring dashboard
         if (user?.hasCompanyProfile && !isAdding) {

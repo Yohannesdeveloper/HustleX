@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/hooks';
 import { useAppSelector } from '../store/hooks';
+import { getActiveRole, dashboardPathForRole } from '../utils/activeRole';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    requireRole?: 'freelancer' | 'client';
+    requireRole?: 'freelancer' | 'client' | 'admin';
     requireProfileComplete?: boolean;
 }
 
@@ -42,8 +43,30 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to="/signup" state={{ from: location }} replace />;
     }
 
-    // Check if user has the required role
-    if (requireRole && !user.roles?.includes(requireRole)) {
+    const activeRole = getActiveRole(user);
+
+    // Enforce active role — never auto-switch; redirect to the correct dashboard
+    if (requireRole && requireRole !== 'admin' && activeRole && activeRole !== requireRole) {
+        const target = dashboardPathForRole(activeRole);
+        if (target) {
+            return <Navigate to={target} replace />;
+        }
+    }
+
+    // Admin-only routes: check if user has admin role
+    if (requireRole === 'admin' && !user.roles?.includes('admin')) {
+        // Redirect non-admin users to their dashboard
+        if (user.roles?.includes('freelancer')) {
+            return <Navigate to="/dashboard/freelancer" replace />;
+        } else if (user.roles?.includes('client')) {
+            return <Navigate to="/dashboard/hiring" replace />;
+        } else {
+            return <Navigate to="/signup" replace />;
+        }
+    }
+
+    // Check if user has the required role in their account
+    if (requireRole && requireRole !== 'admin' && !user.roles?.includes(requireRole)) {
         // User doesn't have required role, redirect to appropriate page
         if (user.roles?.includes('freelancer')) {
             return <Navigate to="/dashboard/freelancer" replace />;

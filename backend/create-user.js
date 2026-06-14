@@ -17,6 +17,23 @@ const createUser = async () => {
     const existingUser = await User.findOne({ email: "yohannesfk123@gmail.com" });
     if (existingUser) {
       console.log("User already exists:", existingUser.email);
+      console.log("Current roles:", existingUser.roles);
+      
+      // Upgrade to admin if not already
+      if (!existingUser.roles.includes("admin")) {
+        existingUser.roles = ["admin", "freelancer", "client"];
+        existingUser.currentRole = "admin";
+        await existingUser.save();
+        console.log("✅ Upgraded user to admin role!");
+      } else {
+        console.log("✅ User already has admin role.");
+        // Ensure currentRole is set to admin
+        if (existingUser.currentRole !== "admin") {
+          existingUser.currentRole = "admin";
+          await existingUser.save();
+          console.log("✅ Updated currentRole to admin.");
+        }
+      }
       process.exit(0);
     }
 
@@ -37,8 +54,8 @@ const createUser = async () => {
     });
 
     await user.save();
-    console.log("Created user:", user.email);
-    console.log("Password set to: 0991313700Yf@");
+    console.log("✅ Created admin user:", user.email);
+    console.log("Password: 0991313700Yf@");
 
     process.exit(0);
   } catch (error) {

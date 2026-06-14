@@ -1,8 +1,10 @@
 
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Company = require("../models/Company");
+const Project = require("../models/Project");
 const { auth } = require("../middleware/auth");
 const { requireRole } = require("../middleware/rbac");
 const { parsePagination } = require("../lib/pagination");
@@ -153,6 +155,99 @@ router.delete("/freelancers/:id", auth, async (req, res) => {
   } catch (error) {
     console.error("Error deleting freelancer:", error);
     res.status(500).json({ message: "Failed to delete freelancer", error: error.message });
+  }
+});
+
+// GET /api/users/public/profile/:idOrSlug
+// @desc    Get public profile of user (freelancer or client) by ID or slug without authentication
+// @access  Public
+router.get("/public/profile/:idOrSlug", async (req, res) => {
+  try {
+    const { idOrSlug } = req.params;
+    let query = { slug: idOrSlug };
+
+    if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
+      query = { $or: [{ _id: idOrSlug }, { slug: idOrSlug }] };
+    }
+
+    const user = await User.findOne(query)
+      .select("email profile roles currentRole createdAt slug seo")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Expose only safe data
+    const publicProfile = {
+      _id: user._id,
+      slug: user.slug,
+      roles: user.roles,
+      currentRole: user.currentRole,
+      createdAt: user.createdAt,
+      seo: user.seo,
+      profile: {
+        firstName: user.profile?.firstName,
+        lastName: user.profile?.lastName,
+        location: user.profile?.location,
+        bio: user.profile?.bio,
+        skills: user.profile?.skills,
+        primarySkill: user.profile?.primarySkill,
+        experienceLevel: user.profile?.experienceLevel,
+        yearsOfExperience: user.profile?.yearsOfExperience,
+        portfolioUrl: user.profile?.portfolioUrl,
+        certifications: user.profile?.certifications,
+        cvUrl: user.profile?.cvUrl,
+        availability: user.profile?.availability,
+        monthlyRate: user.profile?.monthlyRate,
+        currency: user.profile?.currency,
+        preferredJobTypes: user.profile?.preferredJobTypes,
+        workLocation: user.profile?.workLocation,
+        linkedinUrl: user.profile?.linkedinUrl,
+        githubUrl: user.profile?.githubUrl,
+        websiteUrl: user.profile?.websiteUrl,
+        avatar: user.profile?.avatar,
+      }
+    };
+
+    if (user.roles?.includes("client")) {
+      const Job = require("../models/Job");
+      const [company, jobs] = await Promise.all([
+        Company.findOne({ userId: user._id })
+          .select("companyName logo description industry website location")
+          .lean(),
+        Job.find({ postedBy: user._id, isActive: true, approved: true })
+          .select("title budget category jobType workLocation deadline createdAt")
+          .lean()
+      ]);
+      if (company) {
+        publicProfile.companyProfile = company;
+      }
+      publicProfile.jobs = jobs;
+    }
+
+    // Fetch freelancer's projects & similar freelancers if they are a freelancer
+    if (user.roles?.includes("freelancer")) {
+      const [projects, similarFreelancers] = await Promise.all([
+        Project.find({ freelancer: user._id }).lean(),
+        User.find({
+          "profile.primarySkill": user.profile.primarySkill,
+          slug: { $ne: user.slug },
+          roles: { $in: ["freelancer"] },
+          isActive: { $ne: false }
+        })
+          .limit(5)
+          .select("email profile slug createdAt")
+          .lean()
+      ]);
+      publicProfile.projects = projects;
+      publicProfile.similarFreelancers = similarFreelancers;
+    }
+
+    res.json({ user: publicProfile });
+  } catch (error) {
+    console.error("Error fetching public user profile:", error);
+    res.status(500).json({ message: "Failed to fetch profile", error: error.message });
   }
 });
 

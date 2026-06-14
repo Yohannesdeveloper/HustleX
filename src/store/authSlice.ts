@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import apiService from "../services/api";
+import { clearPersistedActiveRole, persistActiveRole, readPersistedActiveRole, ActiveRole } from "../utils/activeRole";
 
 interface User {
   _id: string;
@@ -23,19 +24,40 @@ const initialState: AuthState = {
   isAuthenticated: false,
 };
 
+// Helper to check and sync persisted role
+const syncPersistedRole = async (user: User): Promise<User> => {
+  try {
+    const persistedRole = readPersistedActiveRole();
+    if (
+      persistedRole &&
+      user.roles.includes(persistedRole) &&
+      user.currentRole !== persistedRole &&
+      // Don't try to switch to admin via API (since API doesn't support it)
+      persistedRole !== "admin"
+    ) {
+      // Switch to persisted role
+      return await apiService.switchRole(persistedRole as "freelancer" | "client");
+    }
+  } catch (error) {
+    console.error("Failed to sync persisted role, using current role:", error);
+  }
+  return user;
+};
+
 // Async thunks
 export const checkAuth = createAsyncThunk(
   "auth/checkAuth",
   async (_, { rejectWithValue }) => {
     try {
       if (apiService.isAuthenticated()) {
-        const currentUser = await apiService.getCurrentUser();
+        apiService.clearUserCache(); // Clear cache to get fresh user
+        let currentUser = await apiService.getCurrentUser();
+        currentUser = await syncPersistedRole(currentUser);
         return currentUser;
       }
       return null;
     } catch (error: any) {
       apiService.logout();
-      // Don't reject - just return null for failed auth checks
       return null;
     }
   }
@@ -49,10 +71,11 @@ export const login = createAsyncThunk(
   ) => {
     try {
       await apiService.login(email, password);
-      const currentUser = await apiService.getCurrentUser();
+      apiService.clearUserCache(); // Clear cache to get fresh user
+      let currentUser = await apiService.getCurrentUser();
+      currentUser = await syncPersistedRole(currentUser);
       return currentUser;
     } catch (error: any) {
-      // Extract serializable error message instead of passing the whole error object
       const errorMessage = error?.response?.data?.message || error?.message || "Login failed";
       return rejectWithValue(errorMessage);
     }
@@ -74,10 +97,11 @@ export const register = createAsyncThunk(
   ) => {
     try {
       await apiService.register(userData);
-      const currentUser = await apiService.getCurrentUser();
+      let currentUser = await apiService.getCurrentUser();
+      // For new users, use the role they registered with
+      persistActiveRole(userData.role);
       return currentUser;
     } catch (error: any) {
-      // Extract serializable error message instead of passing the whole error object
       const errorMessage = error?.response?.data?.message || error?.message || "Registration failed";
       return rejectWithValue(errorMessage);
     }
@@ -115,7 +139,9 @@ export const refreshUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       if (apiService.isAuthenticated()) {
-        const currentUser = await apiService.getCurrentUser();
+        apiService.clearUserCache(); // Clear cache to get fresh user
+        let currentUser = await apiService.getCurrentUser();
+        currentUser = await syncPersistedRole(currentUser);
         return currentUser;
       }
       return null;
@@ -132,6 +158,7 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       apiService.logout();
+      clearPersistedActiveRole();
       state.user = null;
       state.isAuthenticated = false;
       state.loading = false;
@@ -150,6 +177,9 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = !!action.payload;
         state.loading = false;
+        if (action.payload?.currentRole) {
+          persistActiveRole(action.payload.currentRole as ActiveRole);
+        }
       })
       .addCase(checkAuth.rejected, (state) => {
         state.user = null;
@@ -164,6 +194,9 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
         state.loading = false;
+        if (action.payload?.currentRole) {
+          persistActiveRole(action.payload.currentRole as ActiveRole);
+        }
       })
       .addCase(login.rejected, (state) => {
         state.user = null;
@@ -191,6 +224,9 @@ const authSlice = createSlice({
       .addCase(switchRole.fulfilled, (state, action) => {
         state.user = action.payload;
         state.loading = false;
+        if (action.payload?.currentRole) {
+          persistActiveRole(action.payload.currentRole as ActiveRole);
+        }
       })
       .addCase(switchRole.rejected, (state) => {
         state.loading = false;
@@ -214,6 +250,9 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = !!action.payload;
         state.loading = false;
+        if (action.payload?.currentRole) {
+          persistActiveRole(action.payload.currentRole as ActiveRole);
+        }
       })
       .addCase(refreshUser.rejected, (state) => {
         state.loading = false;

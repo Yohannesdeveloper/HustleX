@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { useAuth } from "../store/hooks";
 import { setLanguage, Language } from "../store/languageSlice";
-import { FaCheck, FaMobileAlt, FaArrowLeft, FaGlobe } from "react-icons/fa";
+import {
+  FaCheck,
+  FaArrowLeft,
+  FaGlobe,
+  FaCloudUploadAlt,
+  FaTimes,
+  FaSpinner,
+} from "react-icons/fa";
 import apiService from "../services/api";
-import { useTranslation } from "../hooks/useTranslation";
-import { getBackendUrlSync } from "../utils/portDetector";
-import PhoneInput from "../components/PhoneInput";
 
 const PaymentWizard: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
@@ -17,42 +21,43 @@ const PaymentWizard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
-  const t = useTranslation();
+
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [planId, setPlanId] = useState<string>("");
   const [planDetails, setPlanDetails] = useState<any>(null);
-  const [transactionId, setTransactionId] = useState<string>("");
-  const [selectedMethod, setSelectedMethod] = useState<string>("telebirr");
-  const [isPendingApproval, setIsPendingApproval] = useState<boolean>(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Check authentication
     if (!isAuthenticated) {
-      navigate("/signup?redirect=" + encodeURIComponent(window.location.pathname + window.location.search));
+      navigate(
+        "/signup?redirect=" +
+          encodeURIComponent(window.location.pathname + window.location.search)
+      );
       return;
     }
 
-    // Generate transaction ID
-    const txId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setTransactionId(txId);
-
-    // Get plan and method from URL params
     const plan = searchParams.get("plan") || "basic";
-    const method = searchParams.get("method") || "telebirr";
-    const manualMethods = ["telebirr", "cbe"];
     setPlanId(plan);
-    setSelectedMethod(manualMethods.includes(method) ? method : "telebirr");
 
-    // Fetch plan details
     const fetchPlanDetails = async () => {
       try {
         const baseUrl = window.location.hostname.includes("devtunnels")
           ? `https://${window.location.hostname}`
           : process.env.NODE_ENV === "production"
             ? "https://your-domain.com"
-            : getBackendUrlSync();
+            : (() => {
+                try {
+                  const { getBackendUrlSync } = require("../utils/portDetector");
+                  return getBackendUrlSync();
+                } catch {
+                  return "http://localhost:5000";
+                }
+              })();
         const response = await fetch(`${baseUrl}/api/pricing/plans/${plan}`);
         const data = await response.json();
         setPlanDetails(data.plan);
@@ -63,76 +68,64 @@ const PaymentWizard: React.FC = () => {
     fetchPlanDetails();
   }, [isAuthenticated, navigate, searchParams]);
 
-  const steps = [
-    { number: 1, label: t.payment.stepPhoneNumber, active: currentStep === 1, completed: currentStep > 1 },
-    { number: 2, label: t.payment.stepPaymentProcess, active: currentStep === 2, completed: currentStep > 2 },
-    { number: 3, label: t.payment.stepConfirmation, active: currentStep === 3, completed: currentStep > 3 },
-  ];
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handlePhoneNumberSubmit = async () => {
-    // Extract phone number without country code for validation
-    const phoneWithoutCode = phoneNumber.replace(/^\+251\s?/, '').replace(/^09/, '09');
-    
-    // Validate Ethiopian phone number format (09XXXXXXXX or +251 9XXXXXXXX)
-    const isValidEthiopian = /^09\d{8}$/.test(phoneWithoutCode) || /^\+251\s?9\d{8}$/.test(phoneNumber.trim());
-    
-    if (!phoneNumber || !isValidEthiopian) {
-      alert("Please enter a valid Telebirr phone number (09XXXXXXXX or +251 9XXXXXXXX)");
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setErrorMessage("Please upload an image file (JPG, PNG, etc.)");
       return;
     }
 
-    setIsProcessing(true);
-
-    try {
-      // Send payment request to phone number via Santim Pay
-      const amount = planDetails?.price || 0;
-      const currency = planDetails?.currency || "ETB";
-
-      const response = await apiService.sendPaymentRequest(phoneNumber, planId, amount, currency);
-
-      // No alert, just move to next step
-      // No alert, just move to next step
-      console.log("Payment request sent:", response);
-
-      // Move to payment processing step
-      setCurrentStep(2);
-      setIsProcessing(false);
-
-    } catch (error: any) {
-      console.error("Payment request error:", error);
-      // We can keep this alert for errors, or show in UI. 
-      // For now, let's keep it simple but maybe less intrusive in future.
-      alert(`Failed to send payment request: ${error.response?.data?.message || error.message || "Please try again"}`);
-      setIsProcessing(false);
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("File size must be less than 10MB");
+      return;
     }
+
+    setErrorMessage("");
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
   };
 
-  const handleManualConfirmation = async () => {
-    setIsProcessing(true);
+  const handleRemoveFile = () => {
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setErrorMessage("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSubmit = async () => {
+    if (!receiptFile) {
+      setErrorMessage("Please upload your Telebirr receipt");
+      return;
+    }
+
+    setIsUploading(true);
+    setErrorMessage("");
+
     try {
-      // After user confirms on phone, subscribe to plan
-      const response = await apiService.subscribeToPlan(planId, selectedMethod);
+      // Step 1: Upload receipt image
+      const uploadResult = await apiService.uploadReceipt(receiptFile);
+      const receiptUrl = uploadResult.fileUrl;
 
-      if (response && response.message && response.message.includes("pending approval")) {
-        setIsPendingApproval(true);
-      }
+      // Step 2: Subscribe with the receipt URL (Telebirr => pending_approval)
+      await apiService.subscribeToPlan(planId, "telebirr", receiptUrl);
 
-      // Move to confirmation
-      setCurrentStep(3);
-      setIsProcessing(false);
-
-      if (response && response.message && response.message.includes("pending approval")) {
-        // Don't auto-redirect for pending approval
-      } else {
-        // Redirect after 5 seconds
-        setTimeout(() => {
-          navigate("/dashboard/hiring");
-        }, 5000);
-      }
+      // Move to confirmation step
+      setIsSubmitted(true);
+      setCurrentStep(2);
     } catch (error: any) {
-      console.error("Payment confirmation error:", error);
-      alert(`Payment confirmation failed: ${error.message || "Please try again"}`);
-      setIsProcessing(false);
+      console.error("Receipt upload error:", error);
+      setErrorMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to submit receipt. Please try again."
+      );
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -141,7 +134,7 @@ const PaymentWizard: React.FC = () => {
   };
 
   if (!isAuthenticated) {
-    return null; // Will redirect
+    return null;
   }
 
   return (
@@ -153,7 +146,7 @@ const PaymentWizard: React.FC = () => {
           className="text-white hover:text-gray-300 flex items-center gap-2"
         >
           <FaArrowLeft />
-          <span>{t.payment.backToPricing}</span>
+          <span>Back to Pricing</span>
         </button>
         <div className="flex items-center gap-2">
           <FaGlobe className="text-white" />
@@ -171,45 +164,62 @@ const PaymentWizard: React.FC = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
-        {/* Santim Pay Branding */}
+        {/* Branding */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold">
-            <span className="text-orange-500">PAY</span>
-            <span className="text-orange-500">MENT</span>
-          </h1>
+          <div className="inline-flex items-center justify-center gap-3 mb-2">
+            <img
+              src="/logos/telebirr.jpg"
+              alt="Telebirr"
+              className="w-14 h-14 rounded-lg object-contain"
+            />
+            <h1 className="text-3xl font-bold text-blue-900">
+              Telebirr Payment
+            </h1>
+          </div>
+          <p className="text-gray-500 text-sm">
+            Upload your Telebirr payment receipt to activate your subscription
+          </p>
         </div>
 
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            {steps.map((step, idx) => (
+            {[
+              { number: 1, label: "Upload Receipt" },
+              { number: 2, label: "Confirmation" },
+            ].map((step, idx, arr) => (
               <React.Fragment key={step.number}>
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${step.completed
-                      ? "bg-orange-500 text-white"
-                      : step.active
-                        ? "bg-orange-500 text-white"
-                        : "bg-gray-300 text-gray-600"
-                      }`}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${
+                      currentStep > step.number
+                        ? "bg-green-500 text-white"
+                        : currentStep === step.number
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-300 text-gray-600"
+                    }`}
                   >
-                    {step.completed ? (
+                    {currentStep > step.number ? (
                       <FaCheck className="text-white" />
                     ) : (
                       step.number
                     )}
                   </div>
                   <span
-                    className={`text-xs mt-2 text-center ${step.active ? "text-orange-500 font-semibold" : "text-gray-600"
-                      }`}
+                    className={`text-xs mt-2 text-center ${
+                      currentStep === step.number
+                        ? "text-blue-600 font-semibold"
+                        : "text-gray-600"
+                    }`}
                   >
                     {step.label}
                   </span>
                 </div>
-                {idx < steps.length - 1 && (
+                {idx < arr.length - 1 && (
                   <div
-                    className={`flex-1 h-1 mx-2 ${step.completed || step.active ? "bg-orange-500" : "bg-gray-300"
-                      }`}
+                    className={`flex-1 h-1 mx-2 ${
+                      currentStep > step.number ? "bg-green-500" : "bg-gray-300"
+                    }`}
                   />
                 )}
               </React.Fragment>
@@ -217,168 +227,183 @@ const PaymentWizard: React.FC = () => {
           </div>
         </div>
 
-        {/* Transaction ID */}
-        <div className="text-center mb-8">
-          <p className="text-sm text-gray-500">{transactionId}</p>
-        </div>
-
         {/* Step Content */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          {/* Step 1: Upload Receipt */}
           {currentStep === 1 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center"
             >
-              <div className="mb-6">
-                <p className="text-gray-600 mb-4">{t.payment.selectBank || "Select your payment method"}</p>
-
-                <div className="grid grid-cols-3 gap-3 mb-8">
-                  {[
-                    { id: "telebirr", name: "Telebirr", image: "/logos/telebirr.jpg" },
-                    { id: "cbe", name: "CBE", image: "/logos/CBE-Birr-01.jpg" }
-                  ].map((method) => (
-                    <button
-                      key={method.id}
-                      onClick={() => setSelectedMethod(method.id)}
-                      className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all ${selectedMethod === method.id
-                        ? `border-orange-500 bg-orange-50`
-                        : "border-gray-200 hover:border-gray-300"
-                        }`}
-                    >
-                      <div className={`w-16 h-16 rounded-lg flex items-center justify-center mb-2 overflow-hidden`}>
-                        <img
-                          src={method.image}
-                          alt={method.name}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-gray-700">{method.name}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  {selectedMethod === "telebirr" && (
-                    <>
-                      <div className="w-20 h-20 rounded-lg flex items-center justify-center overflow-hidden">
-                        <img src="/logos/telebirr.jpg" alt="Telebirr" className="w-full h-full object-contain" />
-                      </div>
-                      <span className="text-2xl font-bold text-blue-900">Telebirr</span>
-                    </>
-                  )}
-                  {selectedMethod === "cbe" && (
-                    <>
-                      <div className="w-20 h-20 rounded-lg flex items-center justify-center overflow-hidden">
-                        <img src="/logos/CBE-Birr-01.jpg" alt="CBE" className="w-full h-full object-contain" />
-                      </div>
-                      <span className="text-2xl font-bold text-purple-900">CBE Birr</span>
-                    </>
-                  )}
-                </div>
-
-                <p className="text-gray-600 mb-6">{t.payment.enterPhoneNumber}</p>
-                <div className="w-full max-w-md mx-auto">
-                  <PhoneInput
-                    value={phoneNumber}
-                    onChange={setPhoneNumber}
-                    placeholder={t.payment.enterPhoneNumberPlaceholder}
-                    darkMode={darkMode}
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handlePhoneNumberSubmit}
-                disabled={!phoneNumber || phoneNumber.length < 10}
-                className={`w-full max-w-md py-3 px-6 rounded-lg font-semibold text-white transition-all ${phoneNumber && phoneNumber.length >= 10
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : "bg-gray-400 cursor-not-allowed"
-                  }`}
-              >
-                {t.payment.continue}
-              </button>
-            </motion.div>
-          )}
-
-          {currentStep === 2 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12"
-            >
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-orange-500 border-t-transparent mb-4"></div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-800">{t.payment.paymentRequestSent}</h2>
-              <p className="text-gray-600 mb-2">
-                {t.payment.paymentRequestSentTo} <strong>{phoneNumber}</strong>
-              </p>
-
-              <p className="text-sm text-gray-500 mb-8">
-                {t.payment.waitingForConfirmation}
-              </p>
-
-              <button
-                onClick={handleManualConfirmation}
-                disabled={isProcessing}
-                className={`w-full max-w-md py-3 px-6 rounded-lg font-semibold text-white transition-all ${isProcessing
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600"
-                  }`}
-              >
-                {isProcessing ? t.common.loading : t.payment.confirmPayment || "I have completed payment"}
-              </button>
-            </motion.div>
-          )}
-
-          {currentStep === 3 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-12"
-            >
-              <div className={`w-20 h-20 ${isPendingApproval ? 'bg-orange-500' : 'bg-green-500'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                {isPendingApproval ? (
-                  <span className="text-white text-4xl font-bold">!</span>
-                ) : (
-                  <FaCheck className="text-white text-4xl" />
-                )}
-              </div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-800">
-                {isPendingApproval ? "Pending Approval" : t.payment.paymentSuccessful}
-              </h2>
-              <p className="text-gray-600 mb-4">
-                {isPendingApproval ? t.payment.paymentPendingApproval : t.payment.subscriptionActivated}
-              </p>
-
-              {isPendingApproval && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 mb-6 text-sm">
-                  <p className="text-blue-800 mb-2">
-                    <strong>Payment Pending:</strong><br />
-                    Since this is a manual {selectedMethod === 'telebirr' ? 'Telebirr' : selectedMethod.toUpperCase()} payment, it requires approval.
-                  </p>
+              {/* Plan Summary */}
+              {planDetails && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-blue-600 font-medium">
+                        Selected Plan
+                      </p>
+                      <p className="text-lg font-bold text-blue-900">
+                        {planDetails.name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-900">
+                        {planDetails.price.toLocaleString()}{" "}
+                        {planDetails.currency}
+                      </p>
+                      <p className="text-xs text-blue-500">{planDetails.period}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              <p className="text-sm text-gray-500">{t.payment.redirectingToDashboard}</p>
+              {/* Instructions */}
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-gray-800 mb-2">
+                  Payment Instructions
+                </h2>
+                <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                  <li>
+                    Open your <strong>Telebirr</strong> app
+                  </li>
+                  <li>
+                    Send{" "}
+                    <strong>
+                      {planDetails
+                        ? `${planDetails.price.toLocaleString()} ${planDetails.currency}`
+                        : "the payment"}
+                    </strong>{" "}
+                    to the HustleX account
+                  </li>
+                  <li>Take a screenshot of the payment confirmation receipt</li>
+                  <li>Upload the receipt image below</li>
+                </ol>
+              </div>
+
+              {/* Upload Area */}
+              <div className="mb-6">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="receipt-upload"
+                />
+
+                {!receiptPreview ? (
+                  <label
+                    htmlFor="receipt-upload"
+                    className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                      darkMode
+                        ? "border-gray-600 hover:border-blue-500 bg-gray-900"
+                        : "border-gray-300 hover:border-blue-500 bg-gray-50"
+                    }`}
+                  >
+                    <FaCloudUploadAlt className="text-4xl text-gray-400 mb-3" />
+                    <p className="text-sm font-medium text-gray-600">
+                      Click to upload receipt image
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      JPG, PNG, GIF, WebP (max 10MB)
+                    </p>
+                  </label>
+                ) : (
+                  <div className="relative">
+                    <img
+                      src={receiptPreview}
+                      alt="Receipt preview"
+                      className="w-full h-48 object-contain bg-gray-50 rounded-xl border border-gray-200"
+                    />
+                    <button
+                      onClick={handleRemoveFile}
+                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <FaTimes className="text-xs" />
+                    </button>
+                    <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                      <FaCheck />
+                      <span>{receiptFile?.name}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                onClick={handleSubmit}
+                disabled={!receiptFile || isUploading}
+                className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-all flex items-center justify-center gap-2 ${
+                  receiptFile && !isUploading
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {isUploading ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Uploading & Submitting...
+                  </>
+                ) : (
+                  "Submit Receipt for Approval"
+                )}
+              </button>
+            </motion.div>
+          )}
+
+          {/* Step 2: Confirmation */}
+          {currentStep === 2 && isSubmitted && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-8"
+            >
+              <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-white text-4xl font-bold">!</span>
+              </div>
+
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Receipt Submitted!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Your Telebirr payment receipt has been submitted for review.
+                Your subscription will be activated once approved by our team.
+              </p>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 text-sm">
+                <p className="text-orange-800">
+                  <strong>What happens next?</strong>
+                  <br />
+                  Our team will verify your receipt within 24 hours. You'll
+                  receive an email notification once your subscription is
+                  approved and activated.
+                </p>
+              </div>
+
+              {planDetails && (
+                <div className="mb-6 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+                  <span className="font-semibold">{planDetails.name}</span> —{" "}
+                  {planDetails.price.toLocaleString()} {planDetails.currency}
+                </div>
+              )}
 
               <button
                 onClick={() => navigate("/dashboard/hiring")}
-                className="mt-4 px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-medium transition-colors"
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Go to Dashboard
               </button>
             </motion.div>
           )}
         </div>
-
-        {/* Plan Summary */}
-        {planDetails && currentStep < 3 && (
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold">{planDetails.name}</span> -{" "}
-              {planDetails.price.toLocaleString()} {planDetails.currency}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

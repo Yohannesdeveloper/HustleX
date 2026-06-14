@@ -63,8 +63,8 @@ const HomeNavbar: React.FC = () => {
     };
   }, [languageMenuOpen]);
 
-  // Don't show navbar on job-listings and job-details pages
-  if (location.pathname === "/job-listings" || location.pathname.startsWith("/job-details") || location.pathname === "/preview-job" || location.pathname === "/blog/post") {
+  // Don't show navbar on job-details and preview-job pages
+  if (location.pathname.startsWith("/job-details") || location.pathname === "/preview-job") {
     return null;
   }
 
@@ -72,12 +72,12 @@ const HomeNavbar: React.FC = () => {
     <AnimatePresence>
       {isLoaded && (
         <motion.header
-          className={`absolute top-0 left-0 right-0 z-40 min-h-[52px] ${darkMode ? "border-black/30 bg-black/95" : "border-black/10 bg-white/95"
+          className={`fixed top-0 left-0 right-0 z-40 min-h-[52px] ${darkMode ? "border-black/30 bg-black/95" : "border-black/10 bg-white/95"
             } border-b shadow-2xl backdrop-blur-sm`}
-          initial={{ opacity: 0, y: -100 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -100 }}
-          transition={{ duration: 1, type: "spring", stiffness: 100 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
         >
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 min-h-[52px]">
             {/* Logo - Left (never shrinks) */}
@@ -114,8 +114,8 @@ const HomeNavbar: React.FC = () => {
             </motion.h1>
 
             {/* Desktop nav - in flow, scrollable at zoom to prevent overlap */}
-            <nav className="hidden xl:flex flex-1 min-w-0 justify-center items-center gap-1 xl:gap-2 overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }}>
-              <div className="flex items-center gap-1 xl:gap-2 flex-nowrap">
+            <nav className="hidden lg:flex flex-1 min-w-0 justify-center items-center gap-1 lg:gap-2 overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }}>
+              <div className="flex items-center gap-1 lg:gap-2 flex-nowrap">
                 {[
                   { to: "/", label: t.nav.home, shortLabel: t.nav.home, icon: null },
                   { to: "/about-us", label: t.nav.aboutUs, shortLabel: t.nav.aboutUs, icon: null },
@@ -135,14 +135,14 @@ const HomeNavbar: React.FC = () => {
                   >
                     <Link
                       to={link.to}
-                      className={`flex items-center gap-0.5 xl:gap-1 px-1.5 xl:px-2 py-1 rounded-full transition-all duration-300 whitespace-nowrap text-[10px] xl:text-xs ${darkMode
+                      className={`flex items-center gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-1 rounded-full transition-all duration-300 whitespace-nowrap text-[10px] lg:text-xs ${darkMode
                         ? "text-white hover:bg-white/10"
                         : "text-black hover:bg-black/5"
                         }`}
                     >
                       {link.icon && <span className="w-2.5 h-2.5 flex-shrink-0">{link.icon}</span>}
-                      <span className="hidden xl:inline">{link.label}</span>
-                      <span className="xl:hidden">{link.shortLabel || link.label}</span>
+                      <span className="hidden lg:inline">{link.label}</span>
+                      <span className="lg:hidden">{link.shortLabel || link.label}</span>
                     </Link>
                   </motion.div>
                 ))}
@@ -150,7 +150,7 @@ const HomeNavbar: React.FC = () => {
             </nav>
 
             {/* Tablet nav - in flow */}
-            <nav className="hidden flex-1 min-w-0 justify-center items-center gap-1.5 flex-nowrap overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }} aria-hidden="true">
+            <nav className="hidden md:flex lg:hidden flex-1 min-w-0 justify-center items-center gap-1.5 flex-nowrap overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }}>
               {[
                 { to: "/", label: t.nav.home },
                 { to: "/job-listings", label: t.nav.exploreJobs, icon: <FaSearch /> },
@@ -280,7 +280,7 @@ const HomeNavbar: React.FC = () => {
               {/* Hamburger for mobile */}
               <motion.button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="xl:hidden text-xl p-2 rounded-full focus:outline-none bg-black/40"
+                className="lg:hidden text-xl p-2 rounded-full focus:outline-none bg-black/40"
                 aria-label="Toggle menu"
               >
                 <AnimatePresence mode="wait">
@@ -319,7 +319,7 @@ const HomeNavbar: React.FC = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`xl:hidden backdrop-blur-2xl ${darkMode ? "bg-black/80" : "bg-white/80"
+                className={`lg:hidden backdrop-blur-2xl ${darkMode ? "bg-black/80" : "bg-white/80"
                   } border-t border-black/20`}
               >
                 <ul className="flex flex-col gap-1.5 p-4">

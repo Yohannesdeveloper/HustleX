@@ -37,13 +37,19 @@ const blogRoutes = require("./routes/blogs");
 const userRoutes = require("./routes/users");
 const messageRoutes = require("./routes/messages");
 const contactRoutes = require("./routes/contact");
-const chatbotRoutes = require("./routes/chatbot");
 const statisticsRoutes = require("./routes/statistics");
 const pricingRoutes = require("./routes/pricing");
+const seoRoutes = require("./routes/seo");
+const seoController = require("./controllers/seoController");
+const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
 
 app.use(metricsMiddleware);
+
+// Serve robots.txt and sitemap.xml directly at root level
+app.get("/robots.txt", seoController.getRobots);
+app.get("/sitemap.xml", seoController.getSitemap);
 
 // Connect to MongoDB
 connectDB();
@@ -228,6 +234,7 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/statistics", statisticsRoutes);
 app.use("/api/pricing", pricingRoutes);
+app.use("/", seoRoutes);
 
 // Prometheus metrics (K8s / monitoring)
 app.get("/metrics", (req, res) => {
@@ -351,6 +358,9 @@ app.use((err, req, res, next) => {
     .status(500)
     .json({ message: "Something went wrong!", error: err.message });
 });
+
+// SEO Pre-rendering middleware for public pages (placed before 404 handler)
+app.use(seoController.prerenderPage);
 
 // 404 handler — catch all unmatched routes
 app.use((req, res) => {

@@ -3,10 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppSelector } from "../store/hooks";
 import { useAuth } from "../store/hooks";
 import apiService from "../services/api";
+import SEO from "../components/SEO";
 
 type Blog = {
   _id: string;
   title: string;
+  slug?: string;
   content: string;
   category: string;
   readTime: string;
@@ -72,8 +74,60 @@ const BlogPostView: React.FC = () => {
     );
   }
 
+  const cleanSnippet = blog.content.replace(/<[^>]*>/g, "").substring(0, 160);
+  const canonicalUrl = `https://hustlex.com/blog/${blog.slug || blog._id}`;
+  const ogImg = blog.imageUrl ? apiService.getFileUrl(blog.imageUrl) : "https://hustlex.com/og-image-home.jpg";
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": blog.title,
+    "image": ogImg,
+    "datePublished": blog.createdAt,
+    "dateModified": blog.createdAt,
+    "author": {
+      "@type": "Person",
+      "name": blog.author || "HustleX Editor"
+    }
+  };
+
+  const breadcrumbsSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://hustlex.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Blog",
+        "item": "https://hustlex.com/blog"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": blog.title,
+        "item": canonicalUrl
+      }
+    ]
+  };
+
   return (
     <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"}`}>
+      <SEO
+        title={`${blog.title} | HustleX Blog`}
+        description={cleanSnippet}
+        keywords={[blog.category, "HustleX Blog", "freelancing"]}
+        canonical={canonicalUrl}
+        ogTitle={blog.title}
+        ogDescription={cleanSnippet}
+        ogImage={ogImg}
+        structuredData={[articleSchema, breadcrumbsSchema]}
+      />
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div

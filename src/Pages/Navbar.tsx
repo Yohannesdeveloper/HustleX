@@ -88,6 +88,11 @@ const Navbar: React.FC = () => {
                       Post a Job
                     </Link>
                   </li>
+                  <li>
+                    <Link to="/job-listings" className="hover:underline whitespace-nowrap">
+                      Explore Jobs
+                    </Link>
+                  </li>
                 </>
               )}
 
@@ -171,6 +176,15 @@ const Navbar: React.FC = () => {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Post a Job
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/job-listings"
+                        className="hover:underline whitespace-nowrap block"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Explore Jobs
                       </Link>
                     </li>
                   </>

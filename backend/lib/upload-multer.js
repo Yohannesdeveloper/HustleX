@@ -75,4 +75,9 @@ module.exports = {
     allowedMimes: MIME.image,
     errorMessage: "Invalid file type. Only JPG, PNG, GIF, and WebP are allowed for blog images.",
   }),
+  receiptUpload: createUpload({
+    maxSize: 10 * 1024 * 1024,
+    allowedMimes: MIME.image,
+    errorMessage: "Invalid file type. Only JPG, PNG, GIF, and WebP are allowed for receipts.",
+  }),
 };

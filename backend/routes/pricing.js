@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { auth, adminAuth } = require("../middleware/auth");
+const { sendMailAsync } = require("../services/mail");
 
 // Pricing plans configuration
 const PRICING_PLANS = [
@@ -106,7 +107,7 @@ router.get("/plans/:planId", (req, res) => {
 // ================================
 router.post("/subscribe", auth, async (req, res) => {
   try {
-    const { planId, paymentMethod } = req.body;
+    const { planId, paymentMethod, paymentReceipt } = req.body;
     const User = require("../models/User");
 
     // Validate plan
@@ -145,10 +146,39 @@ router.post("/subscribe", auth, async (req, res) => {
       subscribedAt: subscribedAt,
       expiresAt: expiresAt,
       paymentMethod: paymentMethod || "card",
+      paymentReceipt: paymentReceipt || null,
       status: status,
     };
 
     await user.save();
+
+    // Notify admin when a payment receipt is submitted for manual approval
+    if (status === "pending_approval" && paymentReceipt) {
+      sendMailAsync({
+        to: "HustleXet@gmail.com",
+        subject: `New Payment Receipt — ${user.name || user.email} (${plan.name})`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+            <div style="background:#1e3a8a;color:#fff;padding:20px 24px">
+              <h2 style="margin:0">New Payment Receipt Submitted</h2>
+            </div>
+            <div style="padding:24px">
+              <p style="margin:0 0 16px;color:#374151">A user has submitted a Telebirr payment receipt and is awaiting approval.</p>
+              <table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">
+                <tr><td style="padding:6px 0;font-weight:bold">User:</td><td>${user.name || "N/A"} (${user.email})</td></tr>
+                <tr><td style="padding:6px 0;font-weight:bold">Plan:</td><td>${plan.name} — ${plan.price} ${plan.currency}</td></tr>
+                <tr><td style="padding:6px 0;font-weight:bold">Payment Method:</td><td>${paymentMethod}</td></tr>
+                <tr><td style="padding:6px 0;font-weight:bold">Submitted:</td><td>${subscribedAt.toLocaleString()}</td></tr>
+              </table>
+              <div style="margin-top:20px;text-align:center">
+                <a href="${paymentReceipt}" style="display:inline-block;background:#1e3a8a;color:#fff;text-decoration:none;padding:10px 24px;border-radius:8px;font-size:14px">View Receipt</a>
+              </div>
+              <p style="margin-top:20px;font-size:12px;color:#9ca3af">Log in to the admin panel to approve or reject this subscription.</p>
+            </div>
+          </div>
+        `,
+      });
+    }
 
     res.json({
       message: status === "pending_approval" ? "Subscription pending approval" : "Subscription successful",
@@ -340,7 +370,18 @@ router.get("/admin/pending-subscriptions", adminAuth, async (req, res) => {
     const users = await User.find({ "subscription.status": "pending_approval" })
       .select("email profile subscription createdAt roles");
 
-    res.json({ subscriptions: users });
+    // Include the receipt URL in the response for each subscription
+    const subscriptions = users.map((user) => ({
+      _id: user._id,
+      email: user.email,
+      profile: user.profile,
+      subscription: user.subscription,
+      roles: user.roles,
+      createdAt: user.createdAt,
+      receiptUrl: user.subscription?.paymentReceipt || null,
+    }));
+
+    res.json({ subscriptions });
   } catch (error) {
     console.error("Get pending subscriptions error:", error);
     res.status(500).json({ message: "Failed to fetch pending subscriptions", error: error.message });

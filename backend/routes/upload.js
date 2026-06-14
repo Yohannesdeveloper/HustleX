@@ -10,6 +10,7 @@ const {
   tradeLicenseUpload,
   avatarUpload,
   blogImageUpload,
+  receiptUpload,
 } = require("../lib/upload-multer");
 
 if (!isS3Enabled() && !fs.existsSync(uploadsRoot)) {
@@ -62,6 +63,10 @@ router.post("/avatar", avatarUpload.single("avatar"), (req, res) =>
 
 router.post("/blog-image", blogImageUpload.single("blogImage"), (req, res) =>
   respondWithUpload(req, res, "blog-images", "Blog image uploaded successfully")
+);
+
+router.post("/receipt", receiptUpload.single("receipt"), (req, res) =>
+  respondWithUpload(req, res, "receipts", "Payment receipt uploaded successfully")
 );
 
 router.get("/uploads/:folder/:filename", (req, res) => {

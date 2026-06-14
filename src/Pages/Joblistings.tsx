@@ -7,6 +7,7 @@ import apiService from "../services/api";
 import { useAuth } from "../store/hooks";
 import Footer from "../components/Footer";
 import { JobListingsSEO } from "../components/SEO";
+import { categories } from "../constants/skills";
 import {
   Share2,
   Copy,
@@ -80,89 +81,7 @@ const mockJobs: JobType[] = [
 ];
 
 // Categories and other constants (unchanged)
-const categories = [
-  "Software Development",
-  "Web Development",
-  "Mobile App Development",
-  "Game Development",
-  "DevOps Engineering",
-  "Cloud Computing",
-  "Cybersecurity",
-  "Data Science",
-  "Machine Learning & AI",
-  "AI Prompt Engineering",
-  "Blockchain & Cryptocurrency",
-  "E-commerce Development",
-  "Business Intelligence",
-  "Data Analysis",
-  "Database Administration",
-  "Quality Assurance & Testing",
-  "Embedded Systems",
-  "Hardware Engineering",
-  "UI/UX Design",
-  "Graphic Design",
-  "Motion Graphics",
-  "3D Animation",
-  "Video Editing",
-  "Photography & Videography",
-  "Music & Audio Production",
-  "Architecture & Interior Design",
-  "Fashion & Textile Design",
-  "Content Writing",
-  "Technical Writing",
-  "Copywriting",
-  "Social Media Marketing",
-  "SEO & SEM",
-  "Digital Marketing",
-  "Email Marketing",
-  "Translation & Localization",
-  "Virtual Assistant",
-  "Data Entry & Admin Support",
-  "Customer Service",
-  "Technical Support",
-  "Sales & Business Development",
-  "Customer Success",
-  "Project Management",
-  "Product Management",
-  "Program Management",
-  "Agile Coaching",
-  "Operations Management",
-  "Supply Chain & Logistics",
-  "Logistics & Warehouse Management",
-  "Human Resources Management",
-  "Recruitment & Talent Acquisition",
-  "Payroll & Benefits Administration",
-  "Financial Analysis",
-  "Accounting & Bookkeeping",
-  "Tax Consulting",
-  "Legal Services",
-  "Contract Management",
-  "Compliance & Risk Management",
-  "Healthcare & Medical Services",
-  "Nursing",
-  "Pharmacy",
-  "Fitness & Personal Training",
-  "Nutrition & Dietetics",
-  "Social Work & Counseling",
-  "Education & Training",
-  "Instructional Design",
-  "Civil Engineering",
-  "Mechanical Engineering",
-  "Electrical Engineering",
-  "Environmental Consulting",
-  "Automobile Engineering",
-  "Farming & Agriculture",
-  "Veterinary Services",
-  "Event Planning",
-  "Public Relations",
-  "Market Research",
-  "Real Estate Management",
-  "Hospitality & Tourism",
-  "Security Services",
-  "Manufacturing & Production",
-  "Printing & Publishing",
-  "Other",
-];
+// (imported from ../constants/skills)
 
 const budgetRanges = [
   { label: "Under 5,000 ETB", min: 0, max: 5000 },
@@ -815,7 +734,7 @@ const JobListings: React.FC = () => {
         />
       </div>
 
-      <div className="relative z-10 flex flex-col lg:flex-row p-1 sm:p-2 lg:p-4 gap-1 sm:gap-2 max-w-7xl mx-auto">
+      <div className="relative z-10 flex flex-col lg:flex-row pt-16 sm:pt-20 pb-4 px-1 sm:px-2 lg:px-4 gap-1 sm:gap-2 max-w-7xl mx-auto">
         {/* Sidebar */}
         <motion.aside
           initial={{ x: -100, opacity: 0 }}

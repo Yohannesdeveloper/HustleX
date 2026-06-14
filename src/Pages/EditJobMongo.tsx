@@ -13,6 +13,7 @@ import {
   Send,
   ArrowLeft,
 } from "lucide-react";
+import { categories } from "../constants/skills";
 
 // Comprehensive list of worldwide countries (ISO 3166-1)
 const countries = [
@@ -58,24 +59,7 @@ const countries = [
 ];
 
 // Expanded, specific job categories
-const categories = [
-  "Software Development", "Web Development", "Mobile App Development", "Game Development",
-  "DevOps Engineering", "Cloud Computing", "Cybersecurity", "Data Science",
-  "Machine Learning & AI", "Business Intelligence", "Data Analysis", "Database Administration",
-  "UI/UX Design", "Graphic Design", "Motion Graphics", "3D Animation",
-  "Video Editing", "Content Writing", "Technical Writing", "Copywriting",
-  "Translation & Localization", "Digital Marketing", "SEO & SEM", "Social Media Marketing",
-  "Email Marketing", "Sales & Business Development", "Customer Success", "Technical Support",
-  "Customer Service", "Human Resources Management", "Recruitment & Talent Acquisition",
-  "Payroll & Benefits Administration", "Financial Analysis", "Accounting & Bookkeeping",
-  "Tax Consulting", "Legal Services", "Contract Management", "Compliance & Risk Management",
-  "Project Management", "Program Management", "Agile Coaching", "Product Management",
-  "Operations Management", "Supply Chain & Logistics", "Healthcare & Medical Services",
-  "Nursing", "Pharmacy", "Education & Training", "Instructional Design",
-  "Civil Engineering", "Mechanical Engineering", "Electrical Engineering", "Environmental Consulting",
-  "Event Planning", "Public Relations", "Market Research", "Real Estate Management",
-  "Hospitality & Tourism", "Other",
-];
+// (imported from ../constants/skills)
 
 const experienceLevels = [
   "Internship", "Entry Level", "Junior", "Mid Level", "Senior",

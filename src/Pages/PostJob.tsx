@@ -7,6 +7,7 @@ import apiService from "../services/api";
 import { useTranslation } from "../hooks/useTranslation";
 import { Job as JobTypeFromAPI, User, Application, EmailData } from "../types";
 import { HireSEO } from "../components/SEO";
+import { categories, ALL_SKILLS_WITH_TECH } from "../constants/skills";
 
 // Then, in your code, replace Job with JobTypeFromAPI where needed:
 
@@ -17,6 +18,7 @@ import {
   Link as LinkIcon,
   Send,
   ArrowLeft,
+  X,
 } from "lucide-react";
 
 // Comprehensive list of worldwide countries (ISO 3166-1)
@@ -219,89 +221,7 @@ const countries = [
 ];
 
 // Expanded, specific job categories
-const categories = [
-  "Software Development",
-  "Web Development",
-  "Mobile App Development",
-  "Game Development",
-  "DevOps Engineering",
-  "Cloud Computing",
-  "Cybersecurity",
-  "Data Science",
-  "Machine Learning & AI",
-  "AI Prompt Engineering",
-  "Blockchain & Cryptocurrency",
-  "E-commerce Development",
-  "Business Intelligence",
-  "Data Analysis",
-  "Database Administration",
-  "Quality Assurance & Testing",
-  "Embedded Systems",
-  "Hardware Engineering",
-  "UI/UX Design",
-  "Graphic Design",
-  "Motion Graphics",
-  "3D Animation",
-  "Video Editing",
-  "Photography & Videography",
-  "Music & Audio Production",
-  "Architecture & Interior Design",
-  "Fashion & Textile Design",
-  "Content Writing",
-  "Technical Writing",
-  "Copywriting",
-  "Social Media Marketing",
-  "SEO & SEM",
-  "Digital Marketing",
-  "Email Marketing",
-  "Translation & Localization",
-  "Virtual Assistant",
-  "Data Entry & Admin Support",
-  "Customer Service",
-  "Technical Support",
-  "Sales & Business Development",
-  "Customer Success",
-  "Project Management",
-  "Product Management",
-  "Program Management",
-  "Agile Coaching",
-  "Operations Management",
-  "Supply Chain & Logistics",
-  "Logistics & Warehouse Management",
-  "Human Resources Management",
-  "Recruitment & Talent Acquisition",
-  "Payroll & Benefits Administration",
-  "Financial Analysis",
-  "Accounting & Bookkeeping",
-  "Tax Consulting",
-  "Legal Services",
-  "Contract Management",
-  "Compliance & Risk Management",
-  "Healthcare & Medical Services",
-  "Nursing",
-  "Pharmacy",
-  "Fitness & Personal Training",
-  "Nutrition & Dietetics",
-  "Social Work & Counseling",
-  "Education & Training",
-  "Instructional Design",
-  "Civil Engineering",
-  "Mechanical Engineering",
-  "Electrical Engineering",
-  "Environmental Consulting",
-  "Automobile Engineering",
-  "Farming & Agriculture",
-  "Veterinary Services",
-  "Event Planning",
-  "Public Relations",
-  "Market Research",
-  "Real Estate Management",
-  "Hospitality & Tourism",
-  "Security Services",
-  "Manufacturing & Production",
-  "Printing & Publishing",
-  "Other",
-];
+// (imported from ../constants/skills)
 
 const experienceLevels = [
   "Internship",
@@ -410,176 +330,7 @@ const currencies = [
   "Other",
 ];
 
-const skillsOptions = [
-  // Web/Frontend
-  "HTML5",
-  "CSS3",
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Next.js",
-  "Vue.js",
-  "Nuxt.js",
-  "Angular",
-  "Svelte",
-  "Redux",
-  "Tailwind CSS",
-  "Bootstrap",
-  "Material UI",
-  "Styled Components",
-  "Web3.js",
-  "Solid.js",
-  // Backend
-  "Node.js",
-  "Express",
-  "NestJS",
-  "Python",
-  "Django",
-  "Flask",
-  "FastAPI",
-  "Ruby on Rails",
-  "PHP",
-  "Laravel",
-  "Symfony",
-  "Go",
-  "Java",
-  "Spring Boot",
-  "C#",
-  ".NET Core",
-  "C++",
-  "C",
-  "Rust",
-  "Elixir",
-  "GraphQL",
-  "REST API",
-
-  // Mobile
-  "React Native",
-  "Flutter",
-  "Android (Kotlin)",
-  "Android (Java)",
-  "iOS (Swift)",
-  "iOS (Objective-C)",
-  "Ionic",
-  "Xamarin",
-
-  // Data/ML/AI
-  "SQL",
-  "NoSQL",
-  "MongoDB",
-  "PostgreSQL",
-  "MySQL",
-  "Redis",
-  "Elasticsearch",
-  "Data Analysis",
-  "Pandas",
-  "NumPy",
-  "Scikit-learn",
-  "TensorFlow",
-  "PyTorch",
-  "Keras",
-  "Machine Learning",
-  "Deep Learning",
-  "Natural Language Processing (NLP)",
-  "Computer Vision",
-  "Data Engineering",
-  "Big Data",
-  "Spark",
-  "Hadoop",
-  "R",
-  "Tableau",
-  "Power BI",
-  "AI Prompt Engineering",
-
-  // DevOps/Cloud
-  "Docker",
-  "Kubernetes",
-  "CI/CD",
-  "GitHub Actions",
-  "Jenkins",
-  "AWS",
-  "Azure",
-  "GCP",
-  "Terraform",
-  "Ansible",
-  "Linux",
-  "Nginx",
-  "Serverless",
-
-  // Design/Creative
-  "UI/UX Design",
-  "Figma",
-  "Adobe XD",
-  "Photoshop",
-  "Illustrator",
-  "After Effects",
-  "Premiere Pro",
-  "InDesign",
-  "Canva",
-  "Graphic Design",
-  "Motion Graphics",
-  "3D Modeling",
-  "Blender",
-  "Maya",
-  "Cinema 4D",
-  "Video Editing",
-  "Photography",
-  "Videography",
-
-  // Writing/Content
-  "Content Writing",
-  "Copywriting",
-  "Technical Writing",
-  "Blog Writing",
-  "Creative Writing",
-  "Editing & Proofreading",
-  "SEO Writing",
-  "Ghostwriting",
-  "Translation",
-  "Transcription",
-
-  // Marketing/Business
-  "SEO",
-  "SEM",
-  "Google Ads",
-  "Facebook Ads",
-  "Social Media Management",
-  "Email Marketing",
-  "Marketing Automation",
-  "Growth Hacking",
-  "Project Management",
-  "Agile/Scrum",
-  "Product Management",
-  "Sales",
-  "Lead Generation",
-  "Customer Success",
-  "CRM",
-  "Business Analysis",
-  "Financial Modeling",
-
-  // Security
-  "Cybersecurity",
-  "Ethical Hacking",
-  "Penetration Testing",
-  "Information Security",
-  "Network Security",
-
-  // Other/Specialized
-  "QA/Testing",
-  "Automated Testing",
-  "Game Development",
-  "Unity",
-  "Unreal Engine",
-  "Blockchain",
-  "Smart Contracts",
-  "Solidity",
-  "Solana",
-  "Excel/VBA",
-  "Virtual Assistant",
-  "Data Entry",
-  "Customer Support",
-  "Other",
-];
+const skillsOptions = ALL_SKILLS_WITH_TECH;
 
 const genders = ["Any", "Male", "Female", "Other"];
 
@@ -690,6 +441,9 @@ const PostJob: React.FC = () => {
   const [jobType, setJobType] = useState<string>("");
   const [workLocation, setWorkLocation] = useState<string>("Remote");
   const [skills, setSkills] = useState<string[]>([]);
+  const [skillSearch, setSkillSearch] = useState<string>("");
+  const [showSkillDropdown, setShowSkillDropdown] = useState<boolean>(false);
+  const skillDropdownRef = React.useRef<HTMLDivElement>(null);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [jobLink, setJobLink] = useState<string>("");
   const [gender, setGender] = useState<string>("");
@@ -855,7 +609,7 @@ const PostJob: React.FC = () => {
 
     // Check subscription status before submitting
     if (postingStatus && !postingStatus.canPost) {
-      alert(postingStatus.message || "Please upgrade your plan to post jobs.");
+      alert(postingStatus.message || t.postJob.upgradeMessage);
       navigate("/pricing");
       return;
     }
@@ -942,7 +696,7 @@ const PostJob: React.FC = () => {
       if (skills.length < 6) {
         setSkills((prev) => [...prev, skill]);
       } else {
-        alert("Maximum 6 skills allowed. Please remove a skill first.");
+        alert(t.postJob.maximumSkillsReached);
       }
     }
   };
@@ -955,7 +709,7 @@ const PostJob: React.FC = () => {
       <HireSEO />
       <div
         className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"
-          } px-6 py-12 flex flex-col items-center`}
+          } px-6 pt-20 pb-12 flex flex-col items-center`}
       >
       {/* Font Import */}
       <link
@@ -1027,7 +781,7 @@ const PostJob: React.FC = () => {
           className={`text-center text-lg ${darkMode ? "text-gray-400" : "text-gray-600"
             } mt-4`}
         >
-          Create an attractive job listing to find the best talent
+          {t.postJob.createAttractiveListing}
         </p>
       </motion.div>
 
@@ -1053,8 +807,8 @@ const PostJob: React.FC = () => {
                     }`}
                 >
                   {postingStatus.canPost
-                    ? `✅ You can post jobs (${postingStatus.planName})`
-                    : `❌ Cannot post jobs`}
+                    ? `${t.postJob.canPostJobs} (${postingStatus.planName})`
+                    : t.postJob.cannotPostJobs}
                 </h3>
                 <p
                   className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"
@@ -1063,20 +817,20 @@ const PostJob: React.FC = () => {
                   {postingStatus.canPost ? (
                     <>
                       {postingStatus.limits.type === "lifetime"
-                        ? `Lifetime jobs posted: ${postingStatus.limits.current}/${postingStatus.limits.limit} (Free Trial)`
+                        ? `${t.postJob.lifetimeJobsPosted} ${postingStatus.limits.current}/${postingStatus.limits.limit} (${t.postJob.freeTrial})`
                         : postingStatus.limits.type === "total"
-                          ? `Total jobs posted: ${postingStatus.limits.current}/${postingStatus.limits.limit}`
+                          ? `${t.postJob.totalJobsPosted} ${postingStatus.limits.current}/${postingStatus.limits.limit}`
                           : postingStatus.limits.limit === -1
-                            ? `Monthly jobs posted: ${postingStatus.stats.monthlyJobs} (Unlimited)`
-                            : `Monthly jobs posted: ${postingStatus.limits.current}/${postingStatus.limits.limit} (${postingStatus.limits.remaining} remaining)`}
+                            ? `${t.postJob.monthlyJobsPosted} ${postingStatus.stats.monthlyJobs} (${t.postJob.unlimitedLabel})`
+                            : `${t.postJob.monthlyJobsPosted} ${postingStatus.limits.current}/${postingStatus.limits.limit} (${postingStatus.limits.remaining} ${t.postJob.remainingLabel})`}
                       {postingStatus.expiresAt && (
                         <span className="ml-2">
-                          • Expires: {new Date(postingStatus.expiresAt).toLocaleDateString()}
+                          • {t.postJob.expiresLabel} {new Date(postingStatus.expiresAt).toLocaleDateString()}
                         </span>
                       )}
                     </>
                   ) : (
-                    postingStatus.message || "Please upgrade your plan to post jobs."
+                    postingStatus.message || t.postJob.upgradeMessage
                   )}
                 </p>
               </div>
@@ -1117,11 +871,11 @@ const PostJob: React.FC = () => {
           </div>
 
           <h3 className="text-3xl font-bold mb-4 font-inter">
-            {postingStatus.limits.type === "lifetime" ? "Free Trial Limit Reached" : "Upgrade Required"}
+            {postingStatus.limits.type === "lifetime" ? t.postJob.freeTrialLimitReached : t.postJob.upgradeRequired}
           </h3>
 
           <p className={`text-lg mb-8 leading-relaxed ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-            {postingStatus.message || "You've reached your job posting limit. Upgrade to a paid plan to continue hiring the best talent on HustleX."}
+            {postingStatus.message || t.postJob.jobLimitMessage}
           </p>
 
           <div className="space-y-4">
@@ -1139,13 +893,13 @@ const PostJob: React.FC = () => {
                 : "border-gray-200 hover:bg-gray-50 text-gray-700"
                 }`}
             >
-              Go Back
+              {t.postJob.goBack}
             </button>
           </div>
 
           <div className={`mt-8 pt-8 border-t ${darkMode ? "border-white/10" : "border-black/10"}`}>
             <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              Need help? <button onClick={() => navigate("/contact-us")} className="text-cyan-500 hover:underline">Contact our support team</button>
+              {t.postJob.needHelp} <button onClick={() => navigate("/contact-us")} className="text-cyan-500 hover:underline">{t.postJob.contactSupport}</button>
             </p>
           </div>
         </motion.div>
@@ -1175,7 +929,7 @@ const PostJob: React.FC = () => {
                 initial="hidden"
                 animate="visible"
               >
-                {"Job Details".split("").map((char, i: number) => (
+                {t.postJob.jobDetails.split("").map((char, i: number) => (
                   <motion.span key={i} variants={letterVariants} custom={i}>
                     {char}
                   </motion.span>
@@ -1188,7 +942,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Title *
+                  {t.postJob.jobTitle}
                 </label>
                 <input
                   value={title}
@@ -1213,7 +967,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Site
+                  {t.postJob.jobSite}
                 </label>
                 <select
                   value={jobSite}
@@ -1225,7 +979,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Job Site
+                    {t.postJob.selectJobSite}
                   </option>
                   {jobSites.map((site) => (
                     <option
@@ -1256,7 +1010,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Job Type
+                    {t.postJob.selectJobType}
                   </option>
                   {jobTypes.map((jt) => (
                     <option
@@ -1275,7 +1029,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Sector
+                  {t.postJob.jobSector}
                 </label>
                 <select
                   value={jobSector}
@@ -1287,7 +1041,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Job Sector
+                    {t.postJob.selectJobSector}
                   </option>
                   {jobSectors.map((sector) => (
                     <option
@@ -1318,7 +1072,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Category
+                    {t.postJob.selectCategory}
                   </option>
                   {categories.map((cat) => (
                     <option
@@ -1337,7 +1091,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Educational Qualification (optional)
+                  {t.postJob.educationalQualification}
                 </label>
                 <select
                   value={education}
@@ -1348,15 +1102,15 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" className="text-gray-400">
-                    Select Education
+                    {t.postJob.selectEducation}
                   </option>
-                  <option value="High School" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>High School</option>
-                  <option value="Associate Degree" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>Associate Degree</option>
-                  <option value="Bachelor's Degree" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>Bachelor's Degree</option>
-                  <option value="Master's Degree" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>Master's Degree</option>
+                  <option value="High School" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>{t.postJob.highSchool}</option>
+                  <option value="Associate Degree" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>{t.postJob.associateDegree}</option>
+                  <option value="Bachelor's Degree" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>{t.postJob.bachelorsDegree}</option>
+                  <option value="Master's Degree" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>{t.postJob.mastersDegree}</option>
                   <option value="PhD" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>PhD</option>
-                  <option value="Professional Certification" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>Professional Certification</option>
-                  <option value="Other" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>Other</option>
+                  <option value="Professional Certification" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>{t.postJob.professionalCertification}</option>
+                  <option value="Other" className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"}`}>{t.postJob.otherEducation}</option>
                 </select>
               </motion.div>
               <motion.div variants={inputVariants} className="mb-6">
@@ -1364,7 +1118,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Experience Level *
+                  {t.postJob.experienceLevel}
                 </label>
                 <select
                   value={experience}
@@ -1376,7 +1130,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Experience Level
+                    {t.postJob.selectExperience}
                   </option>
                   {experienceLevels.map((exp) => (
                     <option
@@ -1395,7 +1149,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Gender Preference *
+                  {t.postJob.genderPreferenceLabel}
                 </label>
                 <select
                   value={gender}
@@ -1407,7 +1161,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Gender
+                    {t.postJob.selectGenderPref}
                   </option>
                   {genders.map((g) => (
                     <option
@@ -1426,9 +1180,9 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Deadline (optional)
+                  {t.postJob.jobDeadlineOptional}
                   <span className={`text-xs ml-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    Default: 15 days
+                    {t.postJob.defaultDays}
                   </span>
                 </label>
                 <input
@@ -1446,13 +1200,13 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Vacancies (optional)
+                  {t.postJob.vacanciesOptional}
                 </label>
                 <input
                   type="number"
                   value={vacancies}
                   onChange={(e) => setVacancies(e.target.value)}
-                  placeholder="Number of Vacancies"
+                  placeholder={t.postJob.numberOfVacancies}
                   min="1"
                   className={`w-full p-4 rounded-xl border ${darkMode
                     ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
@@ -1465,35 +1219,104 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Skills and Expertise
+                  {t.postJob.skillsAndExpertise}
                   <span className={`text-xs ml-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    Max 6 ({6 - skills.length} left)
+                    {t.postJob.maxLeft} ({6 - skills.length} {t.postJob.remainingLabel})
                   </span>
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {skillsOptions.map((skill) => (
-                    <motion.button
-                      key={skill}
-                      type="button"
-                      onClick={() => toggleSkill(skill)}
-                      disabled={!skills.includes(skill) && skills.length >= 6}
-                      variants={inputVariants}
-                      whileHover={{ scale: skills.includes(skill) || skills.length < 6 ? 1.05 : 1 }}
-                      whileTap={{ scale: skills.includes(skill) || skills.length < 6 ? 0.95 : 1 }}
-                      className={`px-3 py-1 rounded-full border transition-all duration-300 ${skills.includes(skill)
-                        ? "bg-cyan-400 text-black border-cyan-400 shadow-lg shadow-cyan-400/25"
-                        : darkMode
-                          ? skills.length >= 6
-                            ? "border-gray-600 text-gray-500 cursor-not-allowed opacity-50"
-                            : "border-gray-600 text-gray-300 hover:border-cyan-400 hover:text-cyan-400"
-                          : skills.length >= 6
-                            ? "border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
-                            : "border-gray-300 text-gray-600 hover:border-cyan-400 hover:text-cyan-400"
-                        }`}
+
+                {/* Selected skills as tags */}
+                {skills.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-cyan-400 text-black text-sm font-medium"
+                      >
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => toggleSkill(skill)}
+                          className="ml-1 hover:text-red-600 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Typeahead search input */}
+                <div ref={skillDropdownRef} className="relative">
+                  <input
+                    type="text"
+                    value={skillSearch}
+                    onChange={(e) => {
+                      setSkillSearch(e.target.value);
+                      setShowSkillDropdown(true);
+                    }}
+                    onFocus={() => setShowSkillDropdown(true)}
+                    onBlur={() => {
+                      // Delay to allow click on dropdown item
+                      setTimeout(() => setShowSkillDropdown(false), 200);
+                    }}
+                    placeholder={skills.length >= 6 ? t.postJob.maximumSkillsReached : t.postJob.typeToSearchSkills}
+                    disabled={skills.length >= 6}
+                    className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 ${
+                      darkMode
+                        ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 ${
+                      skills.length >= 6 ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  />
+
+                  {/* Dropdown suggestions */}
+                  {showSkillDropdown && skills.length < 6 && (
+                    <div
+                      className={`absolute z-50 w-full mt-1 max-h-60 overflow-y-auto rounded-lg border shadow-lg ${
+                        darkMode
+                          ? "bg-gray-800 border-gray-600"
+                          : "bg-white border-gray-200"
+                      }`}
                     >
-                      {skill}
-                    </motion.button>
-                  ))}
+                      {skillsOptions
+                        .filter(
+                          (skill) =>
+                            skill.toLowerCase().includes(skillSearch.toLowerCase()) &&
+                            !skills.includes(skill)
+                        )
+                        .slice(0, 20)
+                        .map((skill) => (
+                          <button
+                            key={skill}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              toggleSkill(skill);
+                              setSkillSearch("");
+                              setShowSkillDropdown(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                              darkMode
+                                ? "text-gray-200 hover:bg-gray-700"
+                                : "text-gray-700 hover:bg-cyan-50"
+                            }`}
+                          >
+                            {skill}
+                          </button>
+                        ))}
+                      {skillsOptions.filter(
+                        (skill) =>
+                          skill.toLowerCase().includes(skillSearch.toLowerCase()) &&
+                          !skills.includes(skill)
+                      ).length === 0 && (
+                        <div className={`px-4 py-3 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          {skillSearch ? `${t.postJob.noSkillsMatching} "${skillSearch}"` : t.postJob.allSkillsSelected}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
               <motion.div variants={inputVariants} className="md:col-span-2" id="field-description">
@@ -1501,13 +1324,13 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-2`}
                 >
-                  Tell us about your job
+                  {t.postJob.tellUsAboutJob}
                 </label>
                 <label
                   className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
                     }`}
                 >
-                  Job Description *
+                  {t.postJob.jobDescriptionLabel}
                 </label>
                 <textarea
                   value={description}
@@ -1534,7 +1357,7 @@ const PostJob: React.FC = () => {
                 )}
                 <div className="flex items-center justify-between mt-2">
                   <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    Quick Tip! Create a high quality job post to attract top talents on HustleX!!
+                    {t.postJob.quickTip}
                   </p>
                   <p className={`text-xs font-medium ${descriptionCharsLeft < 100
                     ? "text-red-500"
@@ -1544,7 +1367,7 @@ const PostJob: React.FC = () => {
                         ? "text-gray-400"
                         : "text-gray-500"
                     }`}>
-                    {descriptionCharsLeft} chars left
+                    {descriptionCharsLeft} {t.postJob.charsLeft}
                   </p>
                 </div>
               </motion.div>
@@ -1575,7 +1398,7 @@ const PostJob: React.FC = () => {
                 initial="hidden"
                 animate="visible"
               >
-                {"Work Location".split("").map((char, i: number) => (
+                {t.postJob.workLocationSection.split("").map((char, i: number) => (
                   <motion.span key={i} variants={letterVariants} custom={i}>
                     {char}
                   </motion.span>
@@ -1588,7 +1411,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Country
+                  {t.postJob.countryLabel}
                 </label>
                 <select
                   value={country}
@@ -1619,12 +1442,12 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  {t.postJob.city} *
+                  {t.postJob.cityLabel}
                 </label>
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="Enter city"
+                  placeholder={t.postJob.enterCityPlaceholder}
                   required
                   className={`w-full p-4 rounded-xl border ${darkMode
                     ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
@@ -1637,12 +1460,12 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-2`}
                 >
-                  Work Address (optional)
+                  {t.postJob.workAddressOptional}
                 </label>
                 <input
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter work address"
+                  placeholder={t.postJob.enterWorkAddress}
                   className={`w-full p-4 rounded-xl border ${darkMode
                     ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
                     : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
@@ -1676,7 +1499,7 @@ const PostJob: React.FC = () => {
                 initial="hidden"
                 animate="visible"
               >
-                {"Additional Information".split("").map((char, i: number) => (
+                {t.postJob.additionalInfo.split("").map((char, i: number) => (
                   <motion.span key={i} variants={letterVariants} custom={i}>
                     {char}
                   </motion.span>
@@ -1689,7 +1512,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Salary/Compensation Type *
+                  {t.postJob.compensationTypeLabel}
                 </label>
                 <select
                   value={compensationType}
@@ -1701,7 +1524,7 @@ const PostJob: React.FC = () => {
                     } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
                 >
                   <option value="" disabled className="text-gray-400">
-                    Select Compensation Type
+                    {t.postJob.selectCompensationType}
                   </option>
                   {compensationTypes.map((type) => (
                     <option
@@ -1720,13 +1543,13 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Salary/Compensation Amount & Currency (optional)
+                  {t.postJob.compensationAmountLabel}
                 </label>
                 <div className="flex gap-2">
                   <input
                     value={compensationAmount}
                     onChange={(e) => setCompensationAmount(e.target.value)}
-                    placeholder="Please add the salary..."
+                    placeholder={t.postJob.addSalaryPlaceholder}
                     type="number"
                     className={`flex-1 p-4 rounded-xl border ${darkMode
                       ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
@@ -1776,7 +1599,7 @@ const PostJob: React.FC = () => {
                     className={`${darkMode ? "bg-black" : "bg-white"} text-${darkMode ? "white" : "black"
                       }`}
                   >
-                    Public
+                    {t.postJob.publicLabel}
                   </option>
                   <option
                     value="private"
@@ -1792,7 +1615,7 @@ const PostJob: React.FC = () => {
                   className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"
                     } mb-3`}
                 >
-                  Job Link (Optional)
+                  {t.postJob.jobLinkOptional}
                 </label>
                 <input
                   value={jobLink}
@@ -1825,7 +1648,7 @@ const PostJob: React.FC = () => {
                 }`}
             >
               <ArrowLeft className="w-5 h-5" />
-              Go Back
+              {t.postJob.goBack}
             </motion.button>
 
 
@@ -1843,7 +1666,7 @@ const PostJob: React.FC = () => {
                 }`}
             >
               <Send className="inline w-5 h-5 mr-2" />
-              {isSubmitting ? `🔄 Posting...` : `Continue`}
+              {isSubmitting ? `🔄 ${t.postJob.postingBtn}` : t.postJob.continueBtn}
             </motion.button>
           </motion.div>
         </form>

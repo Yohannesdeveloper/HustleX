@@ -5,6 +5,8 @@ import MessagesTab from "./MessagesTab";
 import { FreelancerWithStatus } from "../types";
 import { fetchFreelancerDirectory } from "../utils/freelancerDirectory";
 import { useAuth } from "../store/hooks";
+import apiService from "../services/api";
+import { isClientMode } from "../utils/activeRole";
 
 const ChatInterface: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
@@ -12,22 +14,33 @@ const ChatInterface: React.FC = () => {
   const [sharedFreelancers, setSharedFreelancers] = useState<FreelancerWithStatus[]>([]);
   const [freelancersLoading, setFreelancersLoading] = useState(true);
 
-  const isClient = Boolean(user?.roles?.includes("client") || user?.roles?.includes("admin"));
+  const isClient = isClientMode(user);
 
-  // Preload freelancers so Messages tab can start chats
+  // Preload user directory so Messages tab can start chats
+  // Clients load freelancers; freelancers load clients
   useEffect(() => {
-    if (!isClient) {
-      setFreelancersLoading(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
       setFreelancersLoading(true);
       try {
-        const list = await fetchFreelancerDirectory();
-        if (!cancelled) setSharedFreelancers(list);
+        if (isClient) {
+          const list = await fetchFreelancerDirectory();
+          if (!cancelled) setSharedFreelancers(list);
+        } else {
+          // Freelancer: load clients as the messaging directory
+          const clients = await apiService.getClients();
+          if (!cancelled) {
+            setSharedFreelancers(
+              clients.map((c) => ({
+                ...c,
+                status: "offline" as const,
+                lastActive: undefined,
+              })) as unknown as FreelancerWithStatus[]
+            );
+          }
+        }
       } catch (e) {
-        console.error("Failed to preload freelancers:", e);
+        console.error("Failed to preload user directory:", e);
       } finally {
         if (!cancelled) setFreelancersLoading(false);
       }
@@ -35,7 +48,7 @@ const ChatInterface: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isClient, user?._id]);
+  }, [isClient, user?._id, user?.currentRole]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">

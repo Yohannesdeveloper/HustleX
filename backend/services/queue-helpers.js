@@ -9,6 +9,27 @@ const { isQueueEnabled } = require("../lib/redis-config");
 const { persistChatMessage } = require("./message-persist");
 
 /**
+ * Check if the Bull queue's underlying Redis client is actually connected.
+ * Returns false when QUEUE_ENABLED=true but Redis isn't reachable.
+ */
+function isMessageQueueConnected() {
+  try {
+    // Bull v4 exposes clients as a Set of ioredis instances
+    if (messageQueue.clients && messageQueue.clients.size > 0) {
+      const clientsArr = Array.from(messageQueue.clients);
+      return clientsArr.some(c => c.status === 'ready' || c.status === 'connecting');
+    }
+    // Fallback: try direct client access
+    if (messageQueue.client) {
+      return ['ready', 'connecting'].includes(messageQueue.client.status);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Queue Helper Functions
  * Easy-to-use functions for adding jobs to queues
  */
@@ -118,9 +139,10 @@ function isMessageAsyncEnabled() {
 
 /**
  * Sync persist (inline) or blocking queue wait when MESSAGE_ASYNC=false.
+ * Skips the queue entirely when Redis isn't actually connected to avoid 8s hangs.
  */
 async function persistChatMessageQueued(messageData) {
-  if (!isQueueEnabled()) {
+  if (!isQueueEnabled() || !isMessageQueueConnected()) {
     return persistChatMessage(messageData);
   }
 
@@ -130,7 +152,7 @@ async function persistChatMessageQueued(messageData) {
   }
 
   const job = await enqueueChatMessage(messageData);
-  const timeoutMs = parseInt(process.env.MESSAGE_QUEUE_TIMEOUT_MS, 10) || 8000;
+  const timeoutMs = parseInt(process.env.MESSAGE_QUEUE_TIMEOUT_MS, 10) || 3000;
 
   return Promise.race([
     job.finished(),

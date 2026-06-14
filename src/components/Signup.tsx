@@ -157,16 +157,19 @@ const Signup: React.FC = () => {
       }
 
       // Navigate based on role and profile completion status
-      // Priority 1: Use explicit redirect path if provided (e.g. from pricing/payment)
+      // Priority 1: Admin users always go to admin panel
+      if (loggedInUser?.roles?.includes('admin')) {
+        navigate('/admin/blog', { replace: true });
+        return;
+      }
+
+      // Priority 2: Use explicit redirect path if provided (e.g. from pricing/payment)
       if (redirectPath && redirectPath !== "/job-listings") {
         navigate(redirectPath, { replace: true });
         return;
       }
 
-      // Priority 2: Force profile setup for new roles/accounts
       // Priority 3: Fallback to role-specific dashboard
-      const isExistingUserWithRole = existingUser?.roles?.includes(targetRole);
-
       if (targetRole === 'freelancer') {
         navigate('/dashboard/freelancer', { replace: true });
       } else if (targetRole === 'client') {
@@ -483,100 +486,132 @@ const Signup: React.FC = () => {
               <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                 Account Found
               </h3>
-              <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                {t.signup.accountExistsMessage || "An account with this email already exists. Please sign in or add a new role."}
-              </p>
 
-              {/* Existing Roles */}
-              <div className="space-y-2 mb-4">
-                <h4 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Continue with existing role:
-                </h4>
-                {existingUser.roles && existingUser.roles.length > 0 ? (
-                  existingUser.roles.map((role: string) => (
-                    <button
-                      key={role}
-                      onClick={() => handleAccountSelection(role)}
-                      disabled={isLoading}
-                      className={`w-full p-3 rounded-lg border transition-all text-left ${role === 'freelancer'
-                        ? darkMode
-                          ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
-                          : 'bg-cyan-500/5 border-cyan-500/20 text-cyan-600 hover:bg-cyan-500/10'
-                        : darkMode
-                          ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
-                          : 'bg-green-500/5 border-green-500/20 text-green-600 hover:bg-green-500/10'
-                        } disabled:opacity-50`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium capitalize">{role} {t.signup.account}</span>
-                          {existingUser.profile?.firstName && (
-                            <span className={`text-sm ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                              ({existingUser.profile.firstName} {existingUser.profile.lastName})
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-sm">
-                          {role === 'freelancer' ? '💼' : '🏢'} {t.signup.signIn}
-                        </span>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    No roles found for this account.
+              {/* Admin accounts: show ONLY admin option for the designated admin email */}
+              {existingUser.email?.toLowerCase() === 'hustlexet@gmail.com' ? (
+                <>
+                  <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    This is an administrator account. Please sign in with your admin credentials.
                   </p>
-                )}
-              </div>
+                  <button
+                    onClick={() => handleAccountSelection('admin')}
+                    disabled={isLoading}
+                    className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
+                      darkMode
+                        ? 'bg-purple-500/10 border-purple-500/40 text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/60'
+                        : 'bg-purple-500/5 border-purple-500/30 text-purple-700 hover:bg-purple-500/10 hover:border-purple-500/50'
+                    } disabled:opacity-50`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🔐</span>
+                        <div>
+                          <span className="font-semibold block">Administrator Account</span>
+                          <span className={`text-xs ${darkMode ? 'text-purple-400' : 'text-purple-500'}`}>HustleX Admin Panel</span>
+                        </div>
+                      </div>
+                      <span className={`text-sm font-medium ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Sign In →</span>
+                    </div>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {t.signup.accountExistsMessage || "An account with this email already exists. Please sign in or add a new role."}
+                  </p>
 
-              {/* Add New Role Option */}
-              <div className={`pt-3 border-t ${darkMode ? 'border-gray-600/50' : 'border-gray-300/50'}`}>
-                <h4 className={`text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Or add a new role to your account:
-                </h4>
-                <div className="space-y-2">
-                  {!existingUser.roles?.includes('freelancer') && (
-                    <button
-                      onClick={() => handleAddRole('freelancer')}
-                      disabled={isLoading}
-                      className={`w-full p-3 rounded-lg border transition-all text-left ${darkMode
-                        ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
-                        : 'bg-cyan-500/5 border-cyan-500/20 text-cyan-600 hover:bg-cyan-500/10'
-                        } disabled:opacity-50`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium">{t.signup.addFreelancerRole}</span>
-                          <span className={`text-sm ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {t.signup.offerServices}
-                          </span>
-                        </div>
-                        <span className="text-sm">💼 {t.signup.add}</span>
-                      </div>
-                    </button>
-                  )}
-                  {!existingUser.roles?.includes('client') && (
-                    <button
-                      onClick={() => handleAddRole('client')}
-                      disabled={isLoading}
-                      className={`w-full p-3 rounded-lg border transition-all text-left ${darkMode
-                        ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
-                        : 'bg-green-500/5 border-green-500/20 text-green-600 hover:bg-green-500/10'
-                        } disabled:opacity-50`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium">{t.signup.addClientRole}</span>
-                          <span className={`text-sm ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {t.signup.hireFreelancersAndPost}
-                          </span>
-                        </div>
-                        <span className="text-sm">🏢 {t.signup.add}</span>
-                      </div>
-                    </button>
-                  )}
-                </div>
-              </div>
+                  {/* Non-admin: show all existing roles */}
+                  <div className="space-y-2 mb-4">
+                    <h4 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Continue with existing role:
+                    </h4>
+                    {existingUser.roles && existingUser.roles.filter((r: string) => r !== 'admin').length > 0 ? (
+                      existingUser.roles.filter((r: string) => r !== 'admin').map((role: string) => (
+                        <button
+                          key={role}
+                          onClick={() => handleAccountSelection(role)}
+                          disabled={isLoading}
+                          className={`w-full p-3 rounded-lg border transition-all text-left ${role === 'freelancer'
+                            ? darkMode
+                              ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
+                              : 'bg-cyan-500/5 border-cyan-500/20 text-cyan-600 hover:bg-cyan-500/10'
+                            : darkMode
+                              ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                              : 'bg-green-500/5 border-green-500/20 text-green-600 hover:bg-green-500/10'
+                            } disabled:opacity-50`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium capitalize">{role} {t.signup.account}</span>
+                              {existingUser.profile?.firstName && (
+                                <span className={`text-sm ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  ({existingUser.profile.firstName} {existingUser.profile.lastName})
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm">
+                              {role === 'freelancer' ? '💼' : '🏢'} {t.signup.signIn}
+                            </span>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        No roles found for this account.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Add New Role Option */}
+                  <div className={`pt-3 border-t ${darkMode ? 'border-gray-600/50' : 'border-gray-300/50'}`}>
+                    <h4 className={`text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Or add a new role to your account:
+                    </h4>
+                    <div className="space-y-2">
+                      {!existingUser.roles?.includes('freelancer') && (
+                        <button
+                          onClick={() => handleAddRole('freelancer')}
+                          disabled={isLoading}
+                          className={`w-full p-3 rounded-lg border transition-all text-left ${darkMode
+                            ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
+                            : 'bg-cyan-500/5 border-cyan-500/20 text-cyan-600 hover:bg-cyan-500/10'
+                            } disabled:opacity-50`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium">{t.signup.addFreelancerRole}</span>
+                              <span className={`text-sm ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {t.signup.offerServices}
+                              </span>
+                            </div>
+                            <span className="text-sm">💼 {t.signup.add}</span>
+                          </div>
+                        </button>
+                      )}
+                      {!existingUser.roles?.includes('client') && (
+                        <button
+                          onClick={() => handleAddRole('client')}
+                          disabled={isLoading}
+                          className={`w-full p-3 rounded-lg border transition-all text-left ${darkMode
+                            ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'
+                            : 'bg-green-500/5 border-green-500/20 text-green-600 hover:bg-green-500/10'
+                            } disabled:opacity-50`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="span font-medium">{t.signup.addClientRole}</span>
+                              <span className={`text-sm ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {t.signup.hireFreelancersAndPost}
+                              </span>
+                            </div>
+                            <span className="text-sm">🏢 {t.signup.add}</span>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

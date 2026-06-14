@@ -42,7 +42,8 @@ services:
       dockerfile: Dockerfile
       target: production     # Use the hardened production stage
     restart: always
-    volumes: []              # No source mounts in production
+    volumes:
+      - frontend-assets:/app/dist:ro
     command: ["node", "server.js"]
     environment:
       NODE_ENV: production
@@ -75,7 +76,8 @@ services:
       dockerfile: frontend/Dockerfile
       target: production
     restart: always
-    volumes: []              # No source mounts in production
+    volumes:
+      - frontend-assets:/usr/share/nginx/html
 
   nginx:
     image: nginx:1.25-alpine
@@ -100,4 +102,6 @@ services:
 
 volumes:
   nginx-cache:
+    driver: local
+  frontend-assets:
     driver: local

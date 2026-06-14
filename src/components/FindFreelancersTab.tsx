@@ -24,7 +24,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
   const resetFindFreelancers = false;
   const shouldClearCacheOnMount = true;
   const darkMode = useAppSelector((s) => s.theme.darkMode);
-  const { user } = useAuth();
+  const { user, addRole: addRoleToAccount } = useAuth();
   const navigate = useNavigate();
   // Use shared state if provided, otherwise use local state
   const [localFreelancers, setLocalFreelancers] = useState<FreelancerWithStatus[]>([]);
@@ -110,23 +110,17 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
   const handleAddClientRole = async () => {
     setAddingRole(true);
     try {
-      // Add client role to the user's account
-      await apiService.addRole("client");
+      await addRoleToAccount("client");
+      setIsRoleError(false);
+      setLoadError(
+        "Client role added. Open the menu (⋮) and choose “Switch to Client” to browse freelancers."
+      );
     } catch (err: any) {
-      // If already has the role, that's fine — just switch to it
-      console.log("addRole result:", err?.response?.data?.message);
+      const message = err?.response?.data?.message || err?.message || "Could not add client role";
+      setLoadError(message);
+    } finally {
+      setAddingRole(false);
     }
-    try {
-      // Switch current role to client
-      await apiService.switchRole("client");
-    } catch (err: any) {
-      console.log("switchRole result:", err?.response?.data?.message);
-    }
-    setAddingRole(false);
-    setIsRoleError(false);
-    setLoadError(null);
-    // Retry fetching freelancers
-    fetchFreelancers();
   };
 
   const fetchFreelancers = async (retries = 3) => {
@@ -480,7 +474,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
               </p>
               <p className={`text-sm mb-6 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
                 {isRoleError
-                  ? "Your account needs client access to browse freelancers. Click below to add the client role instantly."
+                  ? "Your account needs client access to browse freelancers. Add the client role below, then switch to Client mode from the menu (⋮)."
                   : loadError}
               </p>
               <div className="flex flex-col gap-3">
@@ -501,7 +495,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
                         Adding client role...
                       </span>
                     ) : (
-                      "🔑 Add Client Role & Browse Freelancers"
+                      "Add Client Role"
                     )}
                   </button>
                 )}
