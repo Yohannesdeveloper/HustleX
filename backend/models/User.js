@@ -145,24 +145,27 @@ userSchema.pre("save", async function (next) {
     this.profile && (this.profile.firstName || this.profile.lastName)
   ) {
     try {
-      const name = `${this.profile.firstName || ""} ${this.profile.lastName || ""}`.trim();
-      this.slug = await generateUniqueSlug(this.constructor, name, "slug", this._id);
+      const name = `${this.profile.firstName || ""} ${this.profile.lastName || ""`.trim();
+      if (name) {
+        this.slug = await generateUniqueSlug(this.constructor, name, "slug", this._id);
+      }
       
       // Establish defaults for SEO fields
       if (!this.seo) this.seo = {};
       if (!this.seo.metaTitle) {
-        this.seo.metaTitle = `${name} | Elite ${this.profile.primarySkill || "Freelancer"} on HustleX`;
+        this.seo.metaTitle = `${name || "User"} | Elite Freelancer on HustleX`;
       }
       if (!this.seo.metaDescription) {
         this.seo.metaDescription = this.profile.bio 
           ? this.profile.bio.substring(0, 150)
-          : `Hire ${name}, a professional ${this.profile.primarySkill || "freelancer"} on HustleX. Review portfolio, hourly rates, and certifications.`;
+          : `Hire ${name || "a professional freelancer"} on HustleX. Review portfolio, hourly rates, and certifications.`;
       }
-      if (!this.seo.canonicalUrl) {
+      if (!this.seo.canonicalUrl && this.slug) {
         this.seo.canonicalUrl = `https://hustlex.com/freelancers/${this.slug}`;
       }
     } catch (err) {
-      return next(err);
+      console.warn("⚠️  Slug generation failed (non-critical):", err.message);
+      // Don't fail the save because of slug issues
     }
   }
   next();
