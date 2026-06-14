@@ -145,7 +145,7 @@ userSchema.pre("save", async function (next) {
     this.profile && (this.profile.firstName || this.profile.lastName)
   ) {
     try {
-      const name = `${this.profile.firstName || ""} ${this.profile.lastName || ""`.trim();
+      const name = `${this.profile.firstName || ""} ${this.profile.lastName || ""}`.trim();
       if (name) {
         this.slug = await generateUniqueSlug(this.constructor, name, "slug", this._id);
       }
