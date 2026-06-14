@@ -204,6 +204,7 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
   skip: (req) => process.env.NODE_ENV === "test",
   store: createRateLimitStore('global'),
+  validate: { xForwardedForHeader: false }, // Trust Railway's proxy
 });
 app.use(globalLimiter);
 
@@ -217,6 +218,7 @@ const authLimiter = rateLimit({
   },
   skipSuccessfulRequests: true,
   store: createRateLimitStore('auth'),
+  validate: { xForwardedForHeader: false }, // Trust Railway's proxy
 });
 
 const uploadLimiter = rateLimit({
@@ -227,6 +229,7 @@ const uploadLimiter = rateLimit({
     retryAfter: "1 hour",
   },
   store: createRateLimitStore("upload"),
+  validate: { xForwardedForHeader: false }, // Trust Railway's proxy
 });
 
 const apiLimiter = rateLimit({
@@ -237,6 +240,7 @@ const apiLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   store: createRateLimitStore("api"),
+  validate: { xForwardedForHeader: false }, // Trust Railway's proxy
 });
 
 // Serve static files from uploads directory
