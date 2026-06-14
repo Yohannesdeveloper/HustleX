@@ -70,18 +70,17 @@ router.post(
 
       await user.save();
 
+      // Ensure designated admin gets admin role
+      await ensureAdminRole(user);
+
+      // Reload user to get updated roles
+      const updatedUser = await User.findById(user._id);
+      
       const token = generateToken(user._id);
 
       res.status(201).json({
         token,
-        user: {
-          _id: user._id,
-          email: user.email,
-          roles: user.roles,
-          currentRole: user.currentRole,
-          role: user.currentRole, // For backward compatibility
-          profile: user.profile,
-        },
+        user: toAuthUserPayload(updatedUser),
       });
     } catch (error) {
       console.error("Registration error:", error);
