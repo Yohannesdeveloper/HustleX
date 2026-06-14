@@ -43,7 +43,8 @@ const connectDB = async () => {
     if (!url.pathname || url.pathname === "/" || url.pathname === "") {
       url.pathname = "/hustlex";
       mongoUri = url.toString();
-      console.log(`ℹ️  Auto-added database name to MongoDB URI: ${mongoUri}`);
+      const safeUri = mongoUri.replace(/:([^:@/]+)@/, ":****@");
+      console.log(`ℹ️  Auto-added database name to MongoDB URI: ${safeUri}`);
     }
 
     const conn = await mongoose.connect(mongoUri, options);

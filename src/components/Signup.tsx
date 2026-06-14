@@ -46,7 +46,7 @@ const Signup: React.FC = () => {
     setError(null);
     try {
       // Check if user exists by attempting to get user data
-      const apiUrl = import.meta.env.VITE_API_URL || getBackendApiUrlSync();
+      const apiUrl = getBackendApiUrlSync();
       const checkUrl = `${apiUrl}/auth/check-user?email=${encodeURIComponent(emailToCheck)}`;
 
       const response = await fetch(checkUrl, {

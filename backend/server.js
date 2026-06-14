@@ -45,8 +45,8 @@ const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
 
-// Trust proxy for Railway
-app.set('trust proxy', true);
+// Trust first proxy hop (Railway / load balancer) for correct client IP in rate limits
+app.set("trust proxy", 1);
 
 app.use(metricsMiddleware);
 
@@ -407,8 +407,12 @@ async function findAvailablePort(desiredPort) {
   }
 }
 
-// Write port to file for frontend to read
+// Write port to file for frontend to read (local dev only — Docker prod runs as non-root)
 function writePortToFile(port) {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
   const portInfo = {
     port: port,
     url: `http://localhost:${port}`,
