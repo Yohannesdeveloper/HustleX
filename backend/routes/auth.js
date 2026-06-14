@@ -5,10 +5,7 @@ const User = require("../models/User");
 const { sendMail } = require("../services/mail");
 const Company = require("../models/Company");
 const { auth } = require("../middleware/auth");
-const {
-  ensureAdminRole,
-  toAuthUserPayload,
-} = require("../config/admin");
+const { ensureAdminRole, toAuthUserPayload } = require("../config/admin");
 
 const router = express.Router();
 
@@ -70,17 +67,18 @@ router.post(
 
       await user.save();
 
-      // Ensure designated admin gets admin role
-      await ensureAdminRole(user);
-
-      // Reload user to get updated roles
-      const updatedUser = await User.findById(user._id);
-      
       const token = generateToken(user._id);
 
       res.status(201).json({
         token,
-        user: toAuthUserPayload(updatedUser),
+        user: {
+          _id: user._id,
+          email: user.email,
+          roles: user.roles,
+          currentRole: user.currentRole,
+          role: user.currentRole, // For backward compatibility
+          profile: user.profile,
+        },
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -116,9 +114,11 @@ router.post(
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
-      await ensureAdminRole(user);
 
       const token = generateToken(user._id);
+
+      // Auto-promote designated admin email to admin role
+      await ensureAdminRole(user);
 
       // Check if user has a company profile (for client role)
       let hasCompanyProfile = false;
@@ -278,14 +278,15 @@ router.post(
 // @access  Private
 router.get("/me", auth, async (req, res) => {
   try {
+    // Auto-promote designated admin email to admin role
+    await ensureAdminRole(req.user);
+
     // Check if user has a company profile (for client role)
     let hasCompanyProfile = false;
     if (req.user.currentRole === "client") {
       const company = await Company.findOne({ userId: req.user._id });
       hasCompanyProfile = !!company;
     }
-
-    await ensureAdminRole(req.user);
 
     res.json({
       user: toAuthUserPayload(req.user, { hasCompanyProfile }),
@@ -454,13 +455,19 @@ router.get("/check-user", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    await ensureAdminRole(user);
-
-    res.json({ user: toAuthUserPayload(user) });
+    res.json({
+      user: {
+        _id: user._id,
+        email: user.email,
+        roles: user.roles,
+        currentRole: user.currentRole,
+        role: user.currentRole, // For backward compatibility
+        profile: user.profile,
+      },
+    });
   } catch (error) {
     console.error("Check user error:", error);
-    console.error("Error details:", error.stack);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

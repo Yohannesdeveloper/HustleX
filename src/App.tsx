@@ -33,6 +33,7 @@ import API from "./Pages/API";
 import JobAdmin from "./Pages/JobAdmin";
 import SubscriptionAdmin from "./Pages/SubscriptionAdmin";
 import JobModeration from "./Pages/JobModeration";
+import AdminDashboard from "./Pages/AdminDashboard";
 
 import FreelancerProfileWizard from "./components/FreelancerProfileWizard";
 import ClientProfileWizard from "./components/ClientProfileWizard";
@@ -90,6 +91,14 @@ function AppContent() {
           <Route path="/job-listings" element={<PageLayout><JobListings /></PageLayout>} />
           <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
           <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute requireRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/admin/blog" element={<PageLayout><BlogAdmin /></PageLayout>} />
           <Route path="/admin/job" element={<PageLayout><JobAdmin /></PageLayout>} />
           <Route path="/admin/subscriptions" element={<PageLayout><SubscriptionAdmin /></PageLayout>} />

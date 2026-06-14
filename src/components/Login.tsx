@@ -93,7 +93,7 @@ const Login: React.FC = () => {
       if (!searchParams.get("redirect")) {
         // Admin users go to admin panel
         if (isAdminAccount(loggedInUser)) {
-          finalRedirectPath = "/admin/blog";
+          finalRedirectPath = "/admin/dashboard";
         } else if (loggedInUser.currentRole === "client") {
           finalRedirectPath = "/dashboard/hiring";
         } else {

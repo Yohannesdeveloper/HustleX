@@ -159,7 +159,7 @@ const Signup: React.FC = () => {
       // Navigate based on role and profile completion status
       // Priority 1: Admin users always go to admin panel
       if (isAdminAccount(loggedInUser)) {
-        navigate('/admin/blog', { replace: true });
+        navigate('/admin/dashboard', { replace: true });
         return;
       }
 
