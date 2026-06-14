@@ -220,11 +220,6 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
         state.loading = false;
-        if (action.payload?.roles?.includes("admin")) {
-          persistActiveRole("admin");
-        } else if (action.payload?.currentRole) {
-          persistActiveRole(action.payload.currentRole as ActiveRole);
-        }
       })
       .addCase(register.rejected, (state) => {
         state.user = null;
