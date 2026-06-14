@@ -46,18 +46,8 @@ const PaymentWizard: React.FC = () => {
 
     const fetchPlanDetails = async () => {
       try {
-        const baseUrl = window.location.hostname.includes("devtunnels")
-          ? `https://${window.location.hostname}`
-          : process.env.NODE_ENV === "production"
-            ? "https://your-domain.com"
-            : (() => {
-                try {
-                  const { getBackendUrlSync } = require("../utils/portDetector");
-                  return getBackendUrlSync();
-                } catch {
-                  return "http://localhost:5000";
-                }
-              })();
+        const { getBackendUrlSync } = await import("../utils/portDetector");
+        const baseUrl = getBackendUrlSync();
         const response = await fetch(`${baseUrl}/api/pricing/plans/${plan}`);
         const data = await response.json();
         setPlanDetails(data.plan);

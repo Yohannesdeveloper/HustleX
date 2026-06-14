@@ -56,9 +56,28 @@ connectDB();
 
 // CORS must be applied BEFORE helmet/ratelimit to ensure preflights aren't blocked
 const corsOptions = {
-  origin: process.env.NODE_ENV === "production" 
-    ? [process.env.CLIENT_URL || "https://hustlex.com"] 
-    : true, // reflect request origin in development
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.CLIENT_URL || "",
+      "https://hustlexet.vercel.app",
+      "https://hustlex-production.up.railway.app"
+    ];
+    
+    if (allowedOrigins.includes(origin) || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+      return callback(null, true);
+    }
+    
+    // For development, allow all origins
+    if (process.env.NODE_ENV !== "production") {
+      return callback(null, true);
+    }
+    
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: [

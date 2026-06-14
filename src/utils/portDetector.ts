@@ -128,6 +128,11 @@ export async function detectBackendPort(basePort = 5000): Promise<number> {
  * Get backend URL
  */
 export async function getBackendUrl(): Promise<string> {
+  // If VITE_API_URL is set, use it!
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
   if (typeof window !== 'undefined' && window.location.hostname.includes('devtunnels')) {
     return `https://${window.location.hostname}`;
   }
@@ -136,6 +141,11 @@ export async function getBackendUrl(): Promise<string> {
 }
 
 export async function getBackendApiUrl(): Promise<string> {
+  // If VITE_API_URL is set, use it with /api
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`;
+  }
+  
   const base = await getBackendUrl();
   return `${base}/api`;
 }
@@ -149,6 +159,11 @@ export function getBackendPortSync(defaultPort = 5000): number {
 }
 
 export function getBackendUrlSync(): string {
+  // If VITE_API_URL is set, use it!
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
   if (typeof window !== 'undefined' && window.location.hostname.includes('devtunnels')) {
     return `https://${window.location.hostname}`;
   }
@@ -157,5 +172,10 @@ export function getBackendUrlSync(): string {
 }
 
 export function getBackendApiUrlSync(): string {
+  // If VITE_API_URL is set, use it with /api
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`;
+  }
+  
   return `${getBackendUrlSync()}/api`;
 }
