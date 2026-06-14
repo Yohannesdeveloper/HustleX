@@ -462,21 +462,22 @@ router.get("/check-user", async (req, res) => {
     }
 
     // Check if user exists
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() }).lean();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        roles: user.roles,
-        currentRole: user.currentRole,
-        role: user.currentRole, // For backward compatibility
-        profile: user.profile,
-      },
-    });
+    // Safely construct the response
+    const safeUser = {
+      _id: user._id,
+      email: user.email,
+      roles: user.roles || [],
+      currentRole: user.currentRole || (user.roles && user.roles[0]) || null,
+      role: user.currentRole || (user.roles && user.roles[0]) || null, // For backward compatibility
+      profile: user.profile || {},
+    };
+
+    res.json({ user: safeUser });
   } catch (error) {
     console.error("Check user error:", error);
     console.error("Error details:", error.stack);
