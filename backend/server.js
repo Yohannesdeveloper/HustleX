@@ -45,6 +45,9 @@ const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
 
+// Trust proxy for Railway
+app.set('trust proxy', true);
+
 app.use(metricsMiddleware);
 
 // Serve robots.txt and sitemap.xml directly at root level

@@ -479,7 +479,8 @@ router.get("/check-user", async (req, res) => {
     });
   } catch (error) {
     console.error("Check user error:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error details:", error.stack);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
