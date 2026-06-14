@@ -36,10 +36,17 @@ const connectDB = async () => {
         : process.env.MONGODB_TLS_INSECURE === "true",
     };
 
-    const conn = await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/hustlex",
-      options
-    );
+    let mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/hustlex";
+    
+    // Add database name to URI if it's missing (fixes Railway MongoDB plugin issue)
+    const url = new URL(mongoUri);
+    if (!url.pathname || url.pathname === "/" || url.pathname === "") {
+      url.pathname = "/hustlex";
+      mongoUri = url.toString();
+      console.log(`ℹ️  Auto-added database name to MongoDB URI: ${mongoUri}`);
+    }
+
+    const conn = await mongoose.connect(mongoUri, options);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Database: ${conn.connection.name}`);
