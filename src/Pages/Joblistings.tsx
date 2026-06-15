@@ -1251,6 +1251,17 @@ const JobListings: React.FC = () => {
                     >
                       <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                     </motion.button>
+                    {isAuthenticated && user && (job.userId === user._id || job.userId === (user as any).id) && (
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleDelete(job.id)}
+                        className="p-1.5 sm:p-2 rounded-full border transition-all bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20 hover:text-red-400"
+                        title="Delete job"
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </motion.button>
+                    )}
                   </div>
 
                   {/* Job Header Section */}
