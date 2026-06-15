@@ -74,31 +74,36 @@ const Footer: React.FC = () => {
                 {section.title}
               </h3>
               <ul className="space-y-2 sm:space-y-3">
-                {section.links.map((link, linkIdx) => (
-                  <motion.li key={linkIdx}>
-                    {(link as any).isInternal ? (
-                      <Link
-                        to={link.href}
-                        onClick={(e) => {
-                          if (!isAuthenticated) {
-                            e.preventDefault();
-                            navigate(`/signup?redirect=${link.href}`);
-                          }
-                        }}
-                        className="text-gray-400 hover:text-white transition-all duration-300 hover:translate-x-2 inline-block text-sm sm:text-base"
-                      >
-                        {link.text}
-                      </Link>
-                    ) : (
-                      <a
-                        href={link.href}
-                        className="text-gray-400 hover:text-white transition-all duration-300 hover:translate-x-2 inline-block text-sm sm:text-base"
-                      >
-                        {link.text}
-                      </a>
-                    )}
-                  </motion.li>
-                ))}
+                {section.links.map((link, linkIdx) => {
+                    const isExternal = link.href.startsWith('http') || link.href.startsWith('#');
+                    return (
+                      <motion.li key={linkIdx}>
+                        {isExternal ? (
+                          <a
+                            href={link.href}
+                            target={link.href.startsWith('http') ? "_blank" : undefined}
+                            rel={link.href.startsWith('http') ? "noopener noreferrer" : undefined}
+                            className="text-gray-400 hover:text-white transition-all duration-300 hover:translate-x-2 inline-block text-sm sm:text-base"
+                          >
+                            {link.text}
+                          </a>
+                        ) : (
+                          <Link
+                            to={link.href}
+                            onClick={(e) => {
+                              if ((link as any).isInternal && !isAuthenticated) {
+                                e.preventDefault();
+                                navigate(`/signup?redirect=${link.href}`);
+                              }
+                            }}
+                            className="text-gray-400 hover:text-white transition-all duration-300 hover:translate-x-2 inline-block text-sm sm:text-base"
+                          >
+                            {link.text}
+                          </Link>
+                        )}
+                      </motion.li>
+                    );
+                  })}
               </ul>
             </motion.div>
           ))}
@@ -135,6 +140,7 @@ const Footer: React.FC = () => {
                   icon: <FaXTwitter />,
                   color: "hover:text-cyan-400",
                   label: "X",
+                  href: "https://x.com/HustleX123",
                 },
                 {
                   icon: <FaLinkedin />,
@@ -145,6 +151,7 @@ const Footer: React.FC = () => {
                   icon: <FaInstagram />,
                   color: "hover:text-pink-400",
                   label: "Instagram",
+                  href: "https://www.instagram.com/hustlex123?igsh=cWdiYm8wbzF4ZTFk",
                 },
                 {
                   icon: <FaYoutube />,
