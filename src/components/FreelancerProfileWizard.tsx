@@ -703,6 +703,80 @@ const BasicInfoStep: React.FC<StepProps> = ({ data, updateData, onNext, isFirst,
   );
 };
 
+const TagInput: React.FC<{
+  values: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+  darkMode: boolean;
+  hasError?: boolean;
+  maxItems?: number;
+}> = ({ values, onChange, placeholder, darkMode, hasError, maxItems = 20 }) => {
+  const [inputValue, setInputValue] = useState('');
+
+  const addTag = (raw: string) => {
+    const tag = raw.trim();
+    if (tag && !values.includes(tag) && values.length < maxItems) {
+      onChange([...values, tag]);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(inputValue);
+      setInputValue('');
+    } else if (e.key === 'Backspace' && !inputValue && values.length > 0) {
+      onChange(values.slice(0, -1));
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputValue.trim()) {
+      addTag(inputValue);
+      setInputValue('');
+    }
+  };
+
+  const removeTag = (idx: number) => {
+    onChange(values.filter((_, i) => i !== idx));
+  };
+
+  const borderClass = hasError
+    ? 'border-red-500 focus:ring-red-500'
+    : darkMode
+      ? 'border-gray-600 focus:ring-blue-500'
+      : 'border-gray-300 focus:ring-blue-500';
+
+  return (
+    <div className={`flex flex-wrap gap-2 p-2 rounded-lg border ${borderClass} ${darkMode ? 'bg-gray-800' : 'bg-white'} focus-within:ring-2 focus-within:border-transparent transition-colors`}>
+      {values.map((tag, idx) => (
+        <span
+          key={`${tag}-${idx}`}
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'}`}
+        >
+          {tag}
+          <button
+            type="button"
+            onClick={() => removeTag(idx)}
+            className={`ml-1 hover:text-red-500 transition-colors ${darkMode ? 'text-blue-200' : 'text-blue-600'}`}
+          >
+            &times;
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        className={`flex-1 min-w-[120px] px-2 py-1 border-none outline-none ${darkMode ? 'bg-transparent text-white placeholder-gray-400' : 'bg-transparent text-gray-900 placeholder-gray-500'}`}
+        placeholder={values.length === 0 ? placeholder : 'Add more...'}
+      />
+    </div>
+  );
+};
+
 const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onPrev, isFirst, isLast, errors, touched, handleBlur }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
 
@@ -787,14 +861,17 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Skills *
           </label>
-          <input
-            type="text"
-            value={data.skills.join(', ')}
-            onChange={(e) => updateData('skills', e.target.value.split(',').map(skill => skill.trim()).filter(skill => skill))}
-            onBlur={() => handleBlur && handleBlur('skills')}
-            className={getFieldClass(darkMode, Boolean(touched?.skills && errors?.skills))}
-            placeholder="e.g., JavaScript, React, Node.js, Python (separate with commas)"
+          <TagInput
+            values={data.skills}
+            onChange={(skills) => updateData('skills', skills)}
+            placeholder="Type a skill and press Enter or comma (e.g., JavaScript, C++, C#)"
+            darkMode={darkMode}
+            hasError={Boolean(touched?.skills && errors?.skills)}
+            maxItems={20}
           />
+          <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Press <kbd className={`px-1 py-0.5 rounded text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>Enter</kbd> or <kbd className={`px-1 py-0.5 rounded text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>,</kbd> to add a skill
+          </p>
           {touched?.skills && errors?.skills && (
             <p className="text-red-500 text-xs mt-1">{errors.skills}</p>
           )}
@@ -823,16 +900,16 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-700'}`}>
             Certifications
           </label>
-          <input
-            type="text"
-            value={data.certifications.join(', ')}
-            onChange={(e) => updateData('certifications', e.target.value.split(',').map(cert => cert.trim()).filter(cert => cert))}
-            className={`w-full px-4 py-3 rounded-lg border ${darkMode
-              ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
-            placeholder="e.g., AWS Certified, PMP, Google Analytics (separate with commas)"
+          <TagInput
+            values={data.certifications}
+            onChange={(certs) => updateData('certifications', certs)}
+            placeholder="Type a certification and press Enter (e.g., AWS Certified, PMP)"
+            darkMode={darkMode}
+            maxItems={20}
           />
+          <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Press <kbd className={`px-1 py-0.5 rounded text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>Enter</kbd> or <kbd className={`px-1 py-0.5 rounded text-xs ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>,</kbd> to add
+          </p>
         </div>
 
         <div>
