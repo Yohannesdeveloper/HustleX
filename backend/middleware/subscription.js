@@ -9,23 +9,18 @@ const Job = require("../models/Job");
  * - Premium (9,999 ETB): Unlimited jobs per month
  */
 const checkSubscriptionForJobPosting = async (req, res, next) => {
-  console.log("💳 Starting subscription check...");
   try {
-    console.log("💳 Finding user...");
     const user = await User.findById(req.user._id);
     
     if (!user) {
-      console.log("❌ Subscription check - User not found");
       return res.status(404).json({ message: "User not found" });
     }
-    console.log("💳 Subscription check - User found:", user.email);
 
     // Check subscription status and expiration
     const subscription = user.subscription || {};
     const planId = subscription.planId || "free";
     const status = subscription.status || "active";
     const subscribedAt = subscription.subscribedAt;
-    console.log("💳 Subscription check - Plan:", planId, "Status:", status);
 
     // Check if subscription has expired (30 days from subscription date)
     let isExpired = false;
@@ -33,26 +28,21 @@ const checkSubscriptionForJobPosting = async (req, res, next) => {
       const subscriptionEndDate = new Date(subscribedAt);
       subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1); // Add 1 month
       isExpired = new Date() > subscriptionEndDate;
-      console.log("💳 Subscription check - Expired:", isExpired);
       
       // Update subscription status if expired
       if (isExpired && status === "active") {
         user.subscription.status = "expired";
         await user.save();
-        console.log("💳 Subscription check - Updated user status to expired");
       }
     }
 
     // If subscription is expired or cancelled, check lifetime free trial limit
     if ((status === "expired" || status === "cancelled") && planId !== "free") {
       // Count total jobs posted by user (lifetime)
-      console.log("💳 Subscription check - Counting total jobs...");
       const totalJobsCount = await Job.countDocuments({ postedBy: user._id });
-      console.log("💳 Subscription check - Total jobs posted:", totalJobsCount);
       
       // If user has already posted 3 jobs in their lifetime, they cannot post more without renewing
       if (totalJobsCount >= 3) {
-        console.log("❌ Subscription check - Lifetime limit reached");
         return res.status(403).json({
           message: "Your subscription has expired and you have reached the lifetime limit of 3 job posts. Please renew your subscription to post more jobs.",
           code: "SUBSCRIPTION_EXPIRED_LIFETIME_LIMIT",
@@ -64,19 +54,15 @@ const checkSubscriptionForJobPosting = async (req, res, next) => {
       }
       
       // Allow posting if under 3 jobs lifetime (free trial limit still applies)
-      console.log("✅ Subscription check - Under lifetime limit, proceeding...");
       return next();
     }
 
     // Check job posting limits based on plan
     if (planId === "free") {
       // Free trial: 3 jobs LIFETIME limit (once reached, can never post again without upgrading)
-      console.log("💳 Subscription check - Free plan, counting total jobs...");
       const totalJobsCount = await Job.countDocuments({ postedBy: user._id });
-      console.log("💳 Subscription check - Total jobs posted (free):", totalJobsCount);
       
       if (totalJobsCount >= 3) {
-        console.log("❌ Subscription check - Free plan limit reached");
         return res.status(403).json({
           message: "You have reached the lifetime free trial limit of 3 job posts. You must upgrade to a paid plan to post any more jobs.",
           code: "FREE_TRIAL_LIFETIME_LIMIT_REACHED",
@@ -89,7 +75,6 @@ const checkSubscriptionForJobPosting = async (req, res, next) => {
     } else if (planId === "basic") {
       // Basic plan: 10 jobs per month
       if (status !== "active" || isExpired) {
-        console.log("❌ Subscription check - Basic plan not active or expired");
         return res.status(403).json({
           message: "Your subscription is not active. Please renew your subscription to post jobs.",
           code: "SUBSCRIPTION_INACTIVE",
@@ -102,15 +87,12 @@ const checkSubscriptionForJobPosting = async (req, res, next) => {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       
       // Count jobs posted this month
-      console.log("💳 Subscription check - Basic plan, counting monthly jobs...");
       const monthlyJobsCount = await Job.countDocuments({
         postedBy: user._id,
         createdAt: { $gte: monthStart },
       });
-      console.log("💳 Subscription check - Monthly jobs posted (basic):", monthlyJobsCount);
 
       if (monthlyJobsCount >= 10) {
-        console.log("❌ Subscription check - Basic plan monthly limit reached");
         return res.status(403).json({
           message: "You have reached your monthly limit of 10 job posts. Upgrade to Premium for unlimited posts.",
           code: "MONTHLY_LIMIT_REACHED",
@@ -122,25 +104,21 @@ const checkSubscriptionForJobPosting = async (req, res, next) => {
     } else if (planId === "premium") {
       // Premium plan: Unlimited jobs per month
       if (status !== "active" || isExpired) {
-        console.log("❌ Subscription check - Premium plan not active or expired");
         return res.status(403).json({
           message: "Your subscription is not active. Please renew your subscription to post jobs.",
           code: "SUBSCRIPTION_INACTIVE",
           currentPlan: planId,
         });
       }
-      console.log("✅ Subscription check - Premium plan, unlimited posts");
       // Premium users can post unlimited jobs, no check needed
     }
 
     // User can post job
     req.user.subscription = subscription;
     req.user.planId = planId;
-    console.log("✅ Subscription check - Passed! Proceeding to job creation...");
     next();
   } catch (error) {
-    console.error("❌ Subscription check error:", error);
-    console.error("❌ Subscription check error stack:", error.stack);
+    console.error("Subscription check error:", error);
     res.status(500).json({ message: "Server error while checking subscription" });
   }
 };

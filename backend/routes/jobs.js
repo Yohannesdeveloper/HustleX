@@ -130,52 +130,10 @@ router.post(
     body("category").notEmpty().withMessage("Category is required"),
   ],
   async (req, res) => {
-    console.log("📝 Starting job creation...");
-      console.log("📋 Raw req.body:", req.body);
     try {
-      console.log("🔍 Checking validation errors...");
       const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        console.log("❌ Validation errors:", errors.array());
+      if (!errors.isEmpty())
         return res.status(400).json({ errors: errors.array() });
-      }
-
-      console.log("📋 Creating job data...");
-      
-      // Helper to sanitize array fields
-      const sanitizeArray = (value: any): string[] => {
-        console.log("🔧 Sanitizing value:", value, "Type:", typeof value);
-        if (!value) return [];
-        if (Array.isArray(value)) {
-          const result = value
-            .map((item) => {
-              if (typeof item === "string") return item.trim();
-              if (typeof item === "object" && item !== null) {
-                // If it's an object like { '0': 'React' }, extract the string value
-                return Object.values(item).find((v) => typeof v === "string")?.trim() || "";
-              }
-              return String(item).trim();
-            })
-            .filter(Boolean);
-          console.log("🔧 Sanitized array result:", result);
-          return result;
-        }
-        // If it's a string, try to parse it as JSON
-        if (typeof value === "string") {
-          console.log("🔧 Parsing string value:", value);
-          // Replace single quotes with double quotes to make it valid JSON
-          const jsonString = value.replace(/'/g, '"');
-          try {
-            const parsed = JSON.parse(jsonString);
-            console.log("🔧 Parsed string to:", parsed);
-            return sanitizeArray(parsed);
-          } catch (e) {
-            console.log("🔧 Failed to parse string, using as single value:", e);
-            return [value.trim()];
-          }
-        }
-        return [];
-      };
 
       const jobData = {
         title: req.body.title,
@@ -192,9 +150,9 @@ router.post(
         education: req.body.education ?? undefined,
         gender: req.body.gender ?? undefined,
         vacancies: req.body.vacancies ?? 1,
-        skills: sanitizeArray(req.body.skills),
-        requirements: sanitizeArray(req.body.requirements),
-        benefits: sanitizeArray(req.body.benefits),
+        skills: req.body.skills ?? [],
+        requirements: req.body.requirements ?? [],
+        benefits: req.body.benefits ?? [],
         contactEmail: req.body.contactEmail ?? undefined,
         contactPhone: req.body.contactPhone ?? undefined,
         companyWebsite: req.body.companyWebsite ?? undefined,
@@ -212,55 +170,39 @@ router.post(
         applicationCount: 0,
       };
 
-      console.log("📋 Sanitized job data skills:", jobData.skills);
-
-      console.log("💾 Saving job to database...");
       const job = new Job(jobData);
       await job.save();
-      console.log("✅ Job saved successfully!");
 
-      // Send response first, then do background tasks
-      console.log("📤 Sending response to client...");
-      res.status(201).json({ message: "Job created successfully", job });
+      // Invalidate job listing cache
+      await invalidatePattern("cache:/api/jobs*");
+      console.log("🗑️  Invalidated job listing cache after new job creation");
 
-      // Background tasks (cache invalidation and emails) won't block response
-      try {
-        console.log("🧹 Invalidating job listing cache...");
-        // Invalidate job listing cache
-        await invalidatePattern("cache:/api/jobs*");
-        console.log("🗑️  Invalidated job listing cache after new job creation");
-
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-        console.log("📧 Sending admin email...");
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+      sendMailAsync({
+        to: adminEmail,
+        subject: `New job posted: ${job.title}`,
+        html: `<p>A new job was posted and awaits approval.</p>
+               <p><strong>Title:</strong> ${job.title}</p>
+               <p><strong>Category:</strong> ${job.category}</p>
+               <p><strong>Budget:</strong> ${job.budget}</p>
+               <p><strong>Posted By:</strong> ${req.user.email}</p>
+               <p>Visit the admin panel to approve or decline.</p>`,
+      });
+      if (req.user?.email) {
         sendMailAsync({
-          to: adminEmail,
-          subject: `New job posted: ${job.title}`,
-          html: `<p>A new job was posted and awaits approval.</p>
-                 <p><strong>Title:</strong> ${job.title}</p>
-                 <p><strong>Category:</strong> ${job.category}</p>
-                 <p><strong>Budget:</strong> ${job.budget}</p>
-                 <p><strong>Posted By:</strong> ${req.user.email}</p>
-                 <p>Visit the admin panel to approve or decline.</p>`,
+          to: req.user.email,
+          subject: `Your job is pending approval: ${job.title}`,
+          html: `<p>Hi,</p>
+                 <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
+                 <p>We'll email you once it's approved and visible to freelancers.</p>
+                 <p>— HustleX Team</p>`,
         });
-        if (req.user?.email) {
-          console.log("📧 Sending user email...");
-          sendMailAsync({
-            to: req.user.email,
-            subject: `Your job is pending approval: ${job.title}`,
-            html: `<p>Hi,</p>
-                   <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
-                   <p>We'll email you once it's approved and visible to freelancers.</p>
-                   <p>— HustleX Team</p>`,
-          });
-        }
-        console.log("✅ Background tasks completed!");
-      } catch (bgError) {
-        console.error("❌ Background task error (cache/email):", bgError);
       }
+
+      res.status(201).json({ message: "Job created successfully", job });
     } catch (error) {
-      console.error("❌ Create job error:", error);
-      console.error("❌ Error stack:", error.stack);
-      res.status(500).json({ message: "Server error", error: error.message });
+      console.error("Create job error:", error);
+      res.status(500).json({ message: "Server error" });
     }
   }
 );

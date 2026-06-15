@@ -51,11 +51,6 @@ function sanitizeObject(obj) {
 function preventNoSQLInjection(obj) {
   if (!obj || typeof obj !== 'object') return obj;
   
-  // If it's an array, process each element
-  if (Array.isArray(obj)) {
-    return obj.map(item => preventNoSQLInjection(item));
-  }
-  
   const sanitized = {};
   
   for (const key in obj) {

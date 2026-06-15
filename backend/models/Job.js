@@ -143,30 +143,29 @@ jobSchema.index({ slug: 1 });
 // Generate unique slug and default SEO fields before saving
 const { generateUniqueSlug } = require("../utils/slugify");
 jobSchema.pre("save", async function (next) {
-  try {
-    if (this.isModified("title") || this.isModified("company") || !this.slug) {
-      const baseString = `${this.title || 'Job'} at ${this.company || 'HustleX'}`;
+  if (this.isModified("title") || this.isModified("company") || !this.slug) {
+    try {
+      const baseString = `${this.title} at ${this.company || "HustleX"}`;
       this.slug = await generateUniqueSlug(this.constructor, baseString, "slug", this._id);
       
       // Establish defaults for SEO fields
       if (!this.seo) this.seo = {};
       if (!this.seo.metaTitle) {
-        this.seo.metaTitle = `${this.title} Job at ${this.company || 'HustleX'} | HustleX`;
+        this.seo.metaTitle = `${this.title} Job at ${this.company || "HustleX"} | HustleX`;
       }
       if (!this.seo.metaDescription) {
         this.seo.metaDescription = this.description 
           ? this.description.replace(/<[^>]*>/g, "").substring(0, 150).trim()
-          : `Apply to the ${this.title} remote/contract job at ${this.company || 'HustleX'} on HustleX.`;
+          : `Apply to the ${this.title} remote/contract job at ${this.company || "HustleX"} on HustleX. Budget: ${this.budget}. Apply now!`;
       }
       if (!this.seo.canonicalUrl) {
         this.seo.canonicalUrl = `https://hustlex.com/jobs/${this.slug}`;
       }
+    } catch (err) {
+      return next(err);
     }
-    next();
-  } catch (err) {
-    console.error("Error in pre-save hook:", err);
-    next(err);
   }
+  next();
 });
 
 module.exports = mongoose.model("Job", jobSchema);

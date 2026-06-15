@@ -627,7 +627,7 @@ const PostJob: React.FC = () => {
         compensationType,
         compensationAmount,
         currency,
-        budget: compensationAmount ? `${compensationAmount} ${currency}` : "Negotiable",
+        budget: compensationAmount ? `${compensationAmount} ${currency}` : "",
         deadline,
         experience,
         jobType,
