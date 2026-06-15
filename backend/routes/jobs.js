@@ -131,6 +131,7 @@ router.post(
   ],
   async (req, res) => {
     console.log("📝 Starting job creation...");
+      console.log("📋 Raw req.body:", req.body);
     try {
       console.log("🔍 Checking validation errors...");
       const errors = validationResult(req);
@@ -143,9 +144,10 @@ router.post(
       
       // Helper to sanitize array fields
       const sanitizeArray = (value: any): string[] => {
+        console.log("🔧 Sanitizing value:", value, "Type:", typeof value);
         if (!value) return [];
         if (Array.isArray(value)) {
-          return value
+          const result = value
             .map((item) => {
               if (typeof item === "string") return item.trim();
               if (typeof item === "object" && item !== null) {
@@ -155,13 +157,20 @@ router.post(
               return String(item).trim();
             })
             .filter(Boolean);
+          console.log("🔧 Sanitized array result:", result);
+          return result;
         }
         // If it's a string, try to parse it as JSON
         if (typeof value === "string") {
+          console.log("🔧 Parsing string value:", value);
+          // Replace single quotes with double quotes to make it valid JSON
+          const jsonString = value.replace(/'/g, '"');
           try {
-            const parsed = JSON.parse(value);
+            const parsed = JSON.parse(jsonString);
+            console.log("🔧 Parsed string to:", parsed);
             return sanitizeArray(parsed);
-          } catch {
+          } catch (e) {
+            console.log("🔧 Failed to parse string, using as single value:", e);
             return [value.trim()];
           }
         }
