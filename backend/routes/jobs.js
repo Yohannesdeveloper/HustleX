@@ -131,47 +131,9 @@ router.post(
   ],
   async (req, res) => {
     try {
-      console.log("📥 POST /api/jobs called!");
-      console.log("📥 req.user:", JSON.stringify(req.user, null, 2));
-      console.log("📥 req.body:", JSON.stringify(req.body, null, 2));
-      
       const errors = validationResult(req);
       if (!errors.isEmpty())
         return res.status(400).json({ errors: errors.array() });
-
-      // Helper to safely process array fields
-      const safeParseArray = (value: any): string[] => {
-        if (Array.isArray(value)) {
-          const result: string[] = [];
-          value.forEach((item: any) => {
-            if (typeof item === 'string') {
-              result.push(item);
-            } else if (typeof item === 'object' && item !== null) {
-              // If it's an object like {0: "React"}, get all string values
-              Object.values(item).forEach((v) => {
-                if (typeof v === 'string' && v.trim()) {
-                  result.push(v.trim());
-                }
-              });
-            } else {
-              const str = String(item).trim();
-              if (str) result.push(str);
-            }
-          });
-          return result.filter(Boolean);
-        }
-        if (typeof value === 'string') {
-          // If it's a string, try JSON.parse first
-          try {
-            const parsed = JSON.parse(value);
-            return safeParseArray(parsed);
-          } catch {
-            // If not JSON, split by commas
-            return value.split(',').map(s => s.trim()).filter(Boolean);
-          }
-        }
-        return [];
-      };
 
       const jobData = {
         title: req.body.title,
@@ -187,10 +149,10 @@ router.post(
         experience: req.body.experience ?? undefined,
         education: req.body.education ?? undefined,
         gender: req.body.gender ?? undefined,
-        vacancies: req.body.vacancies ? parseInt(String(req.body.vacancies)) : 1,
-        skills: safeParseArray(req.body.skills),
-        requirements: safeParseArray(req.body.requirements),
-        benefits: safeParseArray(req.body.benefits),
+        vacancies: req.body.vacancies ?? 1,
+        skills: req.body.skills ?? [],
+        requirements: req.body.requirements ?? [],
+        benefits: req.body.benefits ?? [],
         contactEmail: req.body.contactEmail ?? undefined,
         contactPhone: req.body.contactPhone ?? undefined,
         companyWebsite: req.body.companyWebsite ?? undefined,
@@ -208,53 +170,39 @@ router.post(
         applicationCount: 0,
       };
 
-      console.log("📝 Creating job with jobData:", JSON.stringify(jobData, null, 2));
-      
       const job = new Job(jobData);
-      console.log("📝 Job model instance created:", job);
-      
       await job.save();
-      console.log("✅ Job saved successfully!");
 
-      // Optional steps (fail silently)
-      try {
-        await invalidatePattern("cache:/api/jobs*");
-        console.log("🗑️  Invalidated job listing cache after new job creation");
-      } catch (cacheErr) {
-        console.warn("⚠️  Cache invalidation failed:", cacheErr.message);
-      }
+      // Invalidate job listing cache
+      await invalidatePattern("cache:/api/jobs*");
+      console.log("🗑️  Invalidated job listing cache after new job creation");
 
-      try {
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+      sendMailAsync({
+        to: adminEmail,
+        subject: `New job posted: ${job.title}`,
+        html: `<p>A new job was posted and awaits approval.</p>
+               <p><strong>Title:</strong> ${job.title}</p>
+               <p><strong>Category:</strong> ${job.category}</p>
+               <p><strong>Budget:</strong> ${job.budget}</p>
+               <p><strong>Posted By:</strong> ${req.user.email}</p>
+               <p>Visit the admin panel to approve or decline.</p>`,
+      });
+      if (req.user?.email) {
         sendMailAsync({
-          to: adminEmail,
-          subject: `New job posted: ${job.title}`,
-          html: `<p>A new job was posted and awaits approval.</p>
-                 <p><strong>Title:</strong> ${job.title}</p>
-                 <p><strong>Category:</strong> ${job.category}</p>
-                 <p><strong>Budget:</strong> ${job.budget}</p>
-                 <p><strong>Posted By:</strong> ${req.user.email}</p>
-                 <p>Visit the admin panel to approve or decline.</p>`,
+          to: req.user.email,
+          subject: `Your job is pending approval: ${job.title}`,
+          html: `<p>Hi,</p>
+                 <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
+                 <p>We'll email you once it's approved and visible to freelancers.</p>
+                 <p>— HustleX Team</p>`,
         });
-        if (req.user?.email) {
-          sendMailAsync({
-            to: req.user.email,
-            subject: `Your job is pending approval: ${job.title}`,
-            html: `<p>Hi,</p>
-                   <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
-                   <p>We'll email you once it's approved and visible to freelancers.</p>
-                   <p>— HustleX Team</p>`,
-          });
-        }
-      } catch (mailErr) {
-        console.warn("⚠️  Email send failed:", mailErr.message);
       }
 
       res.status(201).json({ message: "Job created successfully", job });
     } catch (error) {
-      console.error("❌ Create job error:", error);
-      console.error("❌ Create job error stack:", error.stack);
-      res.status(500).json({ message: "Server error", error: error.message });
+      console.error("Create job error:", error);
+      res.status(500).json({ message: "Server error" });
     }
   }
 );

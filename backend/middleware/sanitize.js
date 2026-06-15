@@ -50,13 +50,14 @@ function sanitizeObject(obj) {
  */
 function preventNoSQLInjection(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-  
-  const sanitized = {};
-  
+
+  // Preserve arrays — iterate indices like object keys but keep array type
+  const sanitized = Array.isArray(obj) ? [] : {};
+
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
-      
+
       // Block MongoDB operators in user input
       if (key.startsWith('$') || (typeof value === 'object' && value !== null)) {
         // Check for MongoDB query operators
@@ -75,7 +76,7 @@ function preventNoSQLInjection(obj) {
       }
     }
   }
-  
+
   return sanitized;
 }
 

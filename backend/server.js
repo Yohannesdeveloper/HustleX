@@ -44,6 +44,9 @@ const seoController = require("./controllers/seoController");
 const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
+
+// Trust the first proxy (required behind nginx / Railway / Vercel reverse proxy)
+// so that express-rate-limit and req.ip resolve the real client IP from X-Forwarded-For.
 app.set('trust proxy', true);
 
 app.use(metricsMiddleware);

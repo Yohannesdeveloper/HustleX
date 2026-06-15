@@ -1,31 +1,5 @@
 const mongoose = require("mongoose");
 
-// Helper to safely parse array
-const safeParseArray = (value: any): string[] => {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === 'string') return item;
-        if (typeof item === 'object' && item !== null) {
-          const vals = Object.values(item).filter((v) => typeof v === 'string');
-          return vals;
-        }
-        return String(item);
-      })
-      .flat()
-      .filter(Boolean);
-  }
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      return safeParseArray(parsed);
-    } catch {
-      return value.split(',').map(s => s.trim()).filter(Boolean);
-    }
-  }
-  return [];
-};
-
 const jobSchema = new mongoose.Schema(
   {
     title: {
@@ -87,17 +61,14 @@ const jobSchema = new mongoose.Schema(
     },
     skills: {
       type: [String],
-      set: safeParseArray,
       default: [],
     },
     requirements: {
       type: [String],
-      set: safeParseArray,
       default: [],
     },
     benefits: {
       type: [String],
-      set: safeParseArray,
       default: [],
     },
     contactEmail: String,
@@ -191,7 +162,7 @@ jobSchema.pre("save", async function (next) {
         this.seo.canonicalUrl = `https://hustlex.com/jobs/${this.slug}`;
       }
     } catch (err) {
-      console.warn("⚠️ Slug/SEO generation failed, skipping:", err.message);
+      return next(err);
     }
   }
   next();
