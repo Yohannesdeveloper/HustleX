@@ -140,6 +140,34 @@ router.post(
       }
 
       console.log("📋 Creating job data...");
+      
+      // Helper to sanitize array fields
+      const sanitizeArray = (value: any): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+          return value
+            .map((item) => {
+              if (typeof item === "string") return item.trim();
+              if (typeof item === "object" && item !== null) {
+                // If it's an object like { '0': 'React' }, extract the string value
+                return Object.values(item).find((v) => typeof v === "string")?.trim() || "";
+              }
+              return String(item).trim();
+            })
+            .filter(Boolean);
+        }
+        // If it's a string, try to parse it as JSON
+        if (typeof value === "string") {
+          try {
+            const parsed = JSON.parse(value);
+            return sanitizeArray(parsed);
+          } catch {
+            return [value.trim()];
+          }
+        }
+        return [];
+      };
+
       const jobData = {
         title: req.body.title,
         description: req.body.description,
@@ -155,9 +183,9 @@ router.post(
         education: req.body.education ?? undefined,
         gender: req.body.gender ?? undefined,
         vacancies: req.body.vacancies ?? 1,
-        skills: req.body.skills ?? [],
-        requirements: req.body.requirements ?? [],
-        benefits: req.body.benefits ?? [],
+        skills: sanitizeArray(req.body.skills),
+        requirements: sanitizeArray(req.body.requirements),
+        benefits: sanitizeArray(req.body.benefits),
         contactEmail: req.body.contactEmail ?? undefined,
         contactPhone: req.body.contactPhone ?? undefined,
         companyWebsite: req.body.companyWebsite ?? undefined,
@@ -174,6 +202,8 @@ router.post(
         isActive: true,
         applicationCount: 0,
       };
+
+      console.log("📋 Sanitized job data skills:", jobData.skills);
 
       console.log("💾 Saving job to database...");
       const job = new Job(jobData);
