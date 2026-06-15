@@ -162,7 +162,8 @@ jobSchema.pre("save", async function (next) {
         this.seo.canonicalUrl = `https://hustlex.com/jobs/${this.slug}`;
       }
     } catch (err) {
-      return next(err);
+      console.warn("⚠️ Slug generation failed, skipping slug/SEO:", err.message);
+      // Don't fail the save because of slug issues!
     }
   }
   next();

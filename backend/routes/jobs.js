@@ -131,6 +131,10 @@ router.post(
   ],
   async (req, res) => {
     try {
+      console.log("📥 POST /api/jobs called!");
+      console.log("📥 req.user:", JSON.stringify(req.user, null, 2));
+      console.log("📥 req.body:", JSON.stringify(req.body, null, 2));
+      
       const errors = validationResult(req);
       if (!errors.isEmpty())
         return res.status(400).json({ errors: errors.array() });
@@ -170,8 +174,13 @@ router.post(
         applicationCount: 0,
       };
 
+      console.log("📝 Creating job with jobData:", JSON.stringify(jobData, null, 2));
+      
       const job = new Job(jobData);
+      console.log("📝 Job model instance created:", job);
+      
       await job.save();
+      console.log("✅ Job saved successfully!");
 
       // Optional steps (fail silently)
       try {
@@ -210,6 +219,7 @@ router.post(
       res.status(201).json({ message: "Job created successfully", job });
     } catch (error) {
       console.error("❌ Create job error:", error);
+      console.error("❌ Create job error stack:", error.stack);
       res.status(500).json({ message: "Server error", error: error.message });
     }
   }
