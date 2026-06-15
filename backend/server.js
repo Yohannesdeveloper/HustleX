@@ -44,6 +44,7 @@ const seoController = require("./controllers/seoController");
 const chatbotRoutes = require("./routes/chatbot");
 
 const app = express();
+app.set('trust proxy', true);
 
 app.use(metricsMiddleware);
 
@@ -57,53 +58,34 @@ connectDB();
 // CORS must be applied BEFORE helmet/ratelimit to ensure preflights aren't blocked
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('[CORS] Checking origin:', origin);
     // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) {
-      console.log('[CORS] Allowing no-origin request');
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true);
     
     const allowedOrigins = [
-      process.env.CLIENT_URL,
+      process.env.CLIENT_URL || "",
       "https://hustlexet.vercel.app",
-      "https://hustlex-production.up.railway.app",
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:3000",
-    ].filter(Boolean);
+      "https://hustlex-production.up.railway.app"
+    ];
     
-    // Also allow any origin that contains 'vercel.app' or 'railway.app' for flexibility
-    const isAllowed = allowedOrigins.includes(origin) || 
-                      origin.includes("localhost") || 
-                      origin.includes("127.0.0.1") || 
-                      origin.includes("vercel.app") || 
-                      origin.includes("railway.app");
-    
-    if (isAllowed) {
-      console.log('[CORS] Allowing origin:', origin);
+    if (allowedOrigins.includes(origin) || origin.includes("localhost") || origin.includes("127.0.0.1")) {
       return callback(null, true);
     }
     
     // For development, allow all origins
     if (process.env.NODE_ENV !== "production") {
-      console.log('[CORS] Development mode - allowing origin:', origin);
       return callback(null, true);
     }
     
-    console.log('[CORS] Blocking origin:', origin);
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
     return callback(new Error(msg), false);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
     "X-Admin-Code",
     "x-admin-code",
-    "Origin",
-    "Accept"
   ],
   optionsSuccessStatus: 200,
   maxAge: 86400, // Cache preflight request for 24 hours
@@ -464,27 +446,15 @@ const { initSocketRedis, getSocketPubClient } = require("./lib/redis-socket");
 
 const io = new Server(server, {
   cors: {
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      const allowedOrigins = [
-        process.env.CLIENT_URL,
-        "https://hustlexet.vercel.app",
-        "https://hustlex-production.up.railway.app",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-      ].filter(Boolean);
-      const isAllowed = allowedOrigins.includes(origin) || 
-                        origin.includes("localhost") || 
-                        origin.includes("127.0.0.1") || 
-                        origin.includes("vercel.app") || 
-                        origin.includes("railway.app");
-      if (isAllowed || process.env.NODE_ENV !== "production") {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS"), false);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    origin: process.env.NODE_ENV === 'production'
+      ? [process.env.CLIENT_URL || 'https://hustlex.com']
+      : [
+          process.env.CLIENT_URL || 'http://localhost:5173',
+          'http://localhost:5174',
+          'http://localhost:3000',
+          'http://localhost:5173',
+        ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   },
