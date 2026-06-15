@@ -333,7 +333,7 @@ router.put("/:id", auth, async (req, res) => {
 
 // ================================
 // @route   DELETE /api/jobs/:id
-// @desc    Delete a job
+// @desc    Delete a job (owner or admin)
 // @access  Private
 // ================================
 router.delete("/:id", auth, async (req, res) => {
@@ -341,14 +341,17 @@ router.delete("/:id", auth, async (req, res) => {
     const job = await Job.findById(req.params.id);
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    if (job.postedBy.toString() !== req.user._id.toString())
+    const isOwner = job.postedBy.toString() === req.user._id.toString();
+    const isAdmin = req.user.roles && req.user.roles.includes("admin");
+
+    if (!isOwner && !isAdmin)
       return res.status(403).json({ message: "Access denied" });
 
     await Job.findByIdAndDelete(req.params.id);
 
     // Invalidate cache
     await invalidatePattern("cache:/api/jobs*");
-    console.log("🗑️  Invalidated job listing cache after job deletion");
+    console.log(`🗑️  Job deleted by ${isAdmin ? 'admin' : 'owner'}: ${req.user.email}`);
 
     res.json({ message: "Job deleted successfully" });
   } catch (error) {

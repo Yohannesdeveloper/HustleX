@@ -3,6 +3,9 @@
  * Upgrades an existing user to admin role using the backend's env config.
  * Run with: node make-admin.js
  */
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 const mongoose = require("mongoose");
 const User = require("./models/User");
 
@@ -13,11 +16,19 @@ const { getAdminEmail } = require("./config/admin");
 const EMAIL = getAdminEmail();
 
 const run = async () => {
-  const uri = process.env.MONGODB_URI;
+  let uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error("❌ MONGODB_URI not set in .env");
     process.exit(1);
   }
+  // Ensure database name is in URI (Atlas URIs may omit it)
+  try {
+    const url = new URL(uri);
+    if (!url.pathname || url.pathname === "/" || url.pathname === "") {
+      url.pathname = "/hustlex";
+      uri = url.toString();
+    }
+  } catch (e) {}
 
   console.log("Connecting to MongoDB...");
   await mongoose.connect(uri, {

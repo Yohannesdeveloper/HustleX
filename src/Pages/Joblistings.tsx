@@ -8,6 +8,7 @@ import { useAuth } from "../store/hooks";
 import Footer from "../components/Footer";
 import { JobListingsSEO } from "../components/SEO";
 import { categories } from "../constants/skills";
+import { isAdminAccount } from "../utils/admin";
 import {
   Share2,
   Copy,
@@ -179,6 +180,7 @@ const JobListings: React.FC = () => {
     new URLSearchParams(location.search).get("viewOnly") === "true";
   const { user, isAuthenticated } = useAuth();
   const userRole = user?.role || "";
+  const isAdmin = isAdminAccount(user);
   const [searchTitle, setSearchTitle] = useState<string>("");
   const [filteredJobs, setFilteredJobs] = useState<JobType[]>([]);
   const [jobs, setJobs] = useState<JobType[]>([]);
@@ -1251,13 +1253,13 @@ const JobListings: React.FC = () => {
                     >
                       <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                     </motion.button>
-                    {isAuthenticated && user && (job.userId === user._id || job.userId === (user as any).id) && (
+                    {isAuthenticated && user && (job.userId === user._id || job.userId === (user as any).id || isAdmin) && (
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDelete(job.id)}
                         className="p-1.5 sm:p-2 rounded-full border transition-all bg-red-500/10 text-red-500 border-red-500/30 hover:bg-red-500/20 hover:text-red-400"
-                        title="Delete job"
+                        title={isAdmin ? "Delete job (Admin)" : "Delete job"}
                       >
                         <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </motion.button>
