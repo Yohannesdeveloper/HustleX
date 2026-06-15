@@ -130,11 +130,16 @@ router.post(
     body("category").notEmpty().withMessage("Category is required"),
   ],
   async (req, res) => {
+    console.log("📝 Starting job creation...");
     try {
+      console.log("🔍 Checking validation errors...");
       const errors = validationResult(req);
-      if (!errors.isEmpty())
+      if (!errors.isEmpty()) {
+        console.log("❌ Validation errors:", errors.array());
         return res.status(400).json({ errors: errors.array() });
+      }
 
+      console.log("📋 Creating job data...");
       const jobData = {
         title: req.body.title,
         description: req.body.description,
@@ -170,19 +175,24 @@ router.post(
         applicationCount: 0,
       };
 
+      console.log("💾 Saving job to database...");
       const job = new Job(jobData);
       await job.save();
+      console.log("✅ Job saved successfully!");
 
       // Send response first, then do background tasks
+      console.log("📤 Sending response to client...");
       res.status(201).json({ message: "Job created successfully", job });
 
       // Background tasks (cache invalidation and emails) won't block response
       try {
+        console.log("🧹 Invalidating job listing cache...");
         // Invalidate job listing cache
         await invalidatePattern("cache:/api/jobs*");
         console.log("🗑️  Invalidated job listing cache after new job creation");
 
         const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        console.log("📧 Sending admin email...");
         sendMailAsync({
           to: adminEmail,
           subject: `New job posted: ${job.title}`,
@@ -194,6 +204,7 @@ router.post(
                  <p>Visit the admin panel to approve or decline.</p>`,
         });
         if (req.user?.email) {
+          console.log("📧 Sending user email...");
           sendMailAsync({
             to: req.user.email,
             subject: `Your job is pending approval: ${job.title}`,
@@ -203,12 +214,13 @@ router.post(
                    <p>— HustleX Team</p>`,
           });
         }
+        console.log("✅ Background tasks completed!");
       } catch (bgError) {
-        console.error("Background task error (cache/email):", bgError);
+        console.error("❌ Background task error (cache/email):", bgError);
       }
     } catch (error) {
-      console.error("Create job error:", error);
-      console.error("Error stack:", error.stack);
+      console.error("❌ Create job error:", error);
+      console.error("❌ Error stack:", error.stack);
       res.status(500).json({ message: "Server error", error: error.message });
     }
   }
