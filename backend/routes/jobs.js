@@ -173,33 +173,39 @@ router.post(
       const job = new Job(jobData);
       await job.save();
 
-      // Invalidate job listing cache
-      await invalidatePattern("cache:/api/jobs*");
-      console.log("🗑️  Invalidated job listing cache after new job creation");
-
-      const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-      sendMailAsync({
-        to: adminEmail,
-        subject: `New job posted: ${job.title}`,
-        html: `<p>A new job was posted and awaits approval.</p>
-               <p><strong>Title:</strong> ${job.title}</p>
-               <p><strong>Category:</strong> ${job.category}</p>
-               <p><strong>Budget:</strong> ${job.budget}</p>
-               <p><strong>Posted By:</strong> ${req.user.email}</p>
-               <p>Visit the admin panel to approve or decline.</p>`,
-      });
-      if (req.user?.email) {
-        sendMailAsync({
-          to: req.user.email,
-          subject: `Your job is pending approval: ${job.title}`,
-          html: `<p>Hi,</p>
-                 <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
-                 <p>We'll email you once it's approved and visible to freelancers.</p>
-                 <p>— HustleX Team</p>`,
-        });
-      }
-
+      // Send response first, then do background tasks
       res.status(201).json({ message: "Job created successfully", job });
+
+      // Background tasks (cache invalidation and emails) won't block response
+      try {
+        // Invalidate job listing cache
+        await invalidatePattern("cache:/api/jobs*");
+        console.log("🗑️  Invalidated job listing cache after new job creation");
+
+        const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        sendMailAsync({
+          to: adminEmail,
+          subject: `New job posted: ${job.title}`,
+          html: `<p>A new job was posted and awaits approval.</p>
+                 <p><strong>Title:</strong> ${job.title}</p>
+                 <p><strong>Category:</strong> ${job.category}</p>
+                 <p><strong>Budget:</strong> ${job.budget}</p>
+                 <p><strong>Posted By:</strong> ${req.user.email}</p>
+                 <p>Visit the admin panel to approve or decline.</p>`,
+        });
+        if (req.user?.email) {
+          sendMailAsync({
+            to: req.user.email,
+            subject: `Your job is pending approval: ${job.title}`,
+            html: `<p>Hi,</p>
+                   <p>Thanks for posting on HustleX. Your job "<strong>${job.title}</strong>" is <strong>pending approval</strong> and will be reviewed shortly.</p>
+                   <p>We'll email you once it's approved and visible to freelancers.</p>
+                   <p>— HustleX Team</p>`,
+          });
+        }
+      } catch (bgError) {
+        console.error("Background task error (cache/email):", bgError);
+      }
     } catch (error) {
       console.error("Create job error:", error);
       console.error("Error stack:", error.stack);
