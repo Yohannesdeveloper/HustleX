@@ -135,6 +135,16 @@ router.post(
       if (!errors.isEmpty())
         return res.status(400).json({ errors: errors.array() });
 
+      // Normalize array fields that middleware (xss-clean, etc.) may mangle
+      const normalizeArray = (val) => {
+        if (Array.isArray(val)) return val.filter(Boolean);
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch { return val.split(',').map(s => s.trim()).filter(Boolean); }
+        }
+        if (val && typeof val === 'object') return Object.values(val).filter(v => typeof v === 'string');
+        return [];
+      };
+
       const jobData = {
         title: req.body.title,
         description: req.body.description,
@@ -149,10 +159,10 @@ router.post(
         experience: req.body.experience ?? undefined,
         education: req.body.education ?? undefined,
         gender: req.body.gender ?? undefined,
-        vacancies: req.body.vacancies ?? 1,
-        skills: req.body.skills ?? [],
-        requirements: req.body.requirements ?? [],
-        benefits: req.body.benefits ?? [],
+        vacancies: req.body.vacancies ? parseInt(String(req.body.vacancies)) : 1,
+        skills: normalizeArray(req.body.skills),
+        requirements: normalizeArray(req.body.requirements),
+        benefits: normalizeArray(req.body.benefits),
         contactEmail: req.body.contactEmail ?? undefined,
         contactPhone: req.body.contactPhone ?? undefined,
         companyWebsite: req.body.companyWebsite ?? undefined,
