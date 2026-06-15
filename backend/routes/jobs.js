@@ -202,7 +202,8 @@ router.post(
       res.status(201).json({ message: "Job created successfully", job });
     } catch (error) {
       console.error("Create job error:", error);
-      res.status(500).json({ message: "Server error" });
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   }
 );
