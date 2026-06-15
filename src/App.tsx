@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
 import { checkAuth } from "./store/authSlice";
@@ -59,6 +60,12 @@ function AppContent() {
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
+
+  // Track page views on every route change
+  useEffect(() => {
+    const path = location.pathname + location.search;
+    ReactGA.send({ hitType: "pageview", page: path });
+  }, [location]);
 
   return (
     <WebSocketProvider>
