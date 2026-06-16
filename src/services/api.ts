@@ -7,7 +7,7 @@ import {
   ApplicationResponse,
   FreelancerWithStatus,
 } from "../types";
-import { getBackendApiUrlSync, getBackendApiUrl, getBackendUrlSync } from "../utils/portDetector";
+import { getBackendApiUrlSync, getBackendApiUrl } from "../utils/portDetector";
 
 declare const window: any;
 
@@ -469,12 +469,14 @@ class ApiService {
   getFileUrl(filePath: string): string {
     if (!filePath) return "";
 
-    // Always derive the origin from the latest cached backend URL so that
-    // images rendered before async port-detection completes still point to
-    // the correct server (this.baseUrl may be stale at render time).
-    const latestBase = window.location.hostname.includes("devtunnels")
-      ? `https://${window.location.hostname}`
-      : getBackendUrlSync();
+    // Derive the backend origin from this.baseUrl (which is kept up-to-date
+    // by async port detection).  Strip trailing /api if present.
+    let origin: string;
+    if (window.location.hostname.includes("devtunnels")) {
+      origin = `https://${window.location.hostname}`;
+    } else {
+      origin = this.baseUrl.replace(/\/api\/?$/, "");
+    }
 
     // If it's already an absolute URL, check if it's a phantom CDN URL
     // that doesn't actually exist (e.g. CDN_ENABLED=false but CDN_URL was set).
@@ -482,11 +484,11 @@ class ApiService {
     if (/^https?:\/\//i.test(filePath)) {
       try {
         const parsed = new URL(filePath);
-        const latestBaseUrl = new URL(latestBase);
+        const originUrl = new URL(origin);
         // If the host is NOT the current backend host, it might be a phantom CDN.
         // Check if the path looks like an /uploads/... path and rewrite it.
-        if (parsed.host !== latestBaseUrl.host && parsed.pathname.startsWith("/uploads/")) {
-          return `${latestBase}${parsed.pathname}`;
+        if (parsed.host !== originUrl.host && parsed.pathname.startsWith("/uploads/")) {
+          return `${origin}${parsed.pathname}`;
         }
       } catch {
         // fall through if URL parsing fails
@@ -495,9 +497,9 @@ class ApiService {
     }
 
     if (filePath.startsWith("/")) {
-      return `${latestBase}${filePath}`;
+      return `${origin}${filePath}`;
     }
-    return `${latestBase}/${filePath}`;
+    return `${origin}/${filePath}`;
   }
 
   // ✅ Updated sendPasswordResetOTP to send OTP via email
