@@ -1016,6 +1016,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
         const normalizedKey = getNormalizedConversationKey(user._id, otherId);
         const conversationMessages = getStoredMessages(key);
+        // Allow conversations even if they only have a "conversation_started" message
         if (conversationMessages.length === 0) continue;
 
         const lastMessage = conversationMessages[conversationMessages.length - 1];
@@ -1250,6 +1251,16 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
             unreadCount: 0,
             freelancer: freelancer,
           };
+
+          // Save an initial empty message to localStorage so the conversation persists
+          const initialMessage: StoredMessage = {
+            senderId: user._id,
+            receiverId: freelancerId,
+            message: "",
+            timestamp: new Date().toISOString(),
+            action: "conversation_started"
+          };
+          localStorage.setItem(conversationKey, JSON.stringify([initialMessage]));
         }
 
         if (conv) {
