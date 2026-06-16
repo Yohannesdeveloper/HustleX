@@ -40,6 +40,7 @@ interface ClientProfileData {
   // Legal Information
   businessLicense: File | null;
   taxId: string;
+  businessRegistrationNo: string;
 }
 
 interface StepProps {
@@ -84,6 +85,7 @@ const ClientProfileWizard: React.FC = () => {
     logoPreview: null,
     businessLicense: null,
     taxId: '',
+    businessRegistrationNo: '',
   });
 
   // Inherit existing company profile when editing (same source as client dashboard)
@@ -127,6 +129,7 @@ const ClientProfileWizard: React.FC = () => {
           services: Array.isArray(companyProfile.services) ? companyProfile.services : prev.services,
           logoPreview: logoUrl ?? prev.logoPreview,
           taxId: companyProfile.taxId ?? prev.taxId,
+          businessRegistrationNo: companyProfile.businessRegistrationNo ?? prev.businessRegistrationNo,
         }));
       } catch {
         // No existing profile - check for user profile picture for new profile
@@ -613,6 +616,18 @@ const ContactDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext, onP
             placeholder="Tax identification number"
           />
         </div>
+        <div>
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Business Registration No
+          </label>
+          <input
+            type="text"
+            value={data.businessRegistrationNo}
+            onChange={(e) => updateData('businessRegistrationNo', e.target.value)}
+            className={`w-full px-4 py-3 rounded-lg border ${darkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors`}
+            placeholder="Business registration number"
+          />
+        </div>
 
         <div className="md:col-span-2">
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -744,6 +759,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       if (validLogo) profileData.logo = validLogo;
       if (validTradeLicense) profileData.tradeLicense = validTradeLicense;
       if (data.taxId?.trim()) profileData.taxId = data.taxId.trim();
+      if (data.businessRegistrationNo?.trim()) profileData.businessRegistrationNo = data.businessRegistrationNo.trim();
 
       // Save company profile (stored in same backend as client dashboard)
       await apiService.updateCompanyProfile(profileData);
@@ -876,6 +892,12 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
               <div className="flex items-center gap-2">
                 <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company Logo:</span>
                 <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{data.logo.name}</span>
+              </div>
+            )}
+            {data.businessRegistrationNo && (
+              <div className="flex items-center gap-2">
+                <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Business Registration No:</span>
+                <span className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{data.businessRegistrationNo}</span>
               </div>
             )}
           </div>

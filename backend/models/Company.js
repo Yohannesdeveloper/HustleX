@@ -64,6 +64,10 @@ const companySchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    businessRegistrationNo: {
+      type: String,
+      trim: true,
+    },
     jobPositionAlternatives: [{
       title: String,
       category: String,

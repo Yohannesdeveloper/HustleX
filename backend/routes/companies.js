@@ -71,6 +71,7 @@ router.post("/profile",
       verificationData,
       jobPositionAlternatives,
       taxId,
+      businessRegistrationNo,
     } = req.body;
 
     // Validate required fields
@@ -102,6 +103,7 @@ router.post("/profile",
       verificationData,
       jobPositionAlternatives,
       taxId,
+      businessRegistrationNo,
     };
 
     // Remove fields that have no meaningful value (preserve existing data)
