@@ -78,7 +78,7 @@ async function postJobToTelegram(job) {
   // Telegram doesn't accept localhost URLs in inline keyboards, so we use a production domain
   let baseUrl;
   if (process.env.NODE_ENV === 'production' || process.env.TELEGRAM_USE_PRODUCTION_URL === 'true') {
-    baseUrl = process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com";
+    baseUrl = process.env.CLIENT_URL || process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com";
   } else {
     // For development, if using localhost, provide a production-like URL for Telegram
     const envClientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
@@ -86,7 +86,7 @@ async function postJobToTelegram(job) {
       baseUrl = envClientUrl;
     } else {
       // Use production URL for Telegram even in development
-      baseUrl = process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com";
+      baseUrl = process.env.CLIENT_URL || process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com";
     }
   }
   baseUrl = baseUrl.replace(/\/$/, "");
