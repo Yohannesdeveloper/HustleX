@@ -51,7 +51,7 @@ const ChatInterface: React.FC = () => {
   }, [isClient, user?._id, user?.currentRole]);
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="h-full w-full relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 -z-10">
         <div className={`absolute inset-0 ${darkMode
@@ -88,30 +88,27 @@ const ChatInterface: React.FC = () => {
         />
       </div>
 
-      <div className="relative z-10 py-8">
-        <div className="w-full px-0">
-          {/* Main Content Container */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className={`rounded-3xl border-2 overflow-hidden backdrop-blur-xl shadow-2xl ${darkMode
+      <div className="relative z-10 h-full w-full p-2 sm:p-4">
+        {/* Main Content Container */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className={`rounded-2xl sm:rounded-3xl border-2 overflow-hidden backdrop-blur-xl shadow-2xl h-full ${darkMode
               ? "bg-black/40 border-cyan-500/30 shadow-[0_0_50px_rgba(6,182,212,0.2)]"
               : "bg-white/80 border-cyan-200 shadow-xl"
-              }`}
-            style={{ height: "calc(100vh - 180px)", minHeight: "600px" }}
-          >
-            {/* MessagesTab container */}
-            <div style={{ display: "flex", height: "100%", flexDirection: "column" }}>
-              <MessagesTab
-                availableFreelancers={sharedFreelancers}
-                freelancersLoading={freelancersLoading}
-                isClient={isClient}
-                onFreelancersLoaded={setSharedFreelancers}
-              />
-            </div>
-          </motion.div>
-        </div>
+            }`}
+        >
+          {/* MessagesTab container */}
+          <div className="flex flex-col h-full">
+            <MessagesTab
+              availableFreelancers={sharedFreelancers}
+              freelancersLoading={freelancersLoading}
+              isClient={isClient}
+              onFreelancersLoaded={setSharedFreelancers}
+            />
+          </div>
+        </motion.div>
       </div>
     </div>
   );
