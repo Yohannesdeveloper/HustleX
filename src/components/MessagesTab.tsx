@@ -406,9 +406,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   useEffect(() => {
     if (availableFreelancers.length > 0) {
       freelancersDirectoryRef.current = availableFreelancers;
-      setBrowseFreelancers(
-        availableFreelancers.filter((f) => f._id && f._id !== user?._id)
-      );
+      setBrowseFreelancers([]);
     }
   }, [availableFreelancers, user?._id]);
 
@@ -421,9 +419,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       try {
         const list = await loadMessagingDirectory();
         if (cancelled) return;
-        const others = list.filter((f) => f._id !== user._id);
         freelancersDirectoryRef.current = list;
-        setBrowseFreelancers(others);
+        setBrowseFreelancers([]);
         onFreelancersLoaded?.(list);
         setBrowseLoadError(null);
       } catch (error: unknown) {
@@ -2123,7 +2120,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                 No messages yet
               </p>
               <p className={`text-xs mb-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                {isClient ? "Pick a freelancer below to start chatting" : "Pick a client below to start chatting"}
+                {isClient ? "Go to Find Freelancers to start a conversation" : "Go to Find Jobs to start a conversation"}
               </p>
 
               {freelancersLoading ? (
