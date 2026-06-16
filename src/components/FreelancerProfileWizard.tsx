@@ -364,7 +364,7 @@ const FreelancerProfileWizard: React.FC = () => {
       case 2:
         return <ProfessionalDetailsStep {...stepProps} />;
       case 3:
-        return <ReviewStep {...stepProps} onSubmit={() => navigate('/dashboard/freelancer')} navigate={navigate} refreshUser={refreshUser} />;
+        return <ReviewStep {...stepProps} onSubmit={() => navigate('/dashboard/freelancer/overview')} navigate={navigate} refreshUser={refreshUser} />;
       default:
         return <BasicInfoStep {...stepProps} />;
     }

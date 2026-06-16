@@ -94,7 +94,13 @@ function AppContent() {
                 <FreelancingDashboard />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={null} />
+            <Route path="browse-jobs" element={null} />
+            <Route path="my-applications" element={null} />
+            <Route path="messages" element={null} />
+          </Route>
           <Route path="/job-listings" element={<PageLayout><JobListings /></PageLayout>} />
           <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
           <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />

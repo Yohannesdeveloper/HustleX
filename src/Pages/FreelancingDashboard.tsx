@@ -54,9 +54,22 @@ const FreelancingDashboard: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const location = useLocation();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "browseJobs" | "profile" | "myApplications" | "messages"
-  >("overview");
+
+  // Get active tab from URL
+  const getActiveTabFromPath = (): "overview" | "browseJobs" | "profile" | "myApplications" | "messages" => {
+    const pathParts = location.pathname.split("/");
+    const lastPart = pathParts[pathParts.length - 1];
+    
+    switch (lastPart) {
+      case "overview": return "overview";
+      case "browse-jobs": return "browseJobs";
+      case "my-applications": return "myApplications";
+      case "messages": return "messages";
+      default: return "overview";
+    }
+  };
+
+  const activeTab = getActiveTabFromPath();
 
   // Analytics state
   const [analyticsData, setAnalyticsData] = useState({
@@ -111,23 +124,12 @@ const FreelancingDashboard: React.FC = () => {
   const [freelancerAvatar, setFreelancerAvatar] = useState<string | null>(null);
 
   const tabs = [
-    { id: "overview" as const, label: "Overview", icon: BarChart3 },
-    { id: "browseJobs" as const, label: "Browse Jobs", icon: Briefcase },
-    { id: "myApplications" as const, label: "My Applications", icon: FileText },
+    { id: "overview" as const, label: "Overview", icon: BarChart3, path: "overview" },
+    { id: "browseJobs" as const, label: "Browse Jobs", icon: Briefcase, navigate: "/job-listings" },
+    { id: "myApplications" as const, label: "My Applications", icon: FileText, path: "my-applications" },
     { id: "messages" as const, label: "Messages", icon: MessageSquare, navigate: "/chat" },
-    { id: "profile" as const, label: "Profile", icon: User },
+    { id: "profile" as const, label: "Profile", icon: User, navigate: "/freelancer-profile-setup" },
   ];
-
-  // If redirected with tab state, default to that tab
-  useEffect(() => {
-    const state = location.state as any;
-    if (
-      state?.tab &&
-      ["overview", "browseJobs", "myApplications"].includes(state.tab)
-    ) {
-      setActiveTab(state.tab);
-    }
-  }, [location.state]);
 
   // Fetch analytics and profile data once when the user is available
   useEffect(() => {
@@ -154,12 +156,7 @@ const FreelancingDashboard: React.FC = () => {
     }
   }, [activeTab, user]);
 
-  // Redirect to freelancer profile when profile tab is selected
-  useEffect(() => {
-    if (activeTab === "profile") {
-      navigate("/freelancer-profile-setup");
-    }
-  }, [activeTab, navigate]);
+
 
   const fetchJobs = async () => {
     setJobsLoading(true);
@@ -415,12 +412,10 @@ const FreelancingDashboard: React.FC = () => {
               <motion.button
                 key={tab.id}
                 onClick={() => {
-                  if (tab.id === "browseJobs") {
-                    navigate("/job-listings");
-                  } else if ((tab as any).navigate) {
+                  if ((tab as any).navigate) {
                     navigate((tab as any).navigate);
-                  } else {
-                    setActiveTab(tab.id);
+                  } else if ((tab as any).path) {
+                    navigate(`/dashboard/freelancer/${(tab as any).path}`);
                   }
                 }}
                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 sm:py-4 border-b-2 font-medium transition-all duration-300 font-inter tracking-tight text-sm sm:text-base whitespace-nowrap ${activeTab === tab.id
