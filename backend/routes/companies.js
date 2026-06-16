@@ -104,10 +104,15 @@ router.post("/profile",
       taxId,
     };
 
-    // Remove undefined and empty string fields (except for required companyName)
+    // Remove fields that have no meaningful value (preserve existing data)
+    // Keep companyName (required) even if re-submitted.
     Object.keys(updateData).forEach(key => {
-      if (key !== 'companyName' && (updateData[key] === undefined || updateData[key] === '')) {
+      if (key === 'companyName') return;
+      const val = updateData[key];
+      if (val === undefined || val === null || val === '') {
         delete updateData[key];
+      } else if (Array.isArray(val) && val.length === 0) {
+        delete updateData[key]; // don't wipe existing arrays with empty []
       }
     });
 
