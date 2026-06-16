@@ -628,7 +628,7 @@ router.post("/telegram-login", async (req, res) => {
     let user = await User.findOne({ "telegram.id": telegramData.id });
 
     if (!user) {
-      // Create new user
+      // Create new user without setting default role - they will choose
       user = new User({
         telegram: {
           id: telegramData.id,
@@ -637,8 +637,8 @@ router.post("/telegram-login", async (req, res) => {
           lastName: telegramData.last_name,
           photoUrl: telegramData.photo_url,
         },
-        roles: ["freelancer"],
-        currentRole: "freelancer",
+        roles: [], // Empty roles array - user needs to choose
+        currentRole: null, // No current role yet
         profile: {
           firstName: telegramData.first_name || "",
           lastName: telegramData.last_name || "",
