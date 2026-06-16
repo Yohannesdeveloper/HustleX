@@ -171,6 +171,16 @@ const authSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+      state.loading = false;
+      if (action.payload?.roles?.includes("admin")) {
+        persistActiveRole("admin");
+      } else if (action.payload?.currentRole) {
+        persistActiveRole(action.payload.currentRole as ActiveRole);
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -269,5 +279,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, setLoading } = authSlice.actions;
+export const { logout, setLoading, setUser } = authSlice.actions;
 export default authSlice.reducer;

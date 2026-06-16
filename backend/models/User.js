@@ -6,15 +6,23 @@ const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: true,
+      required: false, // Optional for Telegram users,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
     password: {
       type: String,
-      required: true,
+      required: false, // Optional for Telegram users
       minlength: 6,
+    },
+    telegram: {
+      id: { type: Number, unique: true, sparse: true },
+      username: String,
+      firstName: String,
+      lastName: String,
+      photoUrl: String,
     },
     roles: {
       type: [String],

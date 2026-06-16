@@ -1,5 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
 const { sendMail } = require("../services/mail");
@@ -569,6 +570,120 @@ router.post("/freelancer-profile", auth, async (req, res) => {
     });
   } catch (error) {
     console.error("Save freelancer profile error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST /api/auth/telegram-login
+// @desc    Login with Telegram
+// @access  Public
+router.post("/telegram-login", async (req, res) => {
+  try {
+    const { telegramData } = req.body;
+    
+    if (!telegramData) {
+      return res.status(400).json({ message: "Telegram data is required" });
+    }
+
+    // Verify Telegram data
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken) {
+      return res.status(500).json({ message: "Telegram bot token not configured" });
+    }
+
+    // Create a copy to avoid modifying the original object
+    const dataToCheck = { ...telegramData };
+    const hash = dataToCheck.hash;
+    delete dataToCheck.hash;
+
+    // Sort the keys alphabetically
+    const sortedKeys = Object.keys(dataToCheck).sort();
+    
+    // Create the data check string
+    const dataCheckString = sortedKeys
+      .map((key) => `${key}=${dataToCheck[key]}`)
+      .join("\n");
+
+    // Create secret key from bot token using SHA256
+    const secretKey = crypto.createHash("sha256").update(botToken).digest();
+
+    // Calculate HMAC-SHA256
+    const hmac = crypto.createHmac("sha256", secretKey);
+    hmac.update(dataCheckString);
+    const calculatedHash = hmac.digest("hex");
+
+    // Check if hash matches
+    if (calculatedHash !== hash) {
+      return res.status(400).json({ message: "Invalid Telegram data" });
+    }
+
+    // Check auth date to prevent replay attacks (within 24 hours)
+    const authDate = parseInt(telegramData.auth_date);
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    if (Date.now() - authDate * 1000 > twentyFourHours) {
+      return res.status(400).json({ message: "Telegram data expired" });
+    }
+
+    // Find or create user
+    let user = await User.findOne({ "telegram.id": telegramData.id });
+
+    if (!user) {
+      // Create new user
+      user = new User({
+        telegram: {
+          id: telegramData.id,
+          username: telegramData.username,
+          firstName: telegramData.first_name,
+          lastName: telegramData.last_name,
+          photoUrl: telegramData.photo_url,
+        },
+        roles: ["freelancer"],
+        currentRole: "freelancer",
+        profile: {
+          firstName: telegramData.first_name || "",
+          lastName: telegramData.last_name || "",
+          avatar: telegramData.photo_url || "",
+        },
+      });
+      
+      // Generate a random password for security (even though we don't use it for login)
+      const randomPassword = crypto.randomBytes(32).toString("hex");
+      user.password = randomPassword;
+
+      await user.save();
+    }
+
+    // Generate token and return user
+    const token = generateToken(user._id);
+    await ensureAdminRole(user);
+
+    res.json({
+      token,
+      user: toAuthUserPayload(user),
+    });
+
+  } catch (error) {
+    console.error("Telegram login error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/auth/telegram-config
+// @desc    Get Telegram configuration for frontend widget
+// @access  Public
+router.get("/telegram-config", (req, res) => {
+  try {
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    
+    const isConfigured = !!(botUsername && botToken);
+    
+    res.json({
+      botUsername,
+      configured: isConfigured
+    });
+  } catch (error) {
+    console.error("Get Telegram config error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

@@ -1,7 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaApple, FaEye, FaEyeSlash, FaTelegram } from "react-icons/fa";
 import { useAuth } from "../store/hooks";
 import { useAppSelector } from "../store/hooks";
 import { useTranslation } from "../hooks/useTranslation";
@@ -10,10 +10,17 @@ import { getBackendApiUrlSync } from "../utils/portDetector";
 import { isAdminAccount } from "../utils/admin";
 import { RegisterSEO, LoginSEO } from "../components/SEO";
 
+declare global {
+  interface Window {
+    TelegramLoginWidget: any;
+    telegramLoginCallback: (data: any) => void;
+  }
+}
+
 const Signup: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, login, addRole, switchRole } = useAuth();
+  const { register, login, addRole, switchRole, setUser } = useAuth();
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const t = useTranslation();
   const [email, setEmail] = useState("");
@@ -31,7 +38,139 @@ const Signup: React.FC = () => {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [telegramConfig, setTelegramConfig] = useState<{ botUsername: string | null; configured: boolean } | null>(null);
   const emailCheckTimeout = useRef<number | null>(null);
+
+  // Handle Telegram Login callback
+  const handleTelegramLogin = async (data: any) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await apiService.telegramLogin(data);
+      if (result.user) {
+        setUser(result.user);
+        if (isAdminAccount(result.user)) {
+          navigate("/admin/dashboard", { replace: true });
+        } else if (result.user.currentRole === "freelancer") {
+          navigate("/dashboard/freelancer", { replace: true });
+        } else if (result.user.currentRole === "client") {
+          navigate("/dashboard/hiring", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
+      }
+    } catch (err: any) {
+      console.error("Telegram login error:", err);
+      let errorMessage = "Failed to login with Telegram. Please try again.";
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch Telegram config from backend
+  useEffect(() => {
+    const fetchTelegramConfig = async () => {
+      try {
+        const config = await apiService.getTelegramConfig();
+        console.log("Telegram config loaded:", config);
+        setTelegramConfig(config);
+      } catch (err) {
+        console.error("Failed to fetch Telegram config:", err);
+      }
+    };
+    fetchTelegramConfig();
+  }, []);
+
+  // Initialize Telegram Widget
+  useEffect(() => {
+    console.log("Initializing Telegram widget with config:", telegramConfig);
+    
+    if (!telegramConfig || !telegramConfig.configured || !telegramConfig.botUsername) {
+      console.log("Telegram widget not initialized - config missing or invalid");
+      return;
+    }
+
+    // Expose callback to global scope
+    window.telegramLoginCallback = handleTelegramLogin;
+
+    // Load Telegram Widget script
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.dataset.telegramLogin = "";
+    script.dataset.botUsername = telegramConfig.botUsername.replace("@", ""); // Remove @ if present
+    script.dataset.size = "large";
+    script.dataset.avatar = "true";
+    script.dataset.authUrl = "javascript:window.telegramLoginCallback";
+    script.dataset.requestAccess = "write";
+    
+    console.log("Telegram bot username being used:", script.dataset.botUsername);
+    
+    // Insert into our div
+    const container = document.getElementById("telegram-login-button");
+    if (container) {
+      container.innerHTML = ""; // Clear any existing content
+      container.appendChild(script);
+      console.log("Telegram widget script added to DOM");
+    } else {
+      console.error("Telegram login button container not found in DOM");
+    }
+
+    return () => {
+      // Cleanup
+      delete window.telegramLoginCallback;
+      const container = document.getElementById("telegram-login-button");
+      if (container) {
+        container.innerHTML = "";
+      }
+    };
+  }, [telegramConfig]);
+
+  // Check for Telegram auth data in URL
+  useEffect(() => {
+    const checkTelegramAuth = () => {
+      // Check URL for Telegram auth parameters
+      const params = new URLSearchParams(window.location.search);
+      
+      // Check if we have any Telegram auth data
+      const id = params.get('id');
+      const first_name = params.get('first_name');
+      const last_name = params.get('last_name');
+      const username = params.get('username');
+      const photo_url = params.get('photo_url');
+      const auth_date = params.get('auth_date');
+      const hash = params.get('hash');
+
+      if (id && hash) {
+        // We have Telegram auth data
+        const telegramData = {
+          id: id,
+          first_name: first_name,
+          last_name: last_name,
+          username: username,
+          photo_url: photo_url,
+          auth_date: auth_date,
+          hash: hash
+        };
+        
+        console.log("Received Telegram auth data from URL:", telegramData);
+        
+        // Call our handleTelegramLogin function
+        handleTelegramLogin(telegramData);
+        
+        // Clean the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+    
+    checkTelegramAuth();
+  }, []);
 
   // Get redirect path from URL params
   const searchParams = new URLSearchParams(location.search);
@@ -338,25 +477,44 @@ const Signup: React.FC = () => {
             {t.signup.createAccount}
           </h2>
 
-          <button
-            disabled
-            className={`flex items-center justify-center gap-3 w-full font-medium py-3 px-4 rounded-xl mb-4 transition-all duration-300 opacity-50 cursor-not-allowed border ${darkMode
-              ? "bg-gray-900/50 text-white hover:bg-gray-800/50 border-gray-700/50"
-              : "bg-gray-100/50 text-gray-600 hover:bg-gray-200/50 border-gray-300/50"
-              }`}
-          >
-            <FcGoogle className="text-xl" /> Sign up with Google
-          </button>
 
-          <button
-            disabled
-            className={`flex items-center justify-center gap-3 w-full font-medium py-3 px-4 rounded-xl mb-6 transition-all duration-300 opacity-50 cursor-not-allowed border ${darkMode
-              ? "bg-gray-900/50 text-white hover:bg-gray-800/50 border-gray-700/50"
-              : "bg-gray-100/50 text-gray-600 hover:bg-gray-200/50 border-gray-300/50"
-              }`}
-          >
-            <FaApple className="text-xl" /> {t.signup.signUpWithApple} {t.signup.comingSoon}
-          </button>
+
+          {/* Telegram Login Button */}
+          <div className="mb-6">
+            {/* Custom Telegram button that always shows */}
+            <button
+              onClick={() => {
+                // Debug info
+                console.log("window.location.origin:", window.location.origin);
+                console.log("window.location.href:", window.location.href);
+                
+                // Use HustleX domain
+                const botId = "6928116475";
+                const origin = encodeURIComponent(window.location.origin);
+                const returnTo = encodeURIComponent(window.location.href);
+                const authUrl = `https://oauth.telegram.org/auth?bot_id=${botId}&origin=${origin}&embed=1&request_access=write&return_to=${returnTo}`;
+                
+                console.log("Opening Telegram auth URL:", authUrl);
+                
+                // Open in a popup window
+                const popup = window.open(authUrl, "Telegram Login", "width=600,height=700,popup=yes");
+                if (!popup) {
+                  alert("Popup blocked! Please allow popups for this site.");
+                }
+              }}
+              className="flex items-center justify-center gap-3 w-full bg-[#0088cc] hover:bg-[#0077b6] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg"
+            >
+              <FaTelegram size={24} />
+              <span>Log in with Telegram</span>
+            </button>
+            
+            {/* Optional: Telegram Widget Container (hidden for now) */}
+            {telegramConfig && telegramConfig.configured && telegramConfig.botUsername && (
+              <div className="mt-4">
+                <div id="telegram-login-button" className="flex justify-center" />
+              </div>
+            )}
+          </div>
 
           <div
             className={`my-6 text-center relative ${darkMode ? "text-gray-300" : "text-gray-600"

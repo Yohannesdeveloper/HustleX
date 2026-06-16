@@ -1,7 +1,7 @@
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "./index";
 import { useCallback } from "react";
-import { login, register, logout, switchRole, addRole, refreshUser, checkAuth } from "./authSlice";
+import { login, register, logout, switchRole, addRole, refreshUser, checkAuth, setUser } from "./authSlice";
 
 export const useAppDispatch: () => AppDispatch = useDispatch;
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
@@ -82,6 +82,13 @@ export const useAuth = () => {
     throw result.payload;
   }, [dispatch]);
 
+  const handleSetUser = useCallback(
+    (user: any) => {
+      dispatch(setUser(user));
+    },
+    [dispatch]
+  );
+
   return {
     user,
     loading,
@@ -93,5 +100,6 @@ export const useAuth = () => {
     addRole: handleAddRole,
     refreshUser: handleRefreshUser,
     checkAuth: handleCheckAuth,
+    setUser: handleSetUser,
   };
 };
