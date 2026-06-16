@@ -489,7 +489,7 @@ const Signup: React.FC = () => {
                 console.log("window.location.href:", window.location.href);
                 
                 // Use HustleX domain
-                const botId = "6928116475";
+                const botId = "8034250378";
                 const origin = encodeURIComponent(window.location.origin);
                 const returnTo = encodeURIComponent(window.location.href);
                 const authUrl = `https://oauth.telegram.org/auth?bot_id=${botId}&origin=${origin}&embed=1&request_access=write&return_to=${returnTo}`;
