@@ -25,7 +25,7 @@ const CompanyProfile: React.FC = () => {
     phone: '',
     email: '',
     foundedYear: '',
-    registrationNumber: '',
+    businessRegistrationNo: '',
     taxId: '',
   });
 
@@ -66,7 +66,7 @@ const CompanyProfile: React.FC = () => {
           phone: companyProfile.contactPhone || '',
           email: companyProfile.contactEmail || '',
           foundedYear: companyProfile.foundedYear?.toString() || '',
-          registrationNumber: '',
+          businessRegistrationNo: companyProfile.businessRegistrationNo || '',
           taxId: companyProfile.taxId || '',
         });
 
@@ -425,6 +425,7 @@ const CompanyProfile: React.FC = () => {
         logo: validLogo,
         tradeLicense: validTradeLicense,
         taxId: companyData.taxId?.trim() || undefined,
+        businessRegistrationNo: companyData.businessRegistrationNo?.trim() || undefined,
       };
 
       await apiService.updateCompanyProfile(companyProfileData);
@@ -762,8 +763,8 @@ const CompanyProfile: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={companyData.registrationNumber}
-                  onChange={(e) => handleInputChange('registrationNumber', e.target.value)}
+                  value={companyData.businessRegistrationNo}
+                  onChange={(e) => handleInputChange('businessRegistrationNo', e.target.value)}
                   className={`w-full px-4 py-3 rounded-lg border ${
                     darkMode
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
