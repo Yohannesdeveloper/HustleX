@@ -46,6 +46,7 @@ import CompanyProfile from "./Pages/CompanyProfile";
 import FreelancerProfilePage from "./Pages/FreelancerProfilePage";
 import ClientProfilePage from "./Pages/ClientProfilePage";
 import ProgrammaticSEOPage from "./Pages/ProgrammaticSEOPage";
+import FreelancerApplicationsManagement from "./Pages/FreelancerApplicationsManagement";
 
 
 import ApplicationsManagementMongo from "./Pages/ApplicationsManagementMongo";
@@ -146,6 +147,14 @@ function AppContent() {
           <Route path="/skills/:skill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
 
           <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
+          <Route
+            path="/my-applications"
+            element={
+              <ProtectedRoute requireRole="freelancer" requireProfileComplete={true}>
+                <FreelancerApplicationsManagement />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/chat" element={<ChatInterface />} />
         </Routes>
       </RoleRouteGuard>

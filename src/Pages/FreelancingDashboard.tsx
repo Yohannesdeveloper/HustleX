@@ -126,7 +126,7 @@ const FreelancingDashboard: React.FC = () => {
   const tabs = [
     { id: "overview" as const, label: "Overview", icon: BarChart3, path: "overview" },
     { id: "browseJobs" as const, label: "Browse Jobs", icon: Briefcase, navigate: "/job-listings" },
-    { id: "myApplications" as const, label: "My Applications", icon: FileText, path: "my-applications" },
+    { id: "myApplications" as const, label: "My Applications", icon: FileText, navigate: "/my-applications" },
     { id: "messages" as const, label: "Messages", icon: MessageSquare, navigate: "/chat" },
     { id: "profile" as const, label: "Profile", icon: User, navigate: "/freelancer-profile-setup" },
   ];
@@ -885,15 +885,7 @@ const FreelancingDashboard: React.FC = () => {
             )}
           </motion.div>
         )}
-        {activeTab === "myApplications" && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <FreelancerApplicationsManagement />
-          </motion.div>
-        )}
+
 
         {activeTab === "profile" && null}
       </div>

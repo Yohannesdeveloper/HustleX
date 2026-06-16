@@ -276,28 +276,29 @@ const FreelancerApplicationsManagement: React.FC = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto py-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-                <div>
-                    <h2 className={`text-3xl font-bold mb-2 ${darkMode ? "text-white" : "text-gray-900"} font-inter`}>
-                        My Applications
-                    </h2>
-                    <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
-                        Track and manage your sent job applications in one place.
-                    </p>
+        <div className={`min-h-screen ${darkMode ? "bg-gradient-to-br from-gray-900 via-black to-gray-900" : "bg-gradient-to-br from-gray-50 via-white to-blue-50"}`}>
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                    <div>
+                        <h2 className={`text-3xl font-bold mb-2 ${darkMode ? "text-white" : "text-gray-900"} font-inter`}>
+                            My Applications
+                        </h2>
+                        <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
+                            Track and manage your sent job applications in one place.
+                        </p>
+                    </div>
+                    <div className="relative w-full md:w-72">
+                        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${darkMode ? "text-gray-500" : "text-gray-400"}`} />
+                        <input
+                            type="text"
+                            placeholder="Search jobs..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border ${darkMode ? "bg-black/40 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"
+                                } focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
+                        />
+                    </div>
                 </div>
-                <div className="relative w-full md:w-72">
-                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${darkMode ? "text-gray-500" : "text-gray-400"}`} />
-                    <input
-                        type="text"
-                        placeholder="Search jobs..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border ${darkMode ? "bg-black/40 border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"
-                            } focus:ring-2 focus:ring-blue-500 outline-none transition-all`}
-                    />
-                </div>
-            </div>
 
             <div className="flex flex-wrap gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                 {[
@@ -368,6 +369,7 @@ const FreelancerApplicationsManagement: React.FC = () => {
                         )}
                     </motion.div>
                 )}
+            </div>
             </div>
         </div>
     );
