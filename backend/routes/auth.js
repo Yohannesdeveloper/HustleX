@@ -484,42 +484,59 @@ router.post("/freelancer-profile", auth, async (req, res) => {
     }
 
     // Update user profile with freelancer-specific data
+    // Use merge semantics: only overwrite fields that have a meaningful value
+    // so that re-submitting the wizard doesn't erase previously saved data.
     const profile = req.user.profile || {};
 
-    // Basic information
+    // Helper: set only when incoming value is non-empty
+    const setIfPresent = (key, value) => {
+      if (value !== undefined && value !== null && value !== "") {
+        profile[key] = value;
+      }
+    };
+
+    // Helper: set array only when it has items
+    const setArrayIfPresent = (key, value) => {
+      if (Array.isArray(value) && value.length > 0) {
+        profile[key] = value;
+      }
+    };
+
+    // Basic information (always overwrite — these are required)
     profile.firstName = profileData.firstName;
     profile.lastName = profileData.lastName;
-    profile.phone = profileData.phone;
-    profile.location = profileData.location;
-    profile.bio = profileData.bio;
+    setIfPresent("phone", profileData.phone);
+    setIfPresent("location", profileData.location);
+    setIfPresent("bio", profileData.bio);
+    setIfPresent("education", profileData.education);
+    setIfPresent("experience", profileData.experience || profileData.workExperience);
+    setIfPresent("workExperience", profileData.workExperience || profileData.experience);
 
     // Skills & expertise
-    profile.skills = profileData.skills || [];
-    profile.primarySkill = profileData.primarySkill;
-    profile.experienceLevel = profileData.experienceLevel;
+    setArrayIfPresent("skills", profileData.skills);
+    setIfPresent("primarySkill", profileData.primarySkill);
+    setIfPresent("experienceLevel", profileData.experienceLevel);
 
     // Experience & portfolio
-    profile.yearsOfExperience = profileData.yearsOfExperience;
-    profile.portfolioUrl = profileData.portfolioUrl;
-    profile.certifications = profileData.certifications || [];
+    setIfPresent("yearsOfExperience", profileData.yearsOfExperience);
+    setIfPresent("portfolioUrl", profileData.portfolioUrl);
+    setArrayIfPresent("certifications", profileData.certifications);
 
     // Availability & rates
-    profile.availability = profileData.availability;
-    profile.monthlyRate = profileData.monthlyRate;
-    profile.currency = profileData.currency;
-    profile.preferredJobTypes = profileData.preferredJobTypes || [];
-    profile.workLocation = profileData.workLocation;
+    setIfPresent("availability", profileData.availability);
+    setIfPresent("monthlyRate", profileData.monthlyRate);
+    setIfPresent("currency", profileData.currency);
+    setArrayIfPresent("preferredJobTypes", profileData.preferredJobTypes);
+    setIfPresent("workLocation", profileData.workLocation);
 
     // Social links
-    profile.linkedinUrl = profileData.linkedinUrl;
-    profile.githubUrl = profileData.githubUrl;
-    profile.websiteUrl = profileData.websiteUrl;
-    profile.cvUrl = profileData.cvUrl;
+    setIfPresent("linkedinUrl", profileData.linkedinUrl);
+    setIfPresent("githubUrl", profileData.githubUrl);
+    setIfPresent("websiteUrl", profileData.websiteUrl);
+    setIfPresent("cvUrl", profileData.cvUrl);
 
     // Avatar
-    if (profileData.avatar) {
-      profile.avatar = profileData.avatar;
-    }
+    setIfPresent("avatar", profileData.avatar);
 
     // Mark profile as complete
     profile.isProfileComplete = true;
