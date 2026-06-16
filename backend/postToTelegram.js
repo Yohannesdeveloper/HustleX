@@ -56,8 +56,13 @@ function escapeHtml(str) {
  * - CLIENT_URL (optional, e.g. https://www.hustlex.com for job links)
  */
 async function postJobToTelegram(job) {
+  console.log("📤 postJobToTelegram called for job:", job?._id);
   const botToken = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
   const chatIds = getTargetChatIds();
+
+  console.log("Telegram config:");
+  console.log("  TELEGRAM_BOT_TOKEN set?", !!botToken);
+  console.log("  TELEGRAM_CHAT_IDs:", chatIds);
 
   if (!botToken) {
     console.warn("Telegram: TELEGRAM_BOT_TOKEN not set; skipping post.");
@@ -87,6 +92,10 @@ async function postJobToTelegram(job) {
   baseUrl = baseUrl.replace(/\/$/, "");
   const jobId = job?._id ? String(job._id) : "";
   const jobLink = jobId ? `${baseUrl}/job-details/${jobId}` : "";
+  console.log("Job details:");
+  console.log("  Job ID:", jobId);
+  console.log("  Job title:", job?.title);
+  console.log("  Job link:", jobLink);
 
   // Check if company has valid tax ID
   let hasValidTaxId = false;

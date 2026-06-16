@@ -241,12 +241,18 @@ router.get("/pending/list", adminAuth, async (req, res) => {
 // ================================
 router.put("/:id/approve", adminAuth, async (req, res) => {
   try {
+    console.log("📥 Approving job:", req.params.id);
     const job = await Job.findByIdAndUpdate(
       req.params.id,
-      { approved: true },
+      { approved: true, status: "approved" },
       { new: true }
     );
-    if (!job) return res.status(404).json({ message: "Job not found" });
+    if (!job) {
+      console.log("❌ Job not found:", req.params.id);
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    console.log("✅ Job updated and approved:", job._id);
 
     const owner = await User.findById(job.postedBy).select("email");
     if (owner?.email) {
@@ -259,11 +265,14 @@ router.put("/:id/approve", adminAuth, async (req, res) => {
       });
     }
 
+    console.log("📤 Sending job to Telegram...");
     if (isQueueEnabled()) {
+      console.log("🔄 Using queue to send job to Telegram...");
       postJobToTelegramQueue(job._id.toString()).catch((err) =>
         console.error(`Telegram queue failed for job ${job._id}:`, err.message)
       );
     } else {
+      console.log("🔄 Sending job to Telegram directly...");
       postJobToTelegram(job).catch((err) =>
         console.error(`Telegram: Background posting failed for job ${job._id}:`, err.message)
       );
