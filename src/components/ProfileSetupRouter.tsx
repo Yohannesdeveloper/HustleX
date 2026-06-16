@@ -13,6 +13,7 @@ const ProfileSetupRouter: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const searchParams = new URLSearchParams(location.search);
+  const isEditMode = searchParams.get('edit') === 'true';
 
   const signupRole = searchParams.get('role') || (location.state as any)?.signupRole;
 
@@ -20,6 +21,12 @@ const ProfileSetupRouter: React.FC = () => {
     // Check if user is authenticated
     if (!isAuthenticated) {
       navigate('/signup', { replace: true });
+      return;
+    }
+
+    // If in edit mode, skip redirect — allow user to re-edit their profile
+    if (isEditMode) {
+      setIsLoading(false);
       return;
     }
 
@@ -117,6 +124,16 @@ const ProfileSetupRouter: React.FC = () => {
 
   const hasFreelancerRole = user?.roles?.includes('freelancer');
   const hasClientRole = user?.roles?.includes('client');
+
+  // In edit mode, show the wizard for the user's current role regardless of completion status
+  if (isEditMode) {
+    if (user?.currentRole === 'client' && hasClientRole) {
+      return <ClientProfileWizard />;
+    }
+    if (hasFreelancerRole) {
+      return <FreelancerProfileWizard />;
+    }
+  }
 
   // Determine which wizard to show based on role parameter and incomplete profiles
   const shouldShowFreelancerWizard = hasFreelancerRole && !hasFreelancerProfile;

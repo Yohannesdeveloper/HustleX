@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { useAuth } from "../store/hooks";
+import { toggleTheme } from "../store/themeSlice";
 import apiService from "../services/api";
 import {
   Briefcase,
@@ -52,8 +53,9 @@ const headingVariants = {
 const FreelancerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const darkMode = useAppSelector((s) => s.theme.darkMode);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState<
     "overview" | "applications" | "jobs" | "analytics" | "profile"
@@ -703,7 +705,26 @@ const FreelancerDashboard: React.FC = () => {
             </div>
           </div>
         );
-      case "profile":
+      case "profile": {
+        const p = user?.profile || {} as any;
+        const avatarUrl = p.avatar
+          ? (p.avatar.startsWith('http') || p.avatar.startsWith('data:') ? p.avatar : apiService.getFileUrl(p.avatar))
+          : null;
+
+        const ProfileField: React.FC<{ label: string; value?: string | null; multiline?: boolean }> = ({ label, value, multiline }) => {
+          if (!value) return null;
+          return (
+            <div className="mb-4">
+              <span className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{label}</span>
+              {multiline ? (
+                <p className={`mt-1 whitespace-pre-wrap ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{value}</p>
+              ) : (
+                <p className={`mt-1 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{value}</p>
+              )}
+            </div>
+          );
+        };
+
         return (
           <div className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -712,61 +733,157 @@ const FreelancerDashboard: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="mb-6 sm:mb-8">
-                  <motion.h1
-                    className={`text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r ${
-                      darkMode
-                        ? "from-blue-300 to-blue-500"
-                        : "from-blue-400 to-blue-600"
-                    } bg-clip-text text-transparent mb-2 font-inter tracking-tight leading-tight`}
-                    variants={headingVariants}
-                    initial="hidden"
-                    animate="visible"
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
+                  <div>
+                    <motion.h1
+                      className={`text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r ${
+                        darkMode ? "from-blue-300 to-blue-500" : "from-blue-400 to-blue-600"
+                      } bg-clip-text text-transparent mb-2 font-inter tracking-tight leading-tight`}
+                      variants={headingVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      My Profile
+                    </motion.h1>
+                    <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-base sm:text-lg`}>
+                      Your freelancer profile information
+                    </p>
+                  </div>
+                  <motion.button
+                    onClick={() => navigate("/freelancer-profile-setup?edit=true")}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:bg-blue-800 transition-all duration-300 shadow-md hover:shadow-blue-500/30"
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    Profile Management
-                  </motion.h1>
-                  <p
-                    className={`${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    } text-base sm:text-lg`}
-                  >
-                    Manage your freelancer profile and settings
-                  </p>
+                    <User className="inline w-5 h-5 mr-2" />
+                    Edit Profile
+                  </motion.button>
                 </div>
 
+                {/* Profile Card */}
                 <motion.div
-                  className={`${
-                    darkMode
-                      ? "bg-black/50 border-white/10"
-                      : "bg-white border-black/10"
-                  } border rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-sm`}
+                  className={`${darkMode ? "bg-black/50 border-white/10" : "bg-white border-black/10"} border rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-sm`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
                 >
-                  <div className="text-center py-12">
-                    <User className={`w-16 h-16 mx-auto mb-4 ${darkMode ? "text-gray-400" : "text-gray-300"}`} />
-                    <h4 className={`text-lg font-semibold mb-2 ${darkMode ? "text-white" : "text-black"}`}>
-                      Profile Settings
-                    </h4>
-                    <p className={`mb-6 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                      Update your profile information, skills, and preferences
-                    </p>
-                    <motion.button
-                      onClick={() => navigate("/freelancer-profile-setup")}
-                      className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:bg-blue-800 transition-all duration-300 shadow-md hover:shadow-blue-500/30`}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <User className="inline w-5 h-5 mr-2" />
-                      Edit Profile
-                    </motion.button>
+                  {/* Header with avatar and name */}
+                  <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-blue-500" />
+                    ) : (
+                      <div className={`w-20 h-20 rounded-full flex items-center justify-center ${darkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                        <User className={`w-10 h-10 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                      </div>
+                    )}
+                    <div>
+                      <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {p.firstName || ''} {p.lastName || ''}
+                      </h2>
+                      {p.primarySkill && (
+                        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{p.primarySkill} &middot; {p.experienceLevel || ''}</p>
+                      )}
+                      {p.location && (
+                        <p className={`text-sm flex items-center gap-1 mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <MapPin className="w-3 h-3" /> {p.location}
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Bio */}
+                  {p.bio && (
+                    <div className="mb-6">
+                      <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>About</h3>
+                      <p className={`whitespace-pre-wrap ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{p.bio}</p>
+                    </div>
+                  )}
+
+                  {/* Education & Work Experience */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {p.education && (
+                      <div>
+                        <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Education</h3>
+                        <p className={`whitespace-pre-wrap ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{p.education}</p>
+                      </div>
+                    )}
+                    {(p.experience || p.workExperience) && (
+                      <div>
+                        <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Work Experience</h3>
+                        <p className={`whitespace-pre-wrap ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{p.experience || p.workExperience}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Skills */}
+                  {Array.isArray(p.skills) && p.skills.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Skills</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {p.skills.map((skill: string, i: number) => (
+                          <span key={i} className={`px-3 py-1 rounded-full text-sm font-medium ${darkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Certifications */}
+                  {Array.isArray(p.certifications) && p.certifications.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Certifications</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {p.certifications.map((cert: string, i: number) => (
+                          <span key={i} className={`px-3 py-1 rounded-full text-sm font-medium ${darkMode ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700'}`}>
+                            {cert}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <ProfileField label="Phone" value={p.phone} />
+                    <ProfileField label="Email" value={user?.email} />
+                    <ProfileField label="Years of Experience" value={p.yearsOfExperience} />
+                    <ProfileField label="Availability" value={p.availability} />
+                    <ProfileField label="Monthly Rate" value={p.monthlyRate ? `${p.monthlyRate} ${p.currency || ''}` : null} />
+                    <ProfileField label="Work Location" value={p.workLocation} />
+                    <ProfileField label="Portfolio" value={p.portfolioUrl} />
+                  </div>
+
+                  {/* Preferred Job Types */}
+                  {Array.isArray(p.preferredJobTypes) && p.preferredJobTypes.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferred Job Types</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {p.preferredJobTypes.map((jt: string, i: number) => (
+                          <span key={i} className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>{jt}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Social Links */}
+                  {(p.linkedinUrl || p.githubUrl || p.websiteUrl || p.cvUrl) && (
+                    <div className="mb-2">
+                      <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Links</h3>
+                      <div className="flex flex-wrap gap-3">
+                        {p.linkedinUrl && <a href={p.linkedinUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline text-sm">LinkedIn</a>}
+                        {p.githubUrl && <a href={p.githubUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline text-sm">GitHub</a>}
+                        {p.websiteUrl && <a href={p.websiteUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline text-sm">Website</a>}
+                        {p.cvUrl && <a href={apiService.getFileUrl(p.cvUrl)} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline text-sm">Download CV</a>}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               </motion.div>
             </div>
           </div>
         );
+      }
         default:
           return (
             <div
@@ -953,167 +1070,59 @@ const FreelancerDashboard: React.FC = () => {
           );
         }
     };
+  };
 
-    return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Freelancer Dashboard</h1>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
-                >
-                  {darkMode ? '☀️' : '🌙'}
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
+  return (
+    <div className={`min-h-screen ${darkMode ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'}`}>
+      {/* Header */}
+      <header className={`${darkMode ? 'bg-gray-900' : 'bg-white'} shadow-sm`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Freelancer Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => dispatch(toggleTheme())}
+                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              >
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+              <button
+                onClick={() => { logout(); navigate('/login'); }}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+              >
+                Logout
+              </button>
             </div>
-            
-            {/* Tabs */}
-            <nav className="mt-6 flex space-x-8 border-b border-gray-200 dark:border-gray-700">
-              {['dashboard', 'applications', 'jobs', 'analytics', 'profile'].map((tab) => (
+          </div>
+          
+          {/* Tabs */}
+          <nav className="mt-6 flex space-x-8 border-b border-gray-200 dark:border-gray-700">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                    activeTab === tab.id
                       ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                   }`}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
                 </button>
-              ))}
-            </nav>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {renderTabContent()}
-        </main>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      {isLoading ? (
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+              );
+            })}
+          </nav>
         </div>
-      ) : (
-        <DashboardContent />
-      )}
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {renderTabContent()}
+      </main>
     </div>
-  );
-};
-
-export default FreelancerDashboard;
-    </div>
-  );
-};
-
-export default FreelancerDashboard;
-};
-
-export default FreelancerDashboard;
-export default FreelancerDashboard;
-}
-
-export default FreelancerDashboard;
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-            
-            {/* Tabs */}
-            <nav className="mt-6 flex space-x-8 border-b border-gray-200 dark:border-gray-700">
-              {(['overview', 'applications', 'jobs', 'analytics', 'profile'] as TabType[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {renderTabContent(activeTab)}
-        </main>
-      </div>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  return <DashboardContent />;
-};
-
-export default FreelancerDashboard;
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab
-                      ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {renderTabContent(activeTab)}
-        </main>
-      </div>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  return (
-    <DashboardContent 
-      darkMode={darkMode}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      setDarkMode={setDarkMode}
-      dashboardData={dashboardData}
-    />
   );
 };
 
