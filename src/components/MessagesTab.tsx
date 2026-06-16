@@ -1164,8 +1164,10 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
   // Auto-select conversation when navigating with freelancer ID
   useEffect(() => {
+    console.log("MessagesTab: Checking location.state...", location.state);
     const state = location.state as { freelancerId?: string; freelancer?: FreelancerWithStatus } | null;
     const freelancerId = state?.freelancerId;
+    console.log("MessagesTab: freelancerId is", freelancerId);
     if (freelancerId && user?._id) {
       // Prevent messaging yourself
       if (freelancerId === user._id) {
@@ -1175,10 +1177,12 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
       // Skip if we've already processed this freelancer ID
       if (lastProcessedFreelancerIdRef.current === freelancerId) {
+        console.log("MessagesTab: Already processed this freelancerId", freelancerId);
         return;
       }
 
       const conversationKey = getNormalizedConversationKey(user._id, freelancerId);
+      console.log("MessagesTab: conversationKey is", conversationKey);
 
       const createAndSelectConversation = async () => {
         // Check if conversation already exists in conversations list using ref
@@ -1186,6 +1190,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           (c) => getConversationKey(c) === getNormalizedConversationKey(user._id, freelancerId)
         );
         if (existingConv) {
+          console.log("MessagesTab: Found existing conversation!");
           setSelectedConversation(existingConv);
           lastProcessedFreelancerIdRef.current = freelancerId;
           return;
@@ -1193,6 +1198,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
         // Check localStorage for existing messages
         const existingMessages = getStoredMessages(conversationKey);
+        console.log("MessagesTab: existingMessages in localStorage", existingMessages.length);
         let conv: Conversation | null = null;
 
         if (existingMessages.length > 0) {
@@ -1224,6 +1230,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           };
         } else {
           // New conversation - fetch freelancer data
+          console.log("MessagesTab: Creating NEW conversation!");
           let freelancer: FreelancerWithStatus | undefined = state?.freelancer;
 
           // If freelancer not in state, fetch it
@@ -1235,6 +1242,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               console.error("Error fetching freelancer:", error);
             }
           }
+          console.log("MessagesTab: Freelancer found", freelancer);
 
           const profile = freelancer?.profile || {};
           const fullName = freelancer
@@ -1253,6 +1261,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           };
 
           // Save an initial empty message to localStorage so the conversation persists
+          console.log("MessagesTab: Saving initial message to localStorage");
           const initialMessage: StoredMessage = {
             senderId: user._id,
             receiverId: freelancerId,
@@ -1264,14 +1273,17 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         }
 
         if (conv) {
+          console.log("MessagesTab: Adding conversation to state", conv);
           // Add to conversations list if not already there
           setConversations(prev => {
             const exists = prev.some(
               (c) => getConversationKey(c) === getConversationKey(conv!)
             );
             if (!exists) {
+              console.log("MessagesTab: Conversation did NOT exist in prev, adding now!");
               return [conv!, ...prev];
             }
+            console.log("MessagesTab: Conversation already exists in prev!");
             return prev;
           });
 
@@ -1288,7 +1300,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
     if (!location.state || !freelancerId) {
       lastProcessedFreelancerIdRef.current = null;
     }
-  }, [location.state, user?._id]);
+  }, [location.state, user?._id, availableFreelancers]);
 
   // Load messages for selected conversation
   useEffect(() => {
