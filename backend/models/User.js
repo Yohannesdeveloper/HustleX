@@ -157,14 +157,14 @@ userSchema.pre("save", async function (next) {
       if (name) {
         this.slug = await generateUniqueSlug(this.constructor, name, "slug", this._id);
       }
-      
+
       // Establish defaults for SEO fields
       if (!this.seo) this.seo = {};
       if (!this.seo.metaTitle) {
         this.seo.metaTitle = `${name || "User"} | Elite Freelancer on HustleX`;
       }
       if (!this.seo.metaDescription) {
-        this.seo.metaDescription = this.profile.bio 
+        this.seo.metaDescription = this.profile.bio
           ? this.profile.bio.substring(0, 150)
           : `Hire ${name || "a professional freelancer"} on HustleX. Review portfolio, hourly rates, and certifications.`;
       }

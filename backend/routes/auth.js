@@ -628,7 +628,7 @@ router.post("/telegram-login", async (req, res) => {
     let user = await User.findOne({ "telegram.id": telegramData.id });
 
     if (!user) {
-      // Create new user without setting default role - they will choose
+      // Create new user
       user = new User({
         telegram: {
           id: telegramData.id,
@@ -637,8 +637,8 @@ router.post("/telegram-login", async (req, res) => {
           lastName: telegramData.last_name,
           photoUrl: telegramData.photo_url,
         },
-        roles: [], // Empty roles array - user needs to choose
-        currentRole: null, // No current role yet
+        roles: ["freelancer"],
+        currentRole: "freelancer",
         profile: {
           firstName: telegramData.first_name || "",
           lastName: telegramData.last_name || "",
@@ -669,23 +669,13 @@ router.post("/telegram-login", async (req, res) => {
 });
 
 // @route   GET /api/auth/telegram-config
-// @desc    Get Telegram configuration for frontend widget
+// @desc    Get Telegram bot username
 // @access  Public
 router.get("/telegram-config", (req, res) => {
-  try {
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    
-    const isConfigured = !!(botUsername && botToken);
-    
-    res.json({
-      botUsername,
-      configured: isConfigured
-    });
-  } catch (error) {
-    console.error("Get Telegram config error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+  res.json({
+    botUsername: process.env.TELEGRAM_BOT_USERNAME || null,
+    configured: !!process.env.TELEGRAM_BOT_TOKEN,
+  });
 });
 
 module.exports = router;

@@ -364,7 +364,7 @@ const FreelancerProfileWizard: React.FC = () => {
       case 2:
         return <ProfessionalDetailsStep {...stepProps} />;
       case 3:
-        return <ReviewStep {...stepProps} onSubmit={() => navigate('/dashboard/freelancer/overview')} navigate={navigate} refreshUser={refreshUser} />;
+        return <ReviewStep {...stepProps} onSubmit={() => navigate('/job-listings')} navigate={navigate} refreshUser={refreshUser} />;
       default:
         return <BasicInfoStep {...stepProps} />;
     }
@@ -1244,7 +1244,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         await refreshUser();
       }
 
-      alert('Profile submitted successfully! Redirecting to freelancer dashboard...');
+      alert('Profile submitted successfully! Redirecting to job listings...');
       if (onSubmit) {
         onSubmit();
       }
