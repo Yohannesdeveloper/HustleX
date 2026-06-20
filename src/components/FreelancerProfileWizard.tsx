@@ -81,15 +81,25 @@ interface StepProps {
 
 // Telegram WebApp Storage Utilities
 const isTelegramWebApp = (): boolean => {
-  return typeof window !== 'undefined' && window.Telegram?.WebApp?.Storage !== undefined;
+  const isTelegram = typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
+  console.log('isTelegramWebApp:', isTelegram, 'Telegram object:', window.Telegram);
+  return isTelegram;
 };
 
 const saveToStorage = (key: string, value: string): void => {
   try {
+    // Always try to save to localStorage as primary storage (most reliable)
+    localStorage.setItem(key, value);
+    console.log('Saved to localStorage:', key);
+
+    // Also try Telegram Storage if available (as backup)
     if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-      window.Telegram.WebApp.Storage.setItem(key, value);
-    } else {
-      localStorage.setItem(key, value);
+      try {
+        window.Telegram.WebApp.Storage.setItem(key, value);
+        console.log('Also saved to Telegram Storage:', key);
+      } catch (telegramError) {
+        console.warn('Telegram Storage save failed, using localStorage:', telegramError);
+      }
     }
   } catch (error) {
     console.error('Error saving to storage:', error);
@@ -99,17 +109,34 @@ const saveToStorage = (key: string, value: string): void => {
 const loadFromStorage = (key: string): Promise<string | null> => {
   return new Promise((resolve) => {
     try {
+      // First try localStorage (most reliable)
+      const localStorageValue = localStorage.getItem(key);
+      if (localStorageValue) {
+        console.log('Loaded from localStorage:', key);
+        resolve(localStorageValue);
+        return;
+      }
+
+      // If not in localStorage, try Telegram Storage
       if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
+        console.log('Trying to load from Telegram Storage:', key);
         window.Telegram.WebApp.Storage.getItem(key, (error: Error | null, value: string | null) => {
           if (error) {
             console.error('Error loading from Telegram storage:', error);
             resolve(null);
-          } else {
+          } else if (value) {
+            console.log('Loaded from Telegram Storage:', key);
+            // Also save to localStorage for future reliability
+            localStorage.setItem(key, value);
             resolve(value);
+          } else {
+            console.log('No value found in Telegram Storage:', key);
+            resolve(null);
           }
         });
       } else {
-        resolve(localStorage.getItem(key));
+        console.log('No value found in localStorage and Telegram not available:', key);
+        resolve(null);
       }
     } catch (error) {
       console.error('Error loading from storage:', error);
@@ -120,10 +147,18 @@ const loadFromStorage = (key: string): Promise<string | null> => {
 
 const removeFromStorage = (key: string): void => {
   try {
+    // Always remove from localStorage
+    localStorage.removeItem(key);
+    console.log('Removed from localStorage:', key);
+
+    // Also try Telegram Storage if available
     if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-      window.Telegram.WebApp.Storage.removeItem(key);
-    } else {
-      localStorage.removeItem(key);
+      try {
+        window.Telegram.WebApp.Storage.removeItem(key);
+        console.log('Also removed from Telegram Storage:', key);
+      } catch (telegramError) {
+        console.warn('Telegram Storage remove failed:', telegramError);
+      }
     }
   } catch (error) {
     console.error('Error removing from storage:', error);
@@ -231,23 +266,31 @@ const FreelancerProfileWizard: React.FC = () => {
   // Load saved data from Telegram WebApp storage or localStorage on mount
   useEffect(() => {
     const loadSavedData = async () => {
+      console.log('Attempting to load saved profile data...');
       const savedData = await loadFromStorage('freelancerProfileData');
+      console.log('Saved data found:', !!savedData);
+
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
-          // Only load saved data if user profile doesn't exist (for new users/bots)
-          if (!user?.profile) {
-            setProfileData(prev => ({
-              ...prev,
-              ...parsedData,
-              // Preserve file objects that can't be stored
-              profilePicture: prev.profilePicture,
-              cvFile: prev.cvFile,
-            }));
-          }
+          console.log('Parsed saved data:', parsedData);
+
+          // Load saved data and merge with existing data
+          // If user has a profile, the user profile data will take priority (loaded in the useEffect above)
+          // If no user profile, saved data will populate the form
+          setProfileData(prev => ({
+            ...prev,
+            ...parsedData,
+            // Preserve file objects that can't be stored
+            profilePicture: prev.profilePicture,
+            cvFile: prev.cvFile,
+          }));
+          console.log('Profile data updated with saved data');
         } catch (error) {
           console.error('Error parsing saved profile data:', error);
         }
+      } else {
+        console.log('No saved data found');
       }
     };
 
@@ -255,6 +298,7 @@ const FreelancerProfileWizard: React.FC = () => {
 
     // Initialize Telegram WebApp if available
     if (isTelegramWebApp() && window.Telegram?.WebApp) {
+      console.log('Initializing Telegram WebApp');
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
     }
@@ -269,7 +313,9 @@ const FreelancerProfileWizard: React.FC = () => {
       cvFile: undefined, // Can't store File objects
     };
 
-    saveToStorage('freelancerProfileData', JSON.stringify(dataToSave));
+    const dataString = JSON.stringify(dataToSave);
+    console.log('Saving profile data to storage, data length:', dataString.length);
+    saveToStorage('freelancerProfileData', dataString);
   }, [profileData]); // Save whenever profileData changes
 
 
