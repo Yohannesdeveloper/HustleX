@@ -300,7 +300,7 @@ const FreelancerApplicationsManagement: React.FC = () => {
                     </div>
                 </div>
 
-            <div className="flex flex-wrap gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex flex-nowrap gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                 {[
                     { id: "all", label: "All", icon: Briefcase, count: stats.all },
                     { id: "pending", label: "Pending", icon: Clock, count: stats.pending },
@@ -311,7 +311,7 @@ const FreelancerApplicationsManagement: React.FC = () => {
                     <button
                         key={tab.id}
                         onClick={() => setActiveFilter(tab.id as any)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border ${activeFilter === tab.id
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all border shrink-0 ${activeFilter === tab.id
                             ? darkMode
                                 ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20"
                                 : "bg-blue-600 border-blue-700 text-white shadow-lg shadow-blue-700/20"
@@ -320,9 +320,9 @@ const FreelancerApplicationsManagement: React.FC = () => {
                                 : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                             }`}
                     >
-                        <tab.icon className="w-4 h-4" />
+                        <tab.icon className="w-3.5 h-3.5" />
                         {tab.label}
-                        <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${activeFilter === tab.id ? "bg-white/20 text-white" : darkMode ? "bg-white/10 text-gray-500" : "bg-gray-100 text-gray-400"
+                        <span className={`ml-1 px-1 py-0.5 rounded-full text-[9px] ${activeFilter === tab.id ? "bg-white/20 text-white" : darkMode ? "bg-white/10 text-gray-500" : "bg-gray-100 text-gray-400"
                             }`}>
                             {tab.count}
                         </span>
