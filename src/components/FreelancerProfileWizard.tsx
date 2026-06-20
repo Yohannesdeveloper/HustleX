@@ -9,24 +9,7 @@ import { useAuth } from '../store/hooks';
 import PhoneInput from './PhoneInput';
 import { COUNTRIES } from '../constants/countries';
 import { formatLocation, parseLocation } from '../utils/location';
-
-// Extend Window interface for Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        Storage?: {
-          setItem: (key: string, value: string, callback?: () => void) => void;
-          getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => void;
-          removeItem: (key: string, callback?: () => void) => void;
-          getKeys: (callback: (error: Error | null, keys: string[]) => void) => void;
-        };
-        ready: () => void;
-        expand: () => void;
-      };
-    };
-  }
-}
+import '../types/telegram';
 
 interface FreelancerProfileData {
   // Basic Information
@@ -318,22 +301,45 @@ const FreelancerProfileWizard: React.FC = () => {
   // Load saved data from Telegram WebApp storage or localStorage on mount
   useEffect(() => {
     const loadSavedData = async () => {
+      // Wait a bit to ensure user profile data has loaded first
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const savedData = await loadFromStorage('freelancerProfileData');
 
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
 
-          // Load saved data and merge with existing data
-          // If user has a profile, the user profile data will take priority (loaded in the useEffect above)
-          // If no user profile, saved data will populate the form
-          setProfileData(prev => ({
-            ...prev,
-            ...parsedData,
+          // Merge saved data with existing data, but only fill empty fields
+          // This prevents overwriting user profile data with old saved data
+          setProfileData(prev => {
+            const merged = { ...prev };
+
+            // Only merge fields that are empty in the current state
+            Object.keys(parsedData).forEach(key => {
+              const currentValue = merged[key];
+              const savedValue = parsedData[key];
+
+              // If current value is empty/falsy, use saved value
+              // Skip arrays and objects to avoid complex merging issues
+              if (
+                (currentValue === '' || currentValue === null || currentValue === undefined) &&
+                savedValue !== null &&
+                savedValue !== undefined &&
+                !Array.isArray(savedValue) &&
+                typeof savedValue !== 'object'
+              ) {
+                merged[key] = savedValue;
+              }
+            });
+
             // Preserve file objects that can't be stored
-            profilePicture: prev.profilePicture,
-            cvFile: prev.cvFile,
-          }));
+            return {
+              ...merged,
+              profilePicture: prev.profilePicture,
+              cvFile: prev.cvFile,
+            };
+          });
         } catch (error) {
           // Silently handle parse errors
         }
@@ -648,8 +654,32 @@ const FreelancerProfileWizard: React.FC = () => {
                 </AnimatePresence>
 
                 {/* Storage Status (for debugging) */}
-                <div className={`mt-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Storage: {isTelegramWebApp() ? 'Telegram Mini App' : 'Browser'}
+                <div className={`mt-2 text-xs flex items-center gap-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <span>Storage: {isTelegramWebApp() ? 'Telegram Mini App' : 'Browser'}</span>
+                  <button
+                    onClick={async () => {
+                      const savedData = await loadFromStorage('freelancerProfileData');
+                      if (savedData) {
+                        try {
+                          const parsedData = JSON.parse(savedData);
+                          setProfileData(prev => ({
+                            ...prev,
+                            ...parsedData,
+                            profilePicture: prev.profilePicture,
+                            cvFile: prev.cvFile,
+                          }));
+                          alert('Draft loaded successfully!');
+                        } catch (error) {
+                          alert('Failed to load draft');
+                        }
+                      } else {
+                        alert('No saved draft found');
+                      }
+                    }}
+                    className="text-blue-500 hover:text-blue-600 underline"
+                  >
+                    Load Draft
+                  </button>
                 </div>
               </div>
             </div>
