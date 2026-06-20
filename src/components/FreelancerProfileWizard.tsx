@@ -9,7 +9,6 @@ import { useAuth } from '../store/hooks';
 import PhoneInput from './PhoneInput';
 import { COUNTRIES } from '../constants/countries';
 import { formatLocation, parseLocation } from '../utils/location';
-import '../types/telegram';
 
 interface FreelancerProfileData {
   // Basic Information
