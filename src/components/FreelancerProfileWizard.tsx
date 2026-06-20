@@ -84,51 +84,104 @@ const isTelegramWebApp = (): boolean => {
   return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
-const saveToStorage = (key: string, value: string): void => {
+const saveToStorage = (key: string, value: string): boolean => {
+  let saved = false;
   try {
-    // Always try to save to localStorage as primary storage (most reliable)
-    localStorage.setItem(key, value);
+    // Try localStorage first
+    try {
+      localStorage.setItem(key, value);
+      saved = true;
+    } catch (localStorageError) {
+      // localStorage failed, try sessionStorage
+      try {
+        sessionStorage.setItem(key, value);
+        saved = true;
+      } catch (sessionStorageError) {
+        // Both failed, try URL hash for small amounts of data
+        try {
+          if (value.length < 2000) { // Only store small data in URL
+            const encoded = btoa(value);
+            window.location.hash = `draft_${encoded}`;
+            saved = true;
+          }
+        } catch (urlError) {
+          // URL storage failed
+        }
+      }
+    }
 
-    // Also try Telegram Storage if available (as backup)
+    // Also try Telegram Storage if available
     if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
       try {
         window.Telegram.WebApp.Storage.setItem(key, value);
       } catch (telegramError) {
-        // Telegram Storage failed, but localStorage worked
+        // Telegram Storage failed
       }
     }
   } catch (error) {
-    // Silently handle storage errors
+    // All storage methods failed
   }
+  return saved;
 };
 
 const loadFromStorage = (key: string): Promise<string | null> => {
   return new Promise((resolve) => {
+    let value = null;
+
+    // Try localStorage first
     try {
-      // First try localStorage (most reliable)
-      const localStorageValue = localStorage.getItem(key);
-      if (localStorageValue) {
-        resolve(localStorageValue);
+      value = localStorage.getItem(key);
+      if (value) {
+        resolve(value);
         return;
       }
+    } catch (localStorageError) {
+      // localStorage failed
+    }
 
-      // If not in localStorage, try Telegram Storage
-      if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-        window.Telegram.WebApp.Storage.getItem(key, (error: Error | null, value: string | null) => {
-          if (error) {
-            resolve(null);
-          } else if (value) {
-            // Also save to localStorage for future reliability
-            localStorage.setItem(key, value);
-            resolve(value);
-          } else {
-            resolve(null);
-          }
-        });
-      } else {
-        resolve(null);
+    // Try sessionStorage
+    try {
+      value = sessionStorage.getItem(key);
+      if (value) {
+        resolve(value);
+        return;
       }
-    } catch (error) {
+    } catch (sessionStorageError) {
+      // sessionStorage failed
+    }
+
+    // Try URL hash
+    try {
+      if (window.location.hash.startsWith('#draft_')) {
+        const encoded = window.location.hash.replace('#draft_', '');
+        value = atob(encoded);
+        if (value) {
+          resolve(value);
+          return;
+        }
+      }
+    } catch (urlError) {
+      // URL hash failed
+    }
+
+    // If not in browser storage, try Telegram Storage
+    if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
+      window.Telegram.WebApp.Storage.getItem(key, (error: Error | null, telegramValue: string | null) => {
+        if (error) {
+          resolve(null);
+        } else if (telegramValue) {
+          // Try to save to localStorage for future use
+          try {
+            localStorage.setItem(key, telegramValue);
+          } catch (e) {
+            // localStorage save failed
+          }
+          resolve(telegramValue);
+        } else {
+          resolve(null);
+        }
+      });
+    } else {
       resolve(null);
     }
   });
@@ -136,19 +189,28 @@ const loadFromStorage = (key: string): Promise<string | null> => {
 
 const removeFromStorage = (key: string): void => {
   try {
-    // Always remove from localStorage
     localStorage.removeItem(key);
-
-    // Also try Telegram Storage if available
-    if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-      try {
-        window.Telegram.WebApp.Storage.removeItem(key);
-      } catch (telegramError) {
-        // Telegram Storage failed, but localStorage worked
-      }
+  } catch (e) {
+    // localStorage failed
+  }
+  try {
+    sessionStorage.removeItem(key);
+  } catch (e) {
+    // sessionStorage failed
+  }
+  try {
+    if (window.location.hash.startsWith('#draft_')) {
+      window.location.hash = '';
     }
-  } catch (error) {
-    // Silently handle storage errors
+  } catch (e) {
+    // URL hash clear failed
+  }
+  if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
+    try {
+      window.Telegram.WebApp.Storage.removeItem(key);
+    } catch (e) {
+      // Telegram Storage failed
+    }
   }
 };
 
@@ -179,6 +241,7 @@ const FreelancerProfileWizard: React.FC = () => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(true);
   const [profileData, setProfileData] = useState<FreelancerProfileData>({
     firstName: '',
     lastName: '',
@@ -291,6 +354,7 @@ const FreelancerProfileWizard: React.FC = () => {
     // Show saving indicator
     setIsSavingDraft(true);
     setShowSaveIndicator(true);
+    setSaveSuccess(false);
 
     // Create a copy of profileData without file objects
     const dataToSave = {
@@ -300,15 +364,23 @@ const FreelancerProfileWizard: React.FC = () => {
     };
 
     const dataString = JSON.stringify(dataToSave);
-    saveToStorage('freelancerProfileData', dataString);
+    const success = saveToStorage('freelancerProfileData', dataString);
+    setSaveSuccess(success);
 
     // Hide saving indicator after a short delay
     const timer = setTimeout(() => {
       setIsSavingDraft(false);
-      // Keep the "Saved" indicator visible for a bit longer
-      setTimeout(() => {
-        setShowSaveIndicator(false);
-      }, 2000);
+      // Keep the "Saved" indicator visible for a bit longer if successful
+      if (success) {
+        setTimeout(() => {
+          setShowSaveIndicator(false);
+        }, 2000);
+      } else {
+        // If save failed, hide indicator quickly
+        setTimeout(() => {
+          setShowSaveIndicator(false);
+        }, 1000);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
@@ -552,7 +624,7 @@ const FreelancerProfileWizard: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       className={`mt-1 text-xs flex items-center gap-1 ${
-                        isSavingDraft ? 'text-yellow-500' : 'text-green-500'
+                        isSavingDraft ? 'text-yellow-500' : saveSuccess ? 'text-green-500' : 'text-red-500'
                       }`}
                     >
                       {isSavingDraft ? (
@@ -560,15 +632,25 @@ const FreelancerProfileWizard: React.FC = () => {
                           <span className="animate-pulse">●</span>
                           Saving draft...
                         </>
-                      ) : (
+                      ) : saveSuccess ? (
                         <>
                           <span>✓</span>
                           Draft saved
+                        </>
+                      ) : (
+                        <>
+                          <span>✗</span>
+                          Save failed - storage not available
                         </>
                       )}
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Storage Status (for debugging) */}
+                <div className={`mt-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Storage: {isTelegramWebApp() ? 'Telegram Mini App' : 'Browser'}
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
