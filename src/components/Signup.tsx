@@ -398,7 +398,7 @@ const Signup: React.FC = () => {
     <>
       {isLoginPage ? <LoginSEO /> : <RegisterSEO />}
       <div
-        className={`min-h-screen flex items-center justify-center px-3 sm:px-4 py-8 transition-colors duration-300 ${darkMode
+        className={`min-h-screen flex items-start justify-center px-3 sm:px-4 py-8 transition-colors duration-300 overflow-y-auto ${darkMode
           ? "bg-gradient-to-br from-black via-gray-900 to-black-900 text-white"
           : "bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 text-gray-900"
           }`}
