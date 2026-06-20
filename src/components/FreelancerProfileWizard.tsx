@@ -67,156 +67,123 @@ const isTelegramWebApp = (): boolean => {
   return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
-const saveToStorage = (key: string, value: string): boolean => {
+const saveToStorage = async (key: string, value: string): Promise<boolean> => {
   let saved = false;
   try {
-    // Try localStorage first
-    try {
-      localStorage.setItem(key, value);
-      saved = true;
-    } catch (localStorageError) {
-      // localStorage failed, try sessionStorage
-      try {
-        sessionStorage.setItem(key, value);
-        saved = true;
-      } catch (sessionStorageError) {
-        // Both failed, try URL hash for small amounts of data
-        try {
-          if (value.length < 2000) { // Only store small data in URL
-            const encoded = btoa(value);
-            window.location.hash = `draft_${encoded}`;
-            saved = true;
-          }
-        } catch (urlError) {
-          // URL storage failed
-        }
-      }
-    }
+    localStorage.setItem(key, value);
+    saved = true;
+  } catch (e) {}
+  
+  try {
+    sessionStorage.setItem(key, value);
+    saved = true;
+  } catch (e) {}
 
-    // Also try Telegram Storage if available
-    if (isTelegramWebApp()) {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.CloudStorage) {
-        try {
-          tg.CloudStorage.setItem(key, value);
-        } catch (e) {}
-      } else if (tg?.Storage) {
-        try {
-          tg.Storage.setItem(key, value);
-        } catch (telegramError) {
-          // Telegram Storage failed
+  if (isTelegramWebApp()) {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.CloudStorage) {
+      try {
+        // CloudStorage has a 4096 character limit per key. We chunk the value.
+        const chunks = [];
+        for (let i = 0; i < value.length; i += 4000) {
+          chunks.push(value.substring(i, i + 4000));
         }
-      }
+
+        await new Promise<void>((resolve) => {
+          tg.CloudStorage!.setItem(`${key}_count`, chunks.length.toString(), () => resolve());
+        });
+
+        for (let i = 0; i < chunks.length; i++) {
+          await new Promise<void>((resolve) => {
+            tg.CloudStorage!.setItem(`${key}_${i}`, chunks[i], () => resolve());
+          });
+        }
+        saved = true;
+      } catch (e) {}
+    } else if (tg?.Storage) {
+      try { tg.Storage.setItem(key, value); saved = true; } catch (e) {}
     }
-  } catch (error) {
-    // All storage methods failed
   }
   return saved;
 };
 
-const loadFromStorage = (key: string): Promise<string | null> => {
-  return new Promise((resolve) => {
-    let value = null;
-
-    // Try localStorage first
-    try {
-      value = localStorage.getItem(key);
-      if (value) {
-        resolve(value);
-        return;
-      }
-    } catch (localStorageError) {
-      // localStorage failed
-    }
-
-    // Try sessionStorage
-    try {
-      value = sessionStorage.getItem(key);
-      if (value) {
-        resolve(value);
-        return;
-      }
-    } catch (sessionStorageError) {
-      // sessionStorage failed
-    }
-
-    // Try URL hash
-    try {
-      if (window.location.hash.startsWith('#draft_')) {
-        const encoded = window.location.hash.replace('#draft_', '');
-        value = atob(encoded);
-        if (value) {
-          resolve(value);
-          return;
-        }
-      }
-    } catch (urlError) {
-      // URL hash failed
-    }
-
-    // If not in browser storage, try Telegram Storage
-    if (isTelegramWebApp()) {
-      const tg = window.Telegram?.WebApp;
-      if (tg?.CloudStorage) {
-        tg.CloudStorage.getItem(key, (error: Error | null, telegramValue: string | null) => {
-          if (!error && telegramValue) {
-            try { localStorage.setItem(key, telegramValue); } catch (e) {}
-            resolve(telegramValue);
-          } else {
-            resolve(null);
-          }
-        });
-      } else if (tg?.Storage) {
-        tg.Storage.getItem(key, (error: Error | null, telegramValue: string | null) => {
-          if (error) {
-            resolve(null);
-          } else if (telegramValue) {
-            // Try to save to localStorage for future use
-            try {
-              localStorage.setItem(key, telegramValue);
-            } catch (e) {
-              // localStorage save failed
-            }
-            resolve(telegramValue);
-          } else {
-            resolve(null);
-          }
-        });
-      } else {
-        resolve(null);
-      }
-    } else {
-      resolve(null);
-    }
-  });
-};
-
-const removeFromStorage = (key: string): void => {
-  try {
-    localStorage.removeItem(key);
-  } catch (e) {
-    // localStorage failed
-  }
-  try {
-    sessionStorage.removeItem(key);
-  } catch (e) {
-    // sessionStorage failed
-  }
-  try {
-    if (window.location.hash.startsWith('#draft_')) {
-      window.location.hash = '';
-    }
-  } catch (e) {
-    // URL hash clear failed
-  }
+const loadFromStorage = async (key: string): Promise<string | null> => {
+  // Always prefer Telegram CloudStorage if available
   if (isTelegramWebApp()) {
     const tg = window.Telegram?.WebApp;
     if (tg?.CloudStorage) {
-      try { tg.CloudStorage.removeItem(key); } catch (e) {}
+      try {
+        const countStr = await new Promise<string | null>((resolve) => {
+          tg.CloudStorage!.getItem(`${key}_count`, (err, val) => resolve(err ? null : val));
+        });
+
+        if (countStr) {
+          const count = parseInt(countStr, 10);
+          let fullStr = '';
+          for (let i = 0; i < count; i++) {
+            const chunk = await new Promise<string | null>((resolve) => {
+              tg.CloudStorage!.getItem(`${key}_${i}`, (err, val) => resolve(err ? null : val));
+            });
+            if (chunk) fullStr += chunk;
+          }
+          if (fullStr) {
+            try { localStorage.setItem(key, fullStr); } catch (e) {}
+            return fullStr;
+          }
+        } else {
+          // Fallback to single key
+          const singleVal = await new Promise<string | null>((resolve) => {
+            tg.CloudStorage!.getItem(key, (err, val) => resolve(err ? null : val));
+          });
+          if (singleVal) {
+            try { localStorage.setItem(key, singleVal); } catch (e) {}
+            return singleVal;
+          }
+        }
+      } catch (e) {}
     } else if (tg?.Storage) {
-      try { tg.Storage.removeItem(key); } catch (e) {
-        // Telegram Storage failed
-      }
+      const singleVal = await new Promise<string | null>((resolve) => {
+        tg.Storage!.getItem(key, (err, val) => resolve(err ? null : val));
+      });
+      if (singleVal) return singleVal;
+    }
+  }
+
+  // Fallback to browser storage
+  try {
+    const localVal = localStorage.getItem(key);
+    if (localVal) return localVal;
+  } catch (e) {}
+
+  try {
+    const sessionVal = sessionStorage.getItem(key);
+    if (sessionVal) return sessionVal;
+  } catch (e) {}
+
+  return null;
+};
+
+const removeFromStorage = (key: string): void => {
+  try { localStorage.removeItem(key); } catch (e) {}
+  try { sessionStorage.removeItem(key); } catch (e) {}
+  
+  if (isTelegramWebApp()) {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.CloudStorage) {
+      try {
+        tg.CloudStorage.removeItem(key);
+        tg.CloudStorage.getItem(`${key}_count`, (err, val) => {
+          if (!err && val) {
+            const count = parseInt(val, 10);
+            for (let i = 0; i < count; i++) {
+              tg.CloudStorage!.removeItem(`${key}_${i}`);
+            }
+            tg.CloudStorage!.removeItem(`${key}_count`);
+          }
+        });
+      } catch (e) {}
+    } else if (tg?.Storage) {
+      try { tg.Storage.removeItem(key); } catch (e) {}
     }
   }
 };
@@ -387,34 +354,37 @@ const FreelancerProfileWizard: React.FC = () => {
     setShowSaveIndicator(true);
     setSaveSuccess(false);
 
-    // Create a copy of profileData without file objects
+    // Create a copy of profileData without file objects and preview (which is huge base64)
     const dataToSave = {
       ...profileData,
+      profilePicturePreview: undefined, // Base64 can exceed CloudStorage limits
       profilePicture: undefined, // Can't store File objects
       cvFile: undefined, // Can't store File objects
     };
 
     const dataString = JSON.stringify(dataToSave);
-    const success = saveToStorage('freelancerProfileData', dataString);
-    setSaveSuccess(success);
+    
+    // We make this async to handle CloudStorage chunking
+    saveToStorage('freelancerProfileData', dataString).then((success) => {
+      setSaveSuccess(success);
+      
+      // Hide saving indicator after a short delay
+      setTimeout(() => {
+        setIsSavingDraft(false);
+        // Keep the "Saved" indicator visible for a bit longer if successful
+        if (success) {
+          setTimeout(() => {
+            setShowSaveIndicator(false);
+          }, 2000);
+        } else {
+          // If save failed, hide indicator quickly
+          setTimeout(() => {
+            setShowSaveIndicator(false);
+          }, 1000);
+        }
+      }, 500);
+    });
 
-    // Hide saving indicator after a short delay
-    const timer = setTimeout(() => {
-      setIsSavingDraft(false);
-      // Keep the "Saved" indicator visible for a bit longer if successful
-      if (success) {
-        setTimeout(() => {
-          setShowSaveIndicator(false);
-        }, 2000);
-      } else {
-        // If save failed, hide indicator quickly
-        setTimeout(() => {
-          setShowSaveIndicator(false);
-        }, 1000);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
   }, [profileData]); // Save whenever profileData changes
 
 
