@@ -1378,6 +1378,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
 const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLast, navigate, refreshUser }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+  const { isAuthenticated } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
