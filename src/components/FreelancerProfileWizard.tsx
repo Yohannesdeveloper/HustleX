@@ -159,22 +159,9 @@ const FreelancerProfileWizard: React.FC = () => {
     }));
   }, [user?._id, user?.email]); // Run when user loads; avoid re-running on every profile field change
 
-  // Show loading while checking authentication
-  if (loading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
-  // Redirect if not authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
+
+
 
   const updateData = (field: keyof FreelancerProfileData, value: any) => {
     // Auto-format URLs to add https:// if missing
