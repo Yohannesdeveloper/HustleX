@@ -44,6 +44,7 @@ export interface User {
     linkedin?: string;
     github?: string;
     portfolio?: string;
+    website?: string;
     experience?: string;
     education?: string;
     avatar?: string;

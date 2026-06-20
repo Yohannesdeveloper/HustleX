@@ -94,11 +94,18 @@ const saveToStorage = (key: string, value: string): boolean => {
     }
 
     // Also try Telegram Storage if available
-    if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-      try {
-        window.Telegram.WebApp.Storage.setItem(key, value);
-      } catch (telegramError) {
-        // Telegram Storage failed
+    if (isTelegramWebApp()) {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.CloudStorage) {
+        try {
+          tg.CloudStorage.setItem(key, value);
+        } catch (e) {}
+      } else if (tg?.Storage) {
+        try {
+          tg.Storage.setItem(key, value);
+        } catch (telegramError) {
+          // Telegram Storage failed
+        }
       }
     }
   } catch (error) {
@@ -148,22 +155,36 @@ const loadFromStorage = (key: string): Promise<string | null> => {
     }
 
     // If not in browser storage, try Telegram Storage
-    if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-      window.Telegram.WebApp.Storage.getItem(key, (error: Error | null, telegramValue: string | null) => {
-        if (error) {
-          resolve(null);
-        } else if (telegramValue) {
-          // Try to save to localStorage for future use
-          try {
-            localStorage.setItem(key, telegramValue);
-          } catch (e) {
-            // localStorage save failed
+    if (isTelegramWebApp()) {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.CloudStorage) {
+        tg.CloudStorage.getItem(key, (error: Error | null, telegramValue: string | null) => {
+          if (!error && telegramValue) {
+            try { localStorage.setItem(key, telegramValue); } catch (e) {}
+            resolve(telegramValue);
+          } else {
+            resolve(null);
           }
-          resolve(telegramValue);
-        } else {
-          resolve(null);
-        }
-      });
+        });
+      } else if (tg?.Storage) {
+        tg.Storage.getItem(key, (error: Error | null, telegramValue: string | null) => {
+          if (error) {
+            resolve(null);
+          } else if (telegramValue) {
+            // Try to save to localStorage for future use
+            try {
+              localStorage.setItem(key, telegramValue);
+            } catch (e) {
+              // localStorage save failed
+            }
+            resolve(telegramValue);
+          } else {
+            resolve(null);
+          }
+        });
+      } else {
+        resolve(null);
+      }
     } else {
       resolve(null);
     }
@@ -188,11 +209,14 @@ const removeFromStorage = (key: string): void => {
   } catch (e) {
     // URL hash clear failed
   }
-  if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-    try {
-      window.Telegram.WebApp.Storage.removeItem(key);
-    } catch (e) {
-      // Telegram Storage failed
+  if (isTelegramWebApp()) {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.CloudStorage) {
+      try { tg.CloudStorage.removeItem(key); } catch (e) {}
+    } else if (tg?.Storage) {
+      try { tg.Storage.removeItem(key); } catch (e) {
+        // Telegram Storage failed
+      }
     }
   }
 };
@@ -1518,6 +1542,9 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       };
 
       await apiService.saveFreelancerProfile(payload);
+
+      // Clear local storage after successful save to avoid conflicts
+      removeFromStorage('freelancerProfileData');
 
       // Refresh user data in auth context to get updated profile information
       if (refreshUser) {
