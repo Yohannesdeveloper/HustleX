@@ -67,6 +67,160 @@ const isTelegramWebApp = (): boolean => {
   return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
+const saveToStorage = (key: string, value: string): boolean => {
+  let saved = false;
+  try {
+    // Try localStorage first
+    try {
+      localStorage.setItem(key, value);
+      saved = true;
+    } catch (localStorageError) {
+      // localStorage failed, try sessionStorage
+      try {
+        sessionStorage.setItem(key, value);
+        saved = true;
+      } catch (sessionStorageError) {
+        // Both failed, try URL hash for small amounts of data
+        try {
+          if (value.length < 2000) { // Only store small data in URL
+            const encoded = btoa(value);
+            window.location.hash = `draft_${encoded}`;
+            saved = true;
+          }
+        } catch (urlError) {
+          // URL storage failed
+        }
+      }
+    }
+
+    // Also try Telegram Storage if available
+    if (isTelegramWebApp()) {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.CloudStorage) {
+        try {
+          tg.CloudStorage.setItem(key, value);
+        } catch (e) {}
+      } else if (tg?.Storage) {
+        try {
+          tg.Storage.setItem(key, value);
+        } catch (telegramError) {
+          // Telegram Storage failed
+        }
+      }
+    }
+  } catch (error) {
+    // All storage methods failed
+  }
+  return saved;
+};
+
+const loadFromStorage = (key: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    let value = null;
+
+    // Try localStorage first
+    try {
+      value = localStorage.getItem(key);
+      if (value) {
+        resolve(value);
+        return;
+      }
+    } catch (localStorageError) {
+      // localStorage failed
+    }
+
+    // Try sessionStorage
+    try {
+      value = sessionStorage.getItem(key);
+      if (value) {
+        resolve(value);
+        return;
+      }
+    } catch (sessionStorageError) {
+      // sessionStorage failed
+    }
+
+    // Try URL hash
+    try {
+      if (window.location.hash.startsWith('#draft_')) {
+        const encoded = window.location.hash.replace('#draft_', '');
+        value = atob(encoded);
+        if (value) {
+          resolve(value);
+          return;
+        }
+      }
+    } catch (urlError) {
+      // URL hash failed
+    }
+
+    // If not in browser storage, try Telegram Storage
+    if (isTelegramWebApp()) {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.CloudStorage) {
+        tg.CloudStorage.getItem(key, (error: Error | null, telegramValue: string | null) => {
+          if (!error && telegramValue) {
+            try { localStorage.setItem(key, telegramValue); } catch (e) {}
+            resolve(telegramValue);
+          } else {
+            resolve(null);
+          }
+        });
+      } else if (tg?.Storage) {
+        tg.Storage.getItem(key, (error: Error | null, telegramValue: string | null) => {
+          if (error) {
+            resolve(null);
+          } else if (telegramValue) {
+            // Try to save to localStorage for future use
+            try {
+              localStorage.setItem(key, telegramValue);
+            } catch (e) {
+              // localStorage save failed
+            }
+            resolve(telegramValue);
+          } else {
+            resolve(null);
+          }
+        });
+      } else {
+        resolve(null);
+      }
+    } else {
+      resolve(null);
+    }
+  });
+};
+
+const removeFromStorage = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    // localStorage failed
+  }
+  try {
+    sessionStorage.removeItem(key);
+  } catch (e) {
+    // sessionStorage failed
+  }
+  try {
+    if (window.location.hash.startsWith('#draft_')) {
+      window.location.hash = '';
+    }
+  } catch (e) {
+    // URL hash clear failed
+  }
+  if (isTelegramWebApp()) {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.CloudStorage) {
+      try { tg.CloudStorage.removeItem(key); } catch (e) {}
+    } else if (tg?.Storage) {
+      try { tg.Storage.removeItem(key); } catch (e) {
+        // Telegram Storage failed
+      }
+    }
+  }
+};
+
 const steps = [
   { id: 1, title: 'Basic Information', description: 'Tell us about yourself' },
   { id: 2, title: 'Professional Details', description: 'Share your experience and links' },
@@ -92,6 +246,9 @@ const FreelancerProfileWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(true);
   const [profileData, setProfileData] = useState<FreelancerProfileData>({
     firstName: '',
     lastName: '',
@@ -165,13 +322,104 @@ const FreelancerProfileWizard: React.FC = () => {
     }));
   }, [user?._id, user?.email]); // Run when user loads; avoid re-running on every profile field change
 
-  // Initialize Telegram WebApp if available
+  // Load saved data from Telegram WebApp storage or localStorage on mount
   useEffect(() => {
+    const loadSavedData = async () => {
+      // Wait a bit to ensure user profile data has loaded first
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const savedData = await loadFromStorage('freelancerProfileData');
+
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+
+          // Merge saved data with existing data, but only fill empty fields
+          // This prevents overwriting user profile data with old saved data
+          setProfileData(prev => {
+            const merged = { ...prev };
+
+            // Only merge fields that are empty in the current state
+            Object.keys(parsedData).forEach(key => {
+              const typedKey = key as keyof FreelancerProfileData;
+              const currentValue = merged[typedKey];
+              const savedValue = parsedData[typedKey];
+
+              // If current value is empty/falsy, use saved value
+              // Skip arrays and objects to avoid complex merging issues
+              if (
+                (currentValue === '' || currentValue === null || currentValue === undefined) &&
+                savedValue !== null &&
+                savedValue !== undefined &&
+                !Array.isArray(savedValue) &&
+                typeof savedValue !== 'object'
+              ) {
+                merged[typedKey] = savedValue;
+              }
+            });
+
+            // Preserve file objects that can't be stored
+            return {
+              ...merged,
+              profilePicture: prev.profilePicture,
+              cvFile: prev.cvFile,
+            };
+          });
+        } catch (error) {
+          // Silently handle parse errors
+        }
+      }
+    };
+
+    loadSavedData();
+
+    // Initialize Telegram WebApp if available
     if (isTelegramWebApp() && window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
     }
-  }, []);
+  }, []); // Run only on mount
+
+  // Save profile data to storage whenever it changes (for persistence across sessions)
+  useEffect(() => {
+    // Show saving indicator
+    setIsSavingDraft(true);
+    setShowSaveIndicator(true);
+    setSaveSuccess(false);
+
+    // Create a copy of profileData without file objects
+    const dataToSave = {
+      ...profileData,
+      profilePicture: undefined, // Can't store File objects
+      cvFile: undefined, // Can't store File objects
+    };
+
+    const dataString = JSON.stringify(dataToSave);
+    const success = saveToStorage('freelancerProfileData', dataString);
+    setSaveSuccess(success);
+
+    // Hide saving indicator after a short delay
+    const timer = setTimeout(() => {
+      setIsSavingDraft(false);
+      // Keep the "Saved" indicator visible for a bit longer if successful
+      if (success) {
+        setTimeout(() => {
+          setShowSaveIndicator(false);
+        }, 2000);
+      } else {
+        // If save failed, hide indicator quickly
+        setTimeout(() => {
+          setShowSaveIndicator(false);
+        }, 1000);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [profileData]); // Save whenever profileData changes
+
+
+
+
 
   const updateData = (field: keyof FreelancerProfileData, value: any) => {
     // Auto-format URLs to add https:// if missing
@@ -399,6 +647,65 @@ const FreelancerProfileWizard: React.FC = () => {
                 <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
                   Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
                 </p>
+                {/* Save Indicator */}
+                <AnimatePresence>
+                  {showSaveIndicator && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className={`mt-1 text-xs flex items-center gap-1 ${
+                        isSavingDraft ? 'text-yellow-500' : saveSuccess ? 'text-green-500' : 'text-red-500'
+                      }`}
+                    >
+                      {isSavingDraft ? (
+                        <>
+                          <span className="animate-pulse">●</span>
+                          Saving draft...
+                        </>
+                      ) : saveSuccess ? (
+                        <>
+                          <span>✓</span>
+                          Draft saved
+                        </>
+                      ) : (
+                        <>
+                          <span>✗</span>
+                          Save failed - storage not available
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Storage Status (for debugging) */}
+                <div className={`mt-2 text-xs flex items-center gap-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <span>Storage: {isTelegramWebApp() ? 'Telegram Mini App' : 'Browser'}</span>
+                  <button
+                    onClick={async () => {
+                      const savedData = await loadFromStorage('freelancerProfileData');
+                      if (savedData) {
+                        try {
+                          const parsedData = JSON.parse(savedData);
+                          setProfileData(prev => ({
+                            ...prev,
+                            ...parsedData,
+                            profilePicture: prev.profilePicture,
+                            cvFile: prev.cvFile,
+                          }));
+                          alert('Draft loaded successfully!');
+                        } catch (error) {
+                          alert('Failed to load draft');
+                        }
+                      } else {
+                        alert('No saved draft found');
+                      }
+                    }}
+                    className="text-blue-500 hover:text-blue-600 underline"
+                  >
+                    Load Draft
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -1235,6 +1542,9 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       };
 
       await apiService.saveFreelancerProfile(payload);
+
+      // Clear local storage after successful save to avoid conflicts
+      removeFromStorage('freelancerProfileData');
 
       // Refresh user data in auth context to get updated profile information
       if (refreshUser) {
