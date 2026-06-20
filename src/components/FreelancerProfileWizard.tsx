@@ -10,6 +10,24 @@ import PhoneInput from './PhoneInput';
 import { COUNTRIES } from '../constants/countries';
 import { formatLocation, parseLocation } from '../utils/location';
 
+// Extend Window interface for Telegram WebApp
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        Storage?: {
+          setItem: (key: string, value: string, callback?: () => void) => void;
+          getItem: (key: string, callback: (error: Error | null, value: string | null) => void) => void;
+          removeItem: (key: string, callback?: () => void) => void;
+          getKeys: (callback: (error: Error | null, keys: string[]) => void) => void;
+        };
+        ready: () => void;
+        expand: () => void;
+      };
+    };
+  }
+}
+
 interface FreelancerProfileData {
   // Basic Information
   firstName: string;
@@ -60,6 +78,57 @@ interface StepProps {
   touched?: Record<string, boolean>;
   handleBlur?: (field: string) => void;
 }
+
+// Telegram WebApp Storage Utilities
+const isTelegramWebApp = (): boolean => {
+  return typeof window !== 'undefined' && window.Telegram?.WebApp?.Storage !== undefined;
+};
+
+const saveToStorage = (key: string, value: string): void => {
+  try {
+    if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
+      window.Telegram.WebApp.Storage.setItem(key, value);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  } catch (error) {
+    console.error('Error saving to storage:', error);
+  }
+};
+
+const loadFromStorage = (key: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    try {
+      if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
+        window.Telegram.WebApp.Storage.getItem(key, (error: Error | null, value: string | null) => {
+          if (error) {
+            console.error('Error loading from Telegram storage:', error);
+            resolve(null);
+          } else {
+            resolve(value);
+          }
+        });
+      } else {
+        resolve(localStorage.getItem(key));
+      }
+    } catch (error) {
+      console.error('Error loading from storage:', error);
+      resolve(null);
+    }
+  });
+};
+
+const removeFromStorage = (key: string): void => {
+  try {
+    if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
+      window.Telegram.WebApp.Storage.removeItem(key);
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch (error) {
+    console.error('Error removing from storage:', error);
+  }
+};
 
 const steps = [
   { id: 1, title: 'Basic Information', description: 'Tell us about yourself' },
@@ -158,6 +227,50 @@ const FreelancerProfileWizard: React.FC = () => {
       workLocation: p.workLocation ?? prev.workLocation,
     }));
   }, [user?._id, user?.email]); // Run when user loads; avoid re-running on every profile field change
+
+  // Load saved data from Telegram WebApp storage or localStorage on mount
+  useEffect(() => {
+    const loadSavedData = async () => {
+      const savedData = await loadFromStorage('freelancerProfileData');
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          // Only load saved data if user profile doesn't exist (for new users/bots)
+          if (!user?.profile) {
+            setProfileData(prev => ({
+              ...prev,
+              ...parsedData,
+              // Preserve file objects that can't be stored
+              profilePicture: prev.profilePicture,
+              cvFile: prev.cvFile,
+            }));
+          }
+        } catch (error) {
+          console.error('Error parsing saved profile data:', error);
+        }
+      }
+    };
+
+    loadSavedData();
+
+    // Initialize Telegram WebApp if available
+    if (isTelegramWebApp() && window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+  }, []); // Run only on mount
+
+  // Save profile data to storage whenever it changes (for persistence across sessions)
+  useEffect(() => {
+    // Create a copy of profileData without file objects
+    const dataToSave = {
+      ...profileData,
+      profilePicture: undefined, // Can't store File objects
+      cvFile: undefined, // Can't store File objects
+    };
+
+    saveToStorage('freelancerProfileData', JSON.stringify(dataToSave));
+  }, [profileData]); // Save whenever profileData changes
 
 
 
@@ -1230,6 +1343,9 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       if (refreshUser) {
         await refreshUser();
       }
+
+      // Clear saved data from storage after successful submission
+      removeFromStorage('freelancerProfileData');
 
       alert('Profile saved successfully! Redirecting to job listings...');
       if (onSubmit) {
