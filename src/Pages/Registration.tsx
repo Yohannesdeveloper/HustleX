@@ -126,6 +126,7 @@ const RegistrationPage: React.FC = () => {
       const result = await dispatch(registerUser({
         email,
         password,
+        role: "freelancer",
         firstName,
         lastName,
       })).unwrap();
