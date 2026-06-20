@@ -5,7 +5,14 @@ declare global {
       WebApp?: {
         // Navigation methods
         openLink: (url: string) => void;
-        
+
+        // Launch parameters (e.g. from a Mini App direct link ?startapp=...)
+        initData?: string;
+        initDataUnsafe?: {
+          start_param?: string;
+          [key: string]: unknown;
+        };
+
         // Lifecycle methods
         ready: () => void;
         expand: () => void;

@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -58,10 +58,30 @@ import FloatingChatBot from "./components/FloatingChatBot";
 function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
+  const handledStartParam = useRef(false);
 
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
+
+  // When opened as a Telegram Mini App via a direct link (e.g. the "Apply for
+  // this job" button uses https://t.me/<bot>?startapp=job_<jobId>), route to the
+  // corresponding job so the button opens inside Telegram instead of a browser.
+  useEffect(() => {
+    if (handledStartParam.current) return;
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+    tg.ready();
+    tg.expand?.();
+    const startParam = tg.initDataUnsafe?.start_param;
+    if (!startParam) return;
+    handledStartParam.current = true;
+    const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
+    if (match) {
+      navigate(`/job-details/${match[1]}`, { replace: true });
+    }
+  }, [navigate]);
 
   // Track page views on every route change
   useEffect(() => {

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
 import { register as registerUser } from "../store/authSlice";
-import "../types/telegram";
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
