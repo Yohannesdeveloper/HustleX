@@ -717,7 +717,7 @@ const JobListings: React.FC = () => {
     <>
       <JobListingsSEO />
       <div
-        className={`relative min-h-screen transition-colors duration-300 ${darkMode ? "bg-black" : "bg-white"
+        className={`relative min-h-screen transition-colors duration-300 overflow-y-auto ${darkMode ? "bg-black" : "bg-white"
           }`}
       >
       {/* Animated Background Orbs */}
