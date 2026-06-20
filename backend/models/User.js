@@ -83,6 +83,10 @@ const userSchema = new mongoose.Schema(
       isProfileComplete: { type: Boolean, default: false },
       profileCompletedAt: Date,
     },
+    profileDraft: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     isActive: {
       type: Boolean,
       default: true,

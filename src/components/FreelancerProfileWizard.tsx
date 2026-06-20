@@ -67,7 +67,7 @@ const isTelegramWebApp = (): boolean => {
   return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
-const saveToStorage = async (key: string, value: string): Promise<boolean> => {
+const saveToStorage = async (key: string, value: string, isAuthenticated: boolean): Promise<boolean> => {
   let saved = false;
   try {
     localStorage.setItem(key, value);
@@ -79,73 +79,32 @@ const saveToStorage = async (key: string, value: string): Promise<boolean> => {
     saved = true;
   } catch (e) {}
 
-  if (isTelegramWebApp()) {
-    const tg = window.Telegram?.WebApp;
-    if (tg?.CloudStorage) {
-      try {
-        // CloudStorage has a 4096 character limit per key. We chunk the value.
-        const chunks: string[] = [];
-        for (let i = 0; i < value.length; i += 4000) {
-          chunks.push(value.substring(i, i + 4000));
-        }
-
-        await new Promise<void>((resolve) => {
-          tg.CloudStorage!.setItem(`${key}_count`, chunks.length.toString(), () => resolve());
-        });
-
-        for (let i = 0; i < chunks.length; i++) {
-          await new Promise<void>((resolve) => {
-            tg.CloudStorage!.setItem(`${key}_${i}`, chunks[i], () => resolve());
-          });
-        }
-        saved = true;
-      } catch (e) {}
-    } else if (tg?.Storage) {
-      try { tg.Storage.setItem(key, value); saved = true; } catch (e) {}
+  if (isAuthenticated) {
+    try {
+      // Parse the value back to object to save to DB
+      const parsed = JSON.parse(value);
+      await apiService.saveFreelancerProfileDraft(parsed);
+      saved = true;
+    } catch (e) {
+      console.warn('Failed to save draft to backend:', e);
     }
   }
+
   return saved;
 };
 
-const loadFromStorage = async (key: string): Promise<string | null> => {
-  // Always prefer Telegram CloudStorage if available
-  if (isTelegramWebApp()) {
-    const tg = window.Telegram?.WebApp;
-    if (tg?.CloudStorage) {
-      try {
-        const countStr = await new Promise<string | null>((resolve) => {
-          tg.CloudStorage!.getItem(`${key}_count`, (err, val) => resolve(err ? null : val));
-        });
-
-        if (countStr) {
-          const count = parseInt(countStr, 10);
-          let fullStr = '';
-          for (let i = 0; i < count; i++) {
-            const chunk = await new Promise<string | null>((resolve) => {
-              tg.CloudStorage!.getItem(`${key}_${i}`, (err, val) => resolve(err ? null : val));
-            });
-            if (chunk) fullStr += chunk;
-          }
-          if (fullStr) {
-            try { localStorage.setItem(key, fullStr); } catch (e) {}
-            return fullStr;
-          }
-        } else {
-          // Fallback to single key
-          const singleVal = await new Promise<string | null>((resolve) => {
-            tg.CloudStorage!.getItem(key, (err, val) => resolve(err ? null : val));
-          });
-          if (singleVal) {
-            try { localStorage.setItem(key, singleVal); } catch (e) {}
-            return singleVal;
-          }
-        }
-      } catch (e) {}
-    } else if (tg?.Storage) {
-      const singleVal = await new Promise<string | null>((resolve) => {
-        tg.Storage!.getItem(key, (err, val) => resolve(err ? null : val));
-      });
-      if (singleVal) return singleVal;
+const loadFromStorage = async (key: string, isAuthenticated: boolean): Promise<string | null> => {
+  // Prefer backend if authenticated
+  if (isAuthenticated) {
+    try {
+      const draft = await apiService.getFreelancerProfileDraft();
+      if (draft && Object.keys(draft).length > 0) {
+        const strVal = JSON.stringify(draft);
+        try { localStorage.setItem(key, strVal); } catch (e) {}
+        return strVal;
+      }
+    } catch (e) {
+      console.warn('Failed to load draft from backend:', e);
     }
   }
 
@@ -163,28 +122,14 @@ const loadFromStorage = async (key: string): Promise<string | null> => {
   return null;
 };
 
-const removeFromStorage = (key: string): void => {
+const removeFromStorage = async (key: string, isAuthenticated: boolean): Promise<void> => {
   try { localStorage.removeItem(key); } catch (e) {}
   try { sessionStorage.removeItem(key); } catch (e) {}
   
-  if (isTelegramWebApp()) {
-    const tg = window.Telegram?.WebApp;
-    if (tg?.CloudStorage) {
-      try {
-        tg.CloudStorage.removeItem(key);
-        tg.CloudStorage.getItem(`${key}_count`, (err, val) => {
-          if (!err && val) {
-            const count = parseInt(val, 10);
-            for (let i = 0; i < count; i++) {
-              tg.CloudStorage!.removeItem(`${key}_${i}`);
-            }
-            tg.CloudStorage!.removeItem(`${key}_count`);
-          }
-        });
-      } catch (e) {}
-    } else if (tg?.Storage) {
-      try { tg.Storage.removeItem(key); } catch (e) {}
-    }
+  if (isAuthenticated) {
+    try {
+      await apiService.saveFreelancerProfileDraft({});
+    } catch (e) {}
   }
 };
 
@@ -295,7 +240,7 @@ const FreelancerProfileWizard: React.FC = () => {
       // Wait a bit to ensure user profile data has loaded first
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const savedData = await loadFromStorage('freelancerProfileData');
+      const savedData = await loadFromStorage('freelancerProfileData', isAuthenticated);
 
       if (savedData) {
         try {
@@ -364,8 +309,8 @@ const FreelancerProfileWizard: React.FC = () => {
 
     const dataString = JSON.stringify(dataToSave);
     
-    // We make this async to handle CloudStorage chunking
-    saveToStorage('freelancerProfileData', dataString).then((success) => {
+    // We make this async to handle backend sync
+    saveToStorage('freelancerProfileData', dataString, isAuthenticated).then((success) => {
       setSaveSuccess(success);
       
       // Hide saving indicator after a short delay
@@ -653,7 +598,7 @@ const FreelancerProfileWizard: React.FC = () => {
                   <span>Storage: {isTelegramWebApp() ? 'Telegram Mini App' : 'Browser'}</span>
                   <button
                     onClick={async () => {
-                      const savedData = await loadFromStorage('freelancerProfileData');
+                      const savedData = await loadFromStorage('freelancerProfileData', isAuthenticated);
                       if (savedData) {
                         try {
                           const parsedData = JSON.parse(savedData);
@@ -1513,8 +1458,8 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
 
       await apiService.saveFreelancerProfile(payload);
 
-      // Clear local storage after successful save to avoid conflicts
-      removeFromStorage('freelancerProfileData');
+      // Clear local and remote storage after successful save to avoid conflicts
+      removeFromStorage('freelancerProfileData', isAuthenticated);
 
       // Refresh user data in auth context to get updated profile information
       if (refreshUser) {

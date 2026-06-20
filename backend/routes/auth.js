@@ -343,6 +343,32 @@ router.put("/profile", auth, async (req, res) => {
   }
 });
 
+// @route   PUT /api/auth/profile-draft
+// @desc    Save freelancer profile draft
+// @access  Private
+router.put("/profile-draft", auth, async (req, res) => {
+  try {
+    req.user.profileDraft = req.body.draft || {};
+    await req.user.save();
+    res.json({ message: "Draft saved successfully" });
+  } catch (error) {
+    console.error("Save profile draft error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/auth/profile-draft
+// @desc    Get freelancer profile draft
+// @access  Private
+router.get("/profile-draft", auth, async (req, res) => {
+  try {
+    res.json({ draft: req.user.profileDraft || {} });
+  } catch (error) {
+    console.error("Get profile draft error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   POST /api/auth/switch-role
 // @desc    Switch current user role
 // @access  Private

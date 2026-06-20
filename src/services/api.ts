@@ -252,6 +252,15 @@ class ApiService {
     return (response.data as { user: User }).user;
   }
 
+  async saveFreelancerProfileDraft(draftData: any): Promise<void> {
+    await axios.put(`${this.baseUrl}/auth/profile-draft`, { draft: draftData });
+  }
+
+  async getFreelancerProfileDraft(): Promise<any> {
+    const response = await axios.get(`${this.baseUrl}/auth/profile-draft`);
+    return response.data.draft;
+  }
+
   logout(): void {
     this.clearUserCache();
     this.clearToken();
