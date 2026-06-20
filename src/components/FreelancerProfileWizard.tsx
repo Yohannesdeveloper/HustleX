@@ -81,28 +81,24 @@ interface StepProps {
 
 // Telegram WebApp Storage Utilities
 const isTelegramWebApp = (): boolean => {
-  const isTelegram = typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
-  console.log('isTelegramWebApp:', isTelegram, 'Telegram object:', window.Telegram);
-  return isTelegram;
+  return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
 const saveToStorage = (key: string, value: string): void => {
   try {
     // Always try to save to localStorage as primary storage (most reliable)
     localStorage.setItem(key, value);
-    console.log('Saved to localStorage:', key);
 
     // Also try Telegram Storage if available (as backup)
     if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
       try {
         window.Telegram.WebApp.Storage.setItem(key, value);
-        console.log('Also saved to Telegram Storage:', key);
       } catch (telegramError) {
-        console.warn('Telegram Storage save failed, using localStorage:', telegramError);
+        // Telegram Storage failed, but localStorage worked
       }
     }
   } catch (error) {
-    console.error('Error saving to storage:', error);
+    // Silently handle storage errors
   }
 };
 
@@ -112,34 +108,27 @@ const loadFromStorage = (key: string): Promise<string | null> => {
       // First try localStorage (most reliable)
       const localStorageValue = localStorage.getItem(key);
       if (localStorageValue) {
-        console.log('Loaded from localStorage:', key);
         resolve(localStorageValue);
         return;
       }
 
       // If not in localStorage, try Telegram Storage
       if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
-        console.log('Trying to load from Telegram Storage:', key);
         window.Telegram.WebApp.Storage.getItem(key, (error: Error | null, value: string | null) => {
           if (error) {
-            console.error('Error loading from Telegram storage:', error);
             resolve(null);
           } else if (value) {
-            console.log('Loaded from Telegram Storage:', key);
             // Also save to localStorage for future reliability
             localStorage.setItem(key, value);
             resolve(value);
           } else {
-            console.log('No value found in Telegram Storage:', key);
             resolve(null);
           }
         });
       } else {
-        console.log('No value found in localStorage and Telegram not available:', key);
         resolve(null);
       }
     } catch (error) {
-      console.error('Error loading from storage:', error);
       resolve(null);
     }
   });
@@ -149,19 +138,17 @@ const removeFromStorage = (key: string): void => {
   try {
     // Always remove from localStorage
     localStorage.removeItem(key);
-    console.log('Removed from localStorage:', key);
 
     // Also try Telegram Storage if available
     if (isTelegramWebApp() && window.Telegram?.WebApp?.Storage) {
       try {
         window.Telegram.WebApp.Storage.removeItem(key);
-        console.log('Also removed from Telegram Storage:', key);
       } catch (telegramError) {
-        console.warn('Telegram Storage remove failed:', telegramError);
+        // Telegram Storage failed, but localStorage worked
       }
     }
   } catch (error) {
-    console.error('Error removing from storage:', error);
+    // Silently handle storage errors
   }
 };
 
@@ -190,6 +177,8 @@ const FreelancerProfileWizard: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [profileData, setProfileData] = useState<FreelancerProfileData>({
     firstName: '',
     lastName: '',
@@ -266,14 +255,11 @@ const FreelancerProfileWizard: React.FC = () => {
   // Load saved data from Telegram WebApp storage or localStorage on mount
   useEffect(() => {
     const loadSavedData = async () => {
-      console.log('Attempting to load saved profile data...');
       const savedData = await loadFromStorage('freelancerProfileData');
-      console.log('Saved data found:', !!savedData);
 
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
-          console.log('Parsed saved data:', parsedData);
 
           // Load saved data and merge with existing data
           // If user has a profile, the user profile data will take priority (loaded in the useEffect above)
@@ -285,12 +271,9 @@ const FreelancerProfileWizard: React.FC = () => {
             profilePicture: prev.profilePicture,
             cvFile: prev.cvFile,
           }));
-          console.log('Profile data updated with saved data');
         } catch (error) {
-          console.error('Error parsing saved profile data:', error);
+          // Silently handle parse errors
         }
-      } else {
-        console.log('No saved data found');
       }
     };
 
@@ -298,7 +281,6 @@ const FreelancerProfileWizard: React.FC = () => {
 
     // Initialize Telegram WebApp if available
     if (isTelegramWebApp() && window.Telegram?.WebApp) {
-      console.log('Initializing Telegram WebApp');
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
     }
@@ -306,6 +288,10 @@ const FreelancerProfileWizard: React.FC = () => {
 
   // Save profile data to storage whenever it changes (for persistence across sessions)
   useEffect(() => {
+    // Show saving indicator
+    setIsSavingDraft(true);
+    setShowSaveIndicator(true);
+
     // Create a copy of profileData without file objects
     const dataToSave = {
       ...profileData,
@@ -314,8 +300,18 @@ const FreelancerProfileWizard: React.FC = () => {
     };
 
     const dataString = JSON.stringify(dataToSave);
-    console.log('Saving profile data to storage, data length:', dataString.length);
     saveToStorage('freelancerProfileData', dataString);
+
+    // Hide saving indicator after a short delay
+    const timer = setTimeout(() => {
+      setIsSavingDraft(false);
+      // Keep the "Saved" indicator visible for a bit longer
+      setTimeout(() => {
+        setShowSaveIndicator(false);
+      }, 2000);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [profileData]); // Save whenever profileData changes
 
 
@@ -548,6 +544,31 @@ const FreelancerProfileWizard: React.FC = () => {
                 <p className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
                   Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
                 </p>
+                {/* Save Indicator */}
+                <AnimatePresence>
+                  {showSaveIndicator && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className={`mt-1 text-xs flex items-center gap-1 ${
+                        isSavingDraft ? 'text-yellow-500' : 'text-green-500'
+                      }`}
+                    >
+                      {isSavingDraft ? (
+                        <>
+                          <span className="animate-pulse">●</span>
+                          Saving draft...
+                        </>
+                      ) : (
+                        <>
+                          <span>✓</span>
+                          Draft saved
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
             <div className="flex items-center space-x-2">
