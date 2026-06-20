@@ -38,6 +38,31 @@ async function sendTelegramMessage({ botToken, chatId, message, inlineKeyboard =
   return axios.post(url, payload);
 }
 
+function normalizeUsername(value) {
+  if (!value) return "";
+  return String(value).trim().replace(/^@/, "");
+}
+
+/**
+ * Builds a Telegram Mini App "direct link" so the Apply button opens the job
+ * inside Telegram as a Mini App instead of an external browser tab.
+ *
+ * Format: https://t.me/<bot>/<appShortName>?startapp=<param>
+ *   - <appShortName> is optional; when omitted Telegram opens the bot's Main Mini App.
+ * The start parameter is read on the web side via Telegram.WebApp.initDataUnsafe.start_param.
+ * Only A-Z, a-z, 0-9, _ and - are allowed in the start parameter, so a Mongo ObjectId is safe.
+ */
+function buildMiniAppLink(jobId) {
+  const botUsername = normalizeUsername(process.env.TELEGRAM_BOT_USERNAME || "HustleXet_bot");
+  if (!botUsername || !jobId) return "";
+  const appShortName = normalizeUsername(process.env.TELEGRAM_MINI_APP_SHORTNAME);
+  const startParam = `job_${jobId}`;
+  const base = appShortName
+    ? `https://t.me/${botUsername}/${appShortName}`
+    : `https://t.me/${botUsername}`;
+  return `${base}?startapp=${startParam}`;
+}
+
 function escapeHtml(str) {
   if (str == null || str === "") return "";
   return String(str)
@@ -136,11 +161,17 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Create inline keyboard with Apply button
-  const inlineKeyboard = jobLink ? [[
+  // Create inline keyboard with Apply button.
+  // Use a Telegram Mini App direct link so the button opens the job inside
+  // Telegram as a Mini App. Channels don't support inline `web_app` buttons,
+  // so a t.me/?startapp=... URL button is used instead. Fall back to the plain
+  // web link if the bot username isn't configured.
+  const miniAppLink = buildMiniAppLink(jobId);
+  const applyUrl = miniAppLink || jobLink;
+  const inlineKeyboard = applyUrl ? [[
     {
       text: "Apply for this job",
-      url: jobLink  // This will open the job link in the user's browser
+      url: applyUrl
     }
   ]] : null;
 
