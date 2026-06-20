@@ -317,8 +317,9 @@ const FreelancerProfileWizard: React.FC = () => {
 
             // Only merge fields that are empty in the current state
             Object.keys(parsedData).forEach(key => {
-              const currentValue = merged[key];
-              const savedValue = parsedData[key];
+              const typedKey = key as keyof FreelancerProfileData;
+              const currentValue = merged[typedKey];
+              const savedValue = parsedData[typedKey];
 
               // If current value is empty/falsy, use saved value
               // Skip arrays and objects to avoid complex merging issues
@@ -329,7 +330,7 @@ const FreelancerProfileWizard: React.FC = () => {
                 !Array.isArray(savedValue) &&
                 typeof savedValue !== 'object'
               ) {
-                merged[key] = savedValue;
+                merged[typedKey] = savedValue;
               }
             });
 
@@ -1522,9 +1523,6 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       if (refreshUser) {
         await refreshUser();
       }
-
-      // Clear saved data from storage after successful submission
-      removeFromStorage('freelancerProfileData');
 
       alert('Profile saved successfully! Redirecting to job listings...');
       if (onSubmit) {

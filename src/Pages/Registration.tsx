@@ -3,17 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
 import { register as registerUser } from "../store/authSlice";
-
-// Extend Window interface for Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        openLink: (url: string) => void;
-      };
-    };
-  }
-}
+import "../types/telegram";
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
