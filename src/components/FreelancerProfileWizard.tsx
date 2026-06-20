@@ -84,7 +84,7 @@ const saveToStorage = async (key: string, value: string): Promise<boolean> => {
     if (tg?.CloudStorage) {
       try {
         // CloudStorage has a 4096 character limit per key. We chunk the value.
-        const chunks = [];
+        const chunks: string[] = [];
         for (let i = 0; i < value.length; i += 4000) {
           chunks.push(value.substring(i, i + 4000));
         }
