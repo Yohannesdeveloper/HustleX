@@ -474,8 +474,8 @@ router.get("/check-user", async (req, res) => {
 
 // @route   POST /api/auth/freelancer-profile
 // @desc    Save freelancer profile data
-// @access  Private
-router.post("/freelancer-profile", auth, async (req, res) => {
+// @access  Public (for bot access)
+router.post("/freelancer-profile", async (req, res) => {
   try {
     const profileData = req.body.profile;
 
@@ -484,10 +484,25 @@ router.post("/freelancer-profile", auth, async (req, res) => {
       return res.status(400).json({ message: "First name, last name, and email are required" });
     }
 
+    // Find or create user based on email
+    let user = await User.findOne({ email: profileData.email });
+
+    if (!user) {
+      // Create a new user for bot submissions
+      user = new User({
+        email: profileData.email,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        roles: ['freelancer'],
+        currentRole: 'freelancer',
+        isVerified: true, // Auto-verify bot submissions
+      });
+    }
+
     // Update user profile with freelancer-specific data
     // Use merge semantics: only overwrite fields that have a meaningful value
     // so that re-submitting the wizard doesn't erase previously saved data.
-    const profile = req.user.profile || {};
+    const profile = user.profile || {};
 
     // Helper: set only when incoming value is non-empty
     const setIfPresent = (key, value) => {
@@ -543,29 +558,29 @@ router.post("/freelancer-profile", auth, async (req, res) => {
     profile.isProfileComplete = true;
     profile.profileCompletedAt = new Date();
 
-    req.user.profile = profile;
-    await req.user.save();
+    user.profile = profile;
+    await user.save();
 
     // Emit WebSocket event to notify all clients about freelancer profile update
     const io = req.app.get('io');
     if (io) {
       io.emit('freelancer_profile_updated', {
-        freelancerId: req.user._id,
-        profile: req.user.profile,
+        freelancerId: user._id,
+        profile: user.profile,
         updatedAt: new Date()
       });
-      console.log(`Emitted freelancer profile update for user ${req.user._id}`);
+      console.log(`Emitted freelancer profile update for user ${user._id}`);
     }
 
     res.json({
       message: "Freelancer profile saved successfully",
       user: {
-        _id: req.user._id,
-        email: req.user.email,
-        roles: req.user.roles,
-        currentRole: req.user.currentRole,
-        role: req.user.currentRole, // For backward compatibility
-        profile: req.user.profile,
+        _id: user._id,
+        email: user.email,
+        roles: user.roles,
+        currentRole: user.currentRole,
+        role: user.currentRole, // For backward compatibility
+        profile: user.profile,
       },
     });
   } catch (error) {

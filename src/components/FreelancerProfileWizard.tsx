@@ -64,7 +64,7 @@ interface StepProps {
 const steps = [
   { id: 1, title: 'Basic Information', description: 'Tell us about yourself' },
   { id: 2, title: 'Professional Details', description: 'Share your experience and links' },
-  { id: 3, title: 'Review & Submit', description: 'Review your profile' },
+  { id: 3, title: 'Review & Save', description: 'Review and save your profile' },
 ];
 
 const getFieldClass = (darkMode: boolean, hasError: boolean) => {
@@ -1146,10 +1146,10 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
 const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLast, navigate, refreshUser }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
+  const handleSave = async () => {
+    setIsSaving(true);
     try {
       let cvUrl = "";
       let avatarUrl = "";
@@ -1163,7 +1163,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         } catch (uploadError) {
           console.error('Error uploading profile picture:', uploadError);
           alert('Failed to upload profile picture. Please try again.');
-          setIsSubmitting(false);
+          setIsSaving(false);
           return;
         }
       } else if (data.profilePicturePreview && (data.profilePicturePreview.startsWith('http') || data.profilePicturePreview.startsWith('https'))) {
@@ -1181,7 +1181,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         } catch (uploadError) {
           console.error('Error uploading CV:', uploadError);
           alert('Failed to upload CV. Please try again.');
-          setIsSubmitting(false);
+          setIsSaving(false);
           return;
         }
       } else if (data.existingCvUrl) {
@@ -1231,25 +1231,18 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         await refreshUser();
       }
 
-      alert('Profile submitted successfully! Redirecting to job listings...');
+      alert('Profile saved successfully! Redirecting to job listings...');
       if (onSubmit) {
         onSubmit();
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);
 
-      // Check if it's an authentication error
-      if (error?.response?.status === 401) {
-        alert('Your session has expired. Please log in again.');
-        navigate('/signup');
-        return;
-      }
-
-      // Handle other types of errors
+      // Handle error without authentication check
       const errorMessage = error?.response?.data?.message || 'Failed to save profile. Please try again.';
       alert(errorMessage);
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
@@ -1258,7 +1251,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       <div className="text-center mb-8">
         <h2 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Review Your Profile</h2>
         <p className={`${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
-          Please review your information before submitting
+          Please review your information before saving
         </p>
       </div>
 
@@ -1430,11 +1423,11 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={handleSubmit}
-          disabled={isSubmitting}
+          onClick={handleSave}
+          disabled={isSaving}
           className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Profile'}
+          {isSaving ? 'Saving...' : 'Save Profile'}
         </motion.button>
       </div>
     </div>
