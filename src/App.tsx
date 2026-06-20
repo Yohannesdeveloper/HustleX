@@ -8,6 +8,7 @@ import HomeFinal from "./Pages/HomeFinal";
 import PageLayout from "./components/PageLayout";
 
 import Signup from "./components/Signup";
+import RegistrationPage from "./Pages/Registration";
 
 import PostJob from "./Pages/PostJob";
 import PreviewJob from "./Pages/PreviewJob";
@@ -75,6 +76,8 @@ function AppContent() {
           <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Signup />} />
+          <Route path="/register" element={<RegistrationPage />} />
+          <Route path="/Register" element={<RegistrationPage />} />
           <Route path="/" element={<HomeFinal />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/homefinal" element={<Navigate to="/" replace />} />
