@@ -10,7 +10,6 @@ const ProfileSetupRouter: React.FC = () => {
   const location = useLocation();
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const { isAuthenticated, user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
 
   const searchParams = new URLSearchParams(location.search);
   const isEditMode = searchParams.get('edit') === 'true';
@@ -18,15 +17,8 @@ const ProfileSetupRouter: React.FC = () => {
   const signupRole = searchParams.get('role') || (location.state as any)?.signupRole;
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      navigate('/signup', { replace: true });
-      return;
-    }
-
     // If in edit mode, skip redirect — allow user to re-edit their profile
     if (isEditMode) {
-      setIsLoading(false);
       return;
     }
 
@@ -67,12 +59,10 @@ const ProfileSetupRouter: React.FC = () => {
       if (hasFreelancerRole && hasClientRole) {
         if (user.currentRole === 'client' && !hasClientProfile) {
           // Stay here to show client wizard
-          setIsLoading(false);
           return;
         }
         if (user.currentRole === 'freelancer' && !hasFreelancerProfile) {
           // Stay here to show freelancer wizard
-          setIsLoading(false);
           return;
         }
 
@@ -90,31 +80,17 @@ const ProfileSetupRouter: React.FC = () => {
       // All users without profiles must complete them (no distinction between new/existing)
       // If user has client role but no profile, they must complete it
       if (hasClientRole && !hasClientProfile) {
-        setIsLoading(false);
         return; // Will show client wizard below
       }
 
       // If user has freelancer role but no profile, they must complete it
       if (hasFreelancerRole && !hasFreelancerProfile) {
-        setIsLoading(false);
         return; // Will show freelancer wizard below
       }
     }
-
-    setIsLoading(false);
   }, [isAuthenticated, user, navigate, signupRole]);
 
-  // Show loading while checking user status
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-black" : "bg-white"}`}>
-        <div className="text-center">
-          <div className={`w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`} />
-          <p className={`text-lg ${darkMode ? "text-gray-300" : "text-gray-600"}`}>Setting up your profile...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   // Determine which wizard to show based on role and profile completion
   const hasFreelancerProfile = user?.profile?.freelancerProfileCompleted ||
@@ -133,6 +109,14 @@ const ProfileSetupRouter: React.FC = () => {
     if (hasFreelancerRole) {
       return <FreelancerProfileWizard />;
     }
+  }
+
+  // If not authenticated, show wizard based on URL parameter or default to freelancer
+  if (!isAuthenticated || !user) {
+    if (signupRole === 'client') {
+      return <ClientProfileWizard />;
+    }
+    return <FreelancerProfileWizard />;
   }
 
   // Determine which wizard to show based on role parameter and incomplete profiles
@@ -177,7 +161,7 @@ const ProfileSetupRouter: React.FC = () => {
     } else if (hasFreelancerRole) {
       navigate('/dashboard/freelancer', { replace: true });
     } else {
-      navigate('/signup', { replace: true });
+      return <FreelancerProfileWizard />;
     }
   }
   return null;
