@@ -429,14 +429,12 @@ class ApiService {
     jobId: string;
     coverLetter?: string;
     cvUrl?: string;
+    portfolioUrl?: string;
   }): Promise<Application> {
-    // Application submission requires authentication
+    // Application submission no longer requires authentication
     const token = localStorage.getItem("token") || this.token;
-    if (!token) {
-      throw new Error("Authentication required to submit application");
-    }
     const response = await axios.post(`${this.baseUrl}/applications`, data, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     const payload = response.data as {
       message: string;
