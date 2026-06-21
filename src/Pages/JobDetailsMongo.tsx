@@ -1729,12 +1729,6 @@ const JobDetailsMongo: React.FC = () => {
                         }`}
                     >
                       Upload CV (PDF, DOC, DOCX — max 5MB) <span className="text-red-500">*</span>
-                      {currentUser?.profile?.cvUrl && !cvFile && (
-                        <span className={`ml-2 text-xs px-2 py-1 rounded-full ${darkMode ? "bg-green-500/20 text-green-400" : "bg-green-100 text-green-700"
-                          }`}>
-                          ✓ From Profile
-                        </span>
-                      )}
                     </label>
                     <input
                       type="file"
@@ -1766,40 +1760,6 @@ const JobDetailsMongo: React.FC = () => {
                         </p>
                       </div>
                     )}
-                    {currentUser?.profile?.cvUrl && !cvFile && (
-                      <div
-                        className={`mt-2 p-3 rounded-lg font-inter border ${darkMode ? "bg-green-500/10 border-green-500/30" : "bg-green-50 border-green-200"
-                          }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${darkMode ? "bg-green-500/20" : "bg-green-100"
-                              }`}>
-                              📄
-                            </div>
-                            <div>
-                              <p className={`text-sm font-medium ${darkMode ? "text-green-400" : "text-green-700"
-                                }`}>
-                                CV from Profile
-                              </p>
-                              <p className={`text-xs ${darkMode ? "text-green-300" : "text-green-600"
-                                }`}>
-                                Your existing CV will be used for this application
-                              </p>
-                            </div>
-                          </div>
-                          <a
-                            href={apiService.getFileUrl(currentUser.profile.cvUrl)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`text-xs px-3 py-1 rounded ${darkMode ? "text-green-400 hover:text-green-300" : "text-green-600 hover:text-green-700"
-                              }`}
-                          >
-                            View CV
-                          </a>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div>
@@ -1808,15 +1768,6 @@ const JobDetailsMongo: React.FC = () => {
                         }`}
                     >
                       Portfolio Link (Optional)
-                      {portfolioLink && currentUser?.profile && (
-                        currentUser.profile.portfolioUrl === portfolioLink ||
-                        currentUser.profile.portfolio === portfolioLink
-                      ) && (
-                          <span className={`ml-2 text-xs px-2 py-1 rounded-full ${darkMode ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700"
-                            }`}>
-                            ✓ From Profile
-                          </span>
-                        )}
                     </label>
                     <input
                       type="url"
@@ -1834,32 +1785,6 @@ const JobDetailsMongo: React.FC = () => {
                     >
                       Share your portfolio, GitHub, Behance, or any relevant work samples
                     </p>
-                    {portfolioLink && currentUser?.profile && (
-                      (currentUser.profile.portfolioUrl === portfolioLink ||
-                        currentUser.profile.portfolio === portfolioLink) && (
-                        <div
-                          className={`mt-2 p-3 rounded-lg font-inter border ${darkMode ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200"
-                            }`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${darkMode ? "bg-blue-500/20" : "bg-blue-100"
-                              }`}>
-                              🔗
-                            </div>
-                            <div>
-                              <p className={`text-sm font-medium ${darkMode ? "text-blue-400" : "text-blue-700"
-                                }`}>
-                                Portfolio from Profile
-                              </p>
-                              <p className={`text-xs ${darkMode ? "text-blue-300" : "text-blue-600"
-                                }`}>
-                                Your portfolio link from profile wizard will be used
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
                   </div>
                 </div>
 
