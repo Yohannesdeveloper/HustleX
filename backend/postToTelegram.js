@@ -162,12 +162,9 @@ async function postJobToTelegram(job) {
   const message = lines.join("\n");
 
   // Create inline keyboard with Apply button.
-  // Use a Telegram Mini App direct link so the button opens the job inside
-  // Telegram as a Mini App. Channels don't support inline `web_app` buttons,
-  // so a t.me/?startapp=... URL button is used instead. Fall back to the plain
-  // web link if the bot username isn't configured.
-  const miniAppLink = buildMiniAppLink(jobId);
-  const applyUrl = miniAppLink || jobLink;
+  // Redirect to registration page for new users, with redirect to job details after registration
+  const registerUrl = `${baseUrl}/Register?redirect=${encodeURIComponent(`/job-details/${jobId}`)}`;
+  const applyUrl = registerUrl;
   const inlineKeyboard = applyUrl ? [[
     {
       text: "Apply for this job",

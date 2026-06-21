@@ -157,8 +157,6 @@ const JobDetailsMongo: React.FC = () => {
   const [coverLetter, setCoverLetter] = useState("");
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [portfolioLink, setPortfolioLink] = useState("");
-  const [applicantEmail, setApplicantEmail] = useState("");
-  const [applicantName, setApplicantName] = useState("");
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [userRole, setUserRole] = useState<"freelancer" | "client" | "guest">(
     "guest"
@@ -331,16 +329,6 @@ const JobDetailsMongo: React.FC = () => {
     }
 
     // Validate required fields
-    if (!currentUser && !applicantName.trim()) {
-      alert("Please provide your name.");
-      return;
-    }
-
-    if (!currentUser && !applicantEmail.trim()) {
-      alert("Please provide your email.");
-      return;
-    }
-
     if (!coverLetter.trim()) {
       alert("Please provide a cover letter.");
       return;
@@ -408,9 +396,9 @@ const JobDetailsMongo: React.FC = () => {
         coverLetter: coverLetter.trim(),
       };
 
-      // Include applicantEmail for anonymous users
-      if (!currentUser && applicantEmail.trim()) {
-        payload.applicantEmail = applicantEmail.trim();
+      // Include phone number from user profile for identification
+      if (currentUser?.profile?.phone) {
+        payload.phone = currentUser.profile.phone;
       }
 
       // Only include cvUrl if it's a valid non-empty string
@@ -428,8 +416,6 @@ const JobDetailsMongo: React.FC = () => {
       setCoverLetter("");
       setCvFile(null);
       setPortfolioLink("");
-      setApplicantEmail("");
-      setApplicantName("");
       setShowApplicationForm(false);
 
       // Show animation instead of alert
@@ -1710,46 +1696,6 @@ const JobDetailsMongo: React.FC = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {!currentUser && (
-                    <>
-                      <div>
-                        <label
-                          className={`block text-sm font-medium mb-2 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
-                            }`}
-                        >
-                          Your Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={applicantName}
-                          onChange={(e) => setApplicantName(e.target.value)}
-                          placeholder="John Doe"
-                          className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 font-inter ${darkMode
-                            ? "bg-gray-900/60 text-white border border-gray-700/50 placeholder:text-gray-400"
-                            : "bg-gray-100 text-gray-800 border border-gray-300/60 placeholder:text-gray-500"
-                            }`}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          className={`block text-sm font-medium mb-2 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
-                            }`}
-                        >
-                          Your Email <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="email"
-                          value={applicantEmail}
-                          onChange={(e) => setApplicantEmail(e.target.value)}
-                          placeholder="john@example.com"
-                          className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 font-inter ${darkMode
-                            ? "bg-gray-900/60 text-white border border-gray-700/50 placeholder:text-gray-400"
-                            : "bg-gray-100 text-gray-800 border border-gray-300/60 placeholder:text-gray-500"
-                            }`}
-                        />
-                      </div>
-                    </>
-                  )}
                   <div>
                     <label
                       className={`block text-sm font-medium mb-2 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"

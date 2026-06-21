@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck } from "react-icons/fa";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck, FaPhone } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
 import { register as registerUser } from "../store/authSlice";
 
@@ -50,6 +50,7 @@ const CITIES_BY_COUNTRY: Record<string, string[]> = {
 
 const RegistrationPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const dispatch = useAppDispatch();
 
@@ -65,23 +66,19 @@ const RegistrationPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPhonePermission, setShowPhonePermission] = useState(false);
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
 
-  const REDIRECT_URL = "https://hustlexet.vercel.app/freelancer-profile-setup";
+  // Get redirect parameter from URL
+  const redirectParam = searchParams.get('redirect');
+  const DEFAULT_REDIRECT = "https://hustlexet.vercel.app/freelancer-profile-setup";
 
-  // Auto-redirect after successful registration
+  // Auto-redirect after successful registration to phone permission step
   useEffect(() => {
     if (!success) return;
     const timer = setTimeout(() => {
-      // Check if running in Telegram mini app
-      if (window.Telegram && window.Telegram.WebApp) {
-        // Use Telegram's openLink method for mini app
-        window.Telegram.WebApp.openLink(REDIRECT_URL);
-      } else {
-        // Standard browser navigation
-        window.location.href = REDIRECT_URL;
-      }
+      setShowPhonePermission(true);
     }, 1500);
     return () => clearTimeout(timer);
   }, [success]);
@@ -130,6 +127,52 @@ const RegistrationPage: React.FC = () => {
   };
 
   if (success) {
+    if (showPhonePermission) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto">
+          <div className="max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center shadow-2xl">
+            {/* Phone Icon */}
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <FaPhone className="w-10 h-10 text-white" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-2">Share Your Phone Number?</h2>
+            <p className="text-gray-400 mb-6">
+              Allow us to access your phone number for better communication with clients.
+            </p>
+
+            {/* Phone permission buttons */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  // Allow phone - redirect to freelancer profile setup with job details redirect
+                  const profileSetupUrl = redirectParam 
+                    ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                    : DEFAULT_REDIRECT;
+                  window.location.href = profileSetupUrl;
+                }}
+                className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
+              >
+                Allow Phone Access
+              </button>
+              <button
+                onClick={() => {
+                  // Deny phone - still redirect to freelancer profile setup with job details redirect
+                  const profileSetupUrl = redirectParam 
+                    ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                    : DEFAULT_REDIRECT;
+                  window.location.href = profileSetupUrl;
+                }}
+                className="w-full py-3 px-6 rounded-xl bg-white/10 text-gray-300 font-semibold hover:bg-white/20 transition-all border border-white/10"
+              >
+                Skip for Now
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto">
         <div className="max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center shadow-2xl">
@@ -152,7 +195,7 @@ const RegistrationPage: React.FC = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Redirecting to profile setup...
+              Redirecting to phone permission...
             </div>
           </div>
         </div>

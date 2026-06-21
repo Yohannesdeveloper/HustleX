@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RootState } from '../store';
 import { User } from '../types';
 import apiService from '../services/api';
@@ -56,6 +56,7 @@ interface StepProps {
   onSubmit?: () => void;
   navigate?: any;
   refreshUser?: () => Promise<any>;
+  redirectParam?: string | null;
   errors?: Record<string, string>;
   touched?: Record<string, boolean>;
   handleBlur?: (field: string) => void;
@@ -153,6 +154,7 @@ const getFieldClass = (darkMode: boolean, hasError: boolean) => {
 const FreelancerProfileWizard: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated, loading, refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -523,7 +525,8 @@ const FreelancerProfileWizard: React.FC = () => {
       case 2:
         return <ProfessionalDetailsStep {...stepProps} />;
       case 3:
-        return <ReviewStep {...stepProps} onSubmit={() => {}} navigate={navigate} refreshUser={refreshUser} />;
+        const redirectParam = searchParams.get('redirect');
+        return <ReviewStep {...stepProps} onSubmit={() => {}} navigate={navigate} refreshUser={refreshUser} redirectParam={redirectParam} />;
       default:
         return <BasicInfoStep {...stepProps} />;
     }
@@ -1375,7 +1378,7 @@ const ProfessionalDetailsStep: React.FC<StepProps> = ({ data, updateData, onNext
 
 
 
-const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLast, navigate, refreshUser }) => {
+const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLast, navigate, refreshUser, redirectParam }) => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   const { isAuthenticated } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
@@ -1469,6 +1472,11 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       alert('Profile saved successfully! You can continue editing or navigate to other pages.');
       if (onSubmit) {
         onSubmit();
+      }
+
+      // Redirect to job details if redirectParam exists
+      if (redirectParam) {
+        window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);
