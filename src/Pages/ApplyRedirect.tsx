@@ -54,19 +54,29 @@ const ApplyRedirect: React.FC = () => {
 
     const checkRegistration = async () => {
       try {
+        console.log("ApplyRedirect: Starting checkRegistration");
+        console.log("ApplyRedirect: isAuthenticated:", apiService.isAuthenticated());
+        console.log("ApplyRedirect: Telegram WebApp available:", !!tg);
+        console.log("ApplyRedirect: Telegram user:", tg?.initDataUnsafe?.user);
+
         // First check: is user already logged in with a valid token?
         if (apiService.isAuthenticated()) {
+          console.log("ApplyRedirect: User is authenticated, checking user data");
           try {
             const user = await apiService.getCurrentUser();
+            console.log("ApplyRedirect: User data:", user);
             if (user && effectiveRedirect) {
               if (user.profile?.isProfileComplete) {
+                console.log("ApplyRedirect: Profile complete, redirecting to job");
                 redirectToJob(effectiveRedirect);
               } else {
+                console.log("ApplyRedirect: Profile not complete, redirecting to profile setup");
                 redirectToProfileSetup();
               }
               return;
             }
-          } catch (_) {
+          } catch (error) {
+            console.log("ApplyRedirect: Token invalid, falling through to Telegram check");
             // Token invalid — fall through to Telegram check or registration
           }
         }
@@ -74,10 +84,13 @@ const ApplyRedirect: React.FC = () => {
         // Second check: Telegram mini app with phone number
         if (tg && tg.initDataUnsafe?.user) {
           const telegramUser = tg.initDataUnsafe.user as TelegramUser;
+          console.log("ApplyRedirect: Telegram user found:", telegramUser);
+          console.log("ApplyRedirect: Telegram phone number:", telegramUser.phone_number);
 
           if (telegramUser.phone_number) {
             const response = await fetch(`${apiService['baseUrl']}/applications/check-phone/${telegramUser.phone_number}`);
             const data = await response.json();
+            console.log("ApplyRedirect: Phone check result:", data);
 
             if (data.isRegistered) {
               if (data.isProfileComplete && effectiveRedirect) {
@@ -86,16 +99,20 @@ const ApplyRedirect: React.FC = () => {
                 redirectToProfileSetup();
               }
             } else {
+              console.log("ApplyRedirect: Phone not registered, redirecting to registration");
               redirectToRegister();
             }
             return;
+          } else {
+            console.log("ApplyRedirect: No phone number from Telegram");
           }
         }
 
         // Fallback: no auth, no Telegram — go to registration
+        console.log("ApplyRedirect: Fallback - redirecting to registration");
         redirectToRegister();
       } catch (err: any) {
-        console.error("Error checking registration:", err);
+        console.error("ApplyRedirect: Error checking registration:", err);
         setError("Failed to check registration status");
         redirectToRegister();
       }
