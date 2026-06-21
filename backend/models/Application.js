@@ -14,7 +14,7 @@ const applicationSchema = new mongoose.Schema(
     applicant: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional to allow anonymous applications
     },
     applicantEmail: {
       type: String,
