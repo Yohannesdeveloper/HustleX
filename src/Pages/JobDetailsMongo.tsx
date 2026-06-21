@@ -423,6 +423,7 @@ const JobDetailsMongo: React.FC = () => {
         payload.portfolioUrl = processedPortfolioUrl;
       }
       const application = await apiService.submitApplication(payload);
+      console.log("Application submitted successfully:", application);
       setApplied(true);
       setCoverLetter("");
       setCvFile(null);
