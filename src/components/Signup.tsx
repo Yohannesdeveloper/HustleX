@@ -13,7 +13,7 @@ import { RegisterSEO, LoginSEO } from "../components/SEO";
 declare global {
   interface Window {
     TelegramLoginWidget: any;
-    telegramLoginCallback: (data: any) => void;
+    telegramLoginCallback?: (data: any) => void;
   }
 }
 
@@ -39,15 +39,20 @@ const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [telegramConfig, setTelegramConfig] = useState<{ botUsername: string | null; configured: boolean } | null>(null);
+  const [telegramPending, setTelegramPending] = useState<"idle" | "waiting" | "declined" | "expired" | "error">("idle");
+  const telegramPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const emailCheckTimeout = useRef<number | null>(null);
 
   // Handle Telegram Login callback
   const handleTelegramLogin = async (data: any) => {
     setIsLoading(true);
     setError(null);
+    setTelegramPending("idle");
     try {
       const result = await apiService.telegramLogin(data);
-      if (result.user) {
+
+      // Case 1: Backend returned a token immediately (fallback when notification fails)
+      if (("token" in result) && result.token && result.user) {
         setUser(result.user);
         if (isAdminAccount(result.user)) {
           navigate("/admin/dashboard", { replace: true });
@@ -58,6 +63,62 @@ const Signup: React.FC = () => {
         } else {
           navigate("/", { replace: true });
         }
+        return;
+      }
+
+      // Case 2: Backend returned a pending login request – start polling
+      if (("loginRequestId" in result) && result.loginRequestId) {
+        setTelegramPending("waiting");
+
+        const requestId = result.loginRequestId;
+        const startTime = Date.now();
+        const POLL_INTERVAL = 2000;
+        const TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+        telegramPollRef.current = setInterval(async () => {
+          // Stop polling after timeout
+          if (Date.now() - startTime > TIMEOUT) {
+            if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+            telegramPollRef.current = null;
+            setTelegramPending("expired");
+            setIsLoading(false);
+            return;
+          }
+
+          try {
+            const status = await apiService.telegramLoginStatus(requestId);
+            if (status.status === "confirmed" && status.token && status.user) {
+              if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+              telegramPollRef.current = null;
+              setUser(status.user);
+              if (isAdminAccount(status.user)) {
+                navigate("/admin/dashboard", { replace: true });
+              } else if (status.user.currentRole === "freelancer") {
+                navigate("/dashboard/freelancer", { replace: true });
+              } else if (status.user.currentRole === "client") {
+                navigate("/dashboard/hiring", { replace: true });
+              } else {
+                navigate("/", { replace: true });
+              }
+            } else if (status.status === "declined") {
+              if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+              telegramPollRef.current = null;
+              setTelegramPending("declined");
+              setIsLoading(false);
+            } else if (status.status === "expired") {
+              if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+              telegramPollRef.current = null;
+              setTelegramPending("expired");
+              setIsLoading(false);
+            }
+          } catch (pollErr) {
+            console.error("Polling error:", pollErr);
+            if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+            telegramPollRef.current = null;
+            setTelegramPending("error");
+            setIsLoading(false);
+          }
+        }, POLL_INTERVAL);
       }
     } catch (err: any) {
       console.error("Telegram login error:", err);
@@ -69,7 +130,10 @@ const Signup: React.FC = () => {
       }
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      // Only stop loading if we're not in the waiting state
+      if (telegramPending !== "waiting") {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -86,11 +150,23 @@ const Signup: React.FC = () => {
     fetchTelegramConfig();
   }, []);
 
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (telegramPollRef.current) {
+        clearInterval(telegramPollRef.current);
+      }
+    };
+  }, []);
+
   // Initialize Telegram Widget
   useEffect(() => {
     if (!telegramConfig || !telegramConfig.configured || !telegramConfig.botUsername) {
       return;
     }
+
+    // Only render widget when idle
+    if (telegramPending !== "idle") return;
 
     // Expose callback to global scope
     window.telegramLoginCallback = handleTelegramLogin;
@@ -106,14 +182,17 @@ const Signup: React.FC = () => {
     script.dataset.authUrl = "javascript:window.telegramLoginCallback";
     script.dataset.requestAccess = "write";
     
-    // Insert into our div
-    const container = document.getElementById("telegram-login-button");
-    if (container) {
-      container.innerHTML = ""; // Clear any existing content
-      container.appendChild(script);
-    }
+    // Insert into our div – use a short delay to let the DOM update first
+    const timeout = setTimeout(() => {
+      const container = document.getElementById("telegram-login-button");
+      if (container) {
+        container.innerHTML = ""; // Clear any existing content
+        container.appendChild(script);
+      }
+    }, 100);
 
     return () => {
+      clearTimeout(timeout);
       // Cleanup
       delete window.telegramLoginCallback;
       const container = document.getElementById("telegram-login-button");
@@ -121,7 +200,7 @@ const Signup: React.FC = () => {
         container.innerHTML = "";
       }
     };
-  }, [telegramConfig, darkMode]);
+  }, [telegramConfig, darkMode, telegramPending]);
 
   // Get redirect path from URL params
   const searchParams = new URLSearchParams(location.search);
@@ -437,7 +516,73 @@ const Signup: React.FC = () => {
 
 
 
-          {telegramConfig?.configured && (
+          {telegramConfig?.configured && telegramPending === "waiting" && (
+            <div className={`p-5 rounded-2xl border mb-6 text-center transition-all ${
+              darkMode 
+                ? "bg-yellow-950/20 border-yellow-500/30 shadow-lg shadow-yellow-500/5" 
+                : "bg-yellow-50/70 border-yellow-300/50 shadow-md shadow-yellow-100/50"
+            }`}>
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <FaTelegram className="text-2xl text-[#24A1DE]" />
+                <span className={`font-semibold text-sm ${darkMode ? "text-yellow-300" : "text-yellow-700"}`}>
+                  Awaiting Confirmation
+                </span>
+              </div>
+              <div className="flex justify-center mb-3">
+                <div className={`w-8 h-8 border-2 rounded-full animate-spin ${
+                  darkMode ? "border-yellow-500/30 border-t-yellow-400" : "border-yellow-400/30 border-t-yellow-500"
+                }`} />
+              </div>
+              <p className={`text-xs max-w-xs mx-auto leading-relaxed ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                Check your <b>Telegram chat</b> and tap <b>✅ Confirm Login</b> to continue.
+              </p>
+              <button
+                onClick={() => {
+                  if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+                  telegramPollRef.current = null;
+                  setTelegramPending("idle");
+                  setIsLoading(false);
+                }}
+                className={`mt-3 text-xs underline ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {telegramConfig?.configured && telegramPending === "declined" && (
+            <div className={`p-4 rounded-2xl border mb-6 text-center transition-all ${
+              darkMode ? "bg-red-950/20 border-red-500/30" : "bg-red-50/70 border-red-300/50"
+            }`}>
+              <p className={`text-sm font-semibold ${darkMode ? "text-red-400" : "text-red-600"}`}>
+                ❌ Login was declined. Please try again if this was a mistake.
+              </p>
+              <button
+                onClick={() => setTelegramPending("idle")}
+                className={`mt-2 text-xs underline ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {telegramConfig?.configured && telegramPending === "expired" && (
+            <div className={`p-4 rounded-2xl border mb-6 text-center transition-all ${
+              darkMode ? "bg-orange-950/20 border-orange-500/30" : "bg-orange-50/70 border-orange-300/50"
+            }`}>
+              <p className={`text-sm font-semibold ${darkMode ? "text-orange-400" : "text-orange-600"}`}>
+                ⏰ Login request expired. Please try again.
+              </p>
+              <button
+                onClick={() => setTelegramPending("idle")}
+                className={`mt-2 text-xs underline ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {telegramConfig?.configured && telegramPending === "idle" && (
             <div className={`p-5 rounded-2xl border mb-6 text-center transition-all ${
               darkMode 
                 ? "bg-sky-950/20 border-sky-500/20 shadow-lg shadow-sky-500/5" 
@@ -450,7 +595,7 @@ const Signup: React.FC = () => {
                 </span>
               </div>
               <p className={`text-xs mb-4 max-w-xs mx-auto leading-relaxed ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Click below to sign in using your Telegram account. Enter your phone number in the popup, then click Confirm in the Telegram app services chat.
+                Click below to sign in using your Telegram account. You'll receive a confirmation notification in Telegram to approve the login.
               </p>
               <div className="flex justify-center">
                 <div id="telegram-login-button" className="transition-all hover:scale-105 duration-200" />

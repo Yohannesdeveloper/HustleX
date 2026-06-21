@@ -128,12 +128,21 @@ class ApiService {
     });
   }
 
-  async telegramLogin(telegramData: any): Promise<{ token: string; user: any }> {
+  async telegramLogin(telegramData: any): Promise<{ token: string; user: any } | { loginRequestId: string; status: string }> {
     return this.withPortRetry(async (base) => {
       const response = await axios.post(`${base}/auth/telegram-login`, {
         telegramData,
       });
-      const data = response.data as { token: string; user: any };
+      const data = response.data as { token: string; user: any; loginRequestId?: string; status?: string };
+      if (data.token) this.setToken(data.token);
+      return data;
+    });
+  }
+
+async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: string; user?: any; message?: string }> {
+    return this.withPortRetry(async (base) => {
+      const response = await axios.get(`${base}/auth/telegram-login-status/${requestId}`);
+      const data = response.data as { status: string; token?: string; user?: any; message?: string };
       if (data.token) this.setToken(data.token);
       return data;
     });

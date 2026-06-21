@@ -1,6 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const axios = require("axios");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
 const { sendMail } = require("../services/mail");
@@ -9,6 +10,20 @@ const { auth } = require("../middleware/auth");
 const { ensureAdminRole, toAuthUserPayload } = require("../config/admin");
 
 const router = express.Router();
+
+// ── In-memory store for pending Telegram login confirmations ──────────────
+// Key: requestId, Value: { telegramUserId, userId, token, status, createdAt }
+const pendingTelegramLogins = new Map();
+
+// Clean up expired entries (>5 min old) every 2 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of pendingTelegramLogins) {
+    if (now - entry.createdAt > 5 * 60 * 1000) {
+      pendingTelegramLogins.delete(id);
+    }
+  }
+}, 2 * 60 * 1000);
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -616,12 +631,12 @@ router.post("/freelancer-profile", async (req, res) => {
 });
 
 // @route   POST /api/auth/telegram-login
-// @desc    Login with Telegram
+// @desc    Initiate Telegram login – sends a confirm/decline notification
 // @access  Public
 router.post("/telegram-login", async (req, res) => {
   try {
     const { telegramData } = req.body;
-    
+
     if (!telegramData) {
       return res.status(400).json({ message: "Telegram data is required" });
     }
@@ -639,7 +654,7 @@ router.post("/telegram-login", async (req, res) => {
 
     // Sort the keys alphabetically
     const sortedKeys = Object.keys(dataToCheck).sort();
-    
+
     // Create the data check string
     const dataCheckString = sortedKeys
       .map((key) => `${key}=${dataToCheck[key]}`)
@@ -686,7 +701,7 @@ router.post("/telegram-login", async (req, res) => {
           avatar: telegramData.photo_url || "",
         },
       });
-      
+
       // Generate a random password for security (even though we don't use it for login)
       const randomPassword = crypto.randomBytes(32).toString("hex");
       user.password = randomPassword;
@@ -694,18 +709,170 @@ router.post("/telegram-login", async (req, res) => {
       await user.save();
     }
 
-    // Generate token and return user
+    // Generate token
     const token = generateToken(user._id);
     await ensureAdminRole(user);
 
-    res.json({
+    // ── Create pending login request & send Telegram confirmation ──
+    const loginRequestId = crypto.randomBytes(16).toString("hex");
+    pendingTelegramLogins.set(loginRequestId, {
+      telegramUserId: telegramData.id,
+      userId: user._id,
       token,
       user: toAuthUserPayload(user),
+      status: "pending",
+      createdAt: Date.now(),
     });
 
+    // Send confirmation message with inline buttons to the user
+    const confirmMessage = [
+      "🔐 <b>HustleX Login Request</b>",
+      "",
+      `Hi <b>${telegramData.first_name || "there"}</b>!`,
+      "Someone is trying to log in to your HustleX account.",
+      "",
+      "👇 Tap below to confirm or decline.",
+    ].join("\n");
+
+    const inlineKeyboard = [
+      [
+        {
+          text: "✅ Confirm Login",
+          callback_data: `tglogin_confirm_${loginRequestId}`,
+        },
+        {
+          text: "❌ Decline",
+          callback_data: `tglogin_decline_${loginRequestId}`,
+        },
+      ],
+    ];
+
+    try {
+      await axios.post(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          chat_id: telegramData.id,
+          text: confirmMessage,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+          reply_markup: { inline_keyboard: inlineKeyboard },
+        }
+      );
+    } catch (sendErr) {
+      console.error(
+        "Failed to send Telegram confirmation message:",
+        sendErr?.response?.data || sendErr.message
+      );
+      // If we can't send the message, fall back to immediate login
+      return res.json({ token, user: toAuthUserPayload(user) });
+    }
+
+    // Return pending status to the frontend
+    res.json({ loginRequestId, status: "pending" });
   } catch (error) {
     console.error("Telegram login error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/auth/telegram-login-status/:requestId
+// @desc    Poll for Telegram login confirmation result
+// @access  Public
+router.get("/telegram-login-status/:requestId", (req, res) => {
+  const { requestId } = req.params;
+  const entry = pendingTelegramLogins.get(requestId);
+
+  if (!entry) {
+    return res.status(404).json({ message: "Login request not found or expired" });
+  }
+
+  if (entry.status === "pending") {
+    return res.json({ status: "pending" });
+  }
+
+  if (entry.status === "confirmed") {
+    // Clean up
+    pendingTelegramLogins.delete(requestId);
+    return res.json({
+      status: "confirmed",
+      token: entry.token,
+      user: entry.user,
+    });
+  }
+
+  if (entry.status === "declined") {
+    pendingTelegramLogins.delete(requestId);
+    return res.json({ status: "declined", message: "Login was declined." });
+  }
+
+  // expired or unknown
+  pendingTelegramLogins.delete(requestId);
+  res.json({ status: "expired" });
+});
+
+// @route   POST /api/auth/telegram-webhook
+// @desc    Receive Telegram callback queries (button presses)
+// @access  Public (Telegram servers call this)
+router.post("/telegram-webhook", async (req, res) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+  // Acknowledge immediately so Telegram doesn't retry
+  res.sendStatus(200);
+
+  try {
+    const callbackQuery = req.body?.callback_query;
+    if (!callbackQuery) return;
+
+    const chatId = callbackQuery.from?.id;
+    const messageId = callbackQuery.message?.message_id;
+    const data = callbackQuery.data; // e.g. "tglogin_confirm_<requestId>"
+
+    if (!data || !data.startsWith("tglogin_")) return;
+
+    const parts = data.split("_");
+    const action = parts[1]; // "confirm" | "decline"
+    const requestId = parts[2];
+
+    const entry = pendingTelegramLogins.get(requestId);
+
+    // Answer the callback query to remove the loading spinner in Telegram
+    if (botToken) {
+      await axios.post(
+        `https://api.telegram.org/bot${botToken}/answerCallbackQuery`,
+        {
+          callback_query_id: callbackQuery.id,
+          text:
+            action === "confirm"
+              ? "Login confirmed! You can close this."
+              : "Login declined.",
+        }
+      ).catch(() => {});
+
+      // Update the message to reflect the action taken
+      const updatedText =
+        action === "confirm"
+          ? "✅ <b>Login Confirmed</b>\n\nYou have been logged in to HustleX successfully."
+          : "❌ <b>Login Declined</b>\n\nThe login request has been rejected. If this wasn't you, please change your password.";
+
+      await axios.post(
+        `https://api.telegram.org/bot${botToken}/editMessageText`,
+        {
+          chat_id: chatId,
+          message_id: messageId,
+          text: updatedText,
+          parse_mode: "HTML",
+        }
+      ).catch(() => {});
+    }
+
+    if (entry) {
+      entry.status = action === "confirm" ? "confirmed" : "declined";
+    }
+  } catch (err) {
+    console.error(
+      "Telegram webhook error:",
+      err?.response?.data || err.message
+    );
   }
 });
 

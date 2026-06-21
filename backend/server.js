@@ -722,6 +722,31 @@ app.get("/api/port", (req, res) => {
         console.log(`🔄 Nodemon: watching for file changes`);
       }
       console.log(`========================================\n`);
+
+      // Register Telegram webhook for login confirmation callbacks
+      const tgBotToken = process.env.TELEGRAM_BOT_TOKEN;
+      const tgWebhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
+      if (tgBotToken && tgWebhookUrl) {
+        const webhookEndpoint = `${tgWebhookUrl}`;
+        fetch(`https://api.telegram.org/bot${tgBotToken}/setWebhook`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: webhookEndpoint,
+            allowed_updates: ["callback_query"],
+          }),
+        })
+          .then((r) => r.json())
+          .then((result) => {
+            console.log(
+              `🤖 Telegram webhook registered: ${result.ok ? "✅" : "❌"}`,
+              result.description || ""
+            );
+          })
+          .catch((err) =>
+            console.error("Failed to register Telegram webhook:", err.message)
+          );
+      }
     });
   } catch (error) {
     console.error("Failed to start server:", error);
