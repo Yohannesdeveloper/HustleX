@@ -28,7 +28,7 @@ router.post(
     body("coverLetter").optional().isLength({ max: 2000 }),
     body("cvUrl").optional(),
     body("portfolioUrl").optional(),
-    body("phone").optional().isString(),
+    body("phone").optional(),
   ],
   async (req, res) => {
     try {
