@@ -1734,11 +1734,17 @@ const JobListings: React.FC = () => {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate(`/job-details/${job.id}`)}
+                      onClick={() => {
+                        if (!user) {
+                          navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
+                        } else {
+                          navigate(`/job-details/${job.id}`);
+                        }
+                      }}
                       className={`px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-cyan-500 to-blue-500 font-bold rounded-lg hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-400/40 text-xs sm:text-sm font-inter ${darkMode ? "text-white" : "text-black"
                         }`}
                     >
-                      View Details
+                      {user ? "View Details" : "Sign in to Apply"}
                     </motion.button>
 
                     {/* Go to Site button - only show if job has external link */}
