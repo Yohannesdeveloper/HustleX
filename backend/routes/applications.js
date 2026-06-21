@@ -26,24 +26,8 @@ router.post(
       return true;
     }),
     body("coverLetter").optional().isLength({ max: 2000 }),
-    body("cvUrl").optional().custom((value) => {
-      if (!value) return true; // Allow empty values
-      return typeof value === 'string';
-    }),
-    body("portfolioUrl").optional().custom((value) => {
-      if (!value) return true; // Allow empty values
-      try {
-        // Add protocol if missing
-        let url = value.trim();
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = 'https://' + url;
-        }
-        new URL(url);
-        return true;
-      } catch {
-        throw new Error("Portfolio URL must be a valid URL");
-      }
-    }),
+    body("cvUrl").optional(),
+    body("portfolioUrl").optional(),
     body("phone").optional().isString(),
   ],
   async (req, res) => {
