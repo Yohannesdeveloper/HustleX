@@ -427,7 +427,8 @@ const JobDetailsMongo: React.FC = () => {
         console.error("Response status:", error.response.status);
         const errorMessage = error.response.data.errors?.[0]?.message ||
           error.response.data.message ||
-          "Bad Request";
+          error.response.data.error ||
+          "Server error";
         alert(`Failed to apply: ${errorMessage}`);
       } else {
         console.error("Error applying to job:", error);

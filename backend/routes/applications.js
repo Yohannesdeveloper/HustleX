@@ -44,6 +44,7 @@ router.post(
         throw new Error("Portfolio URL must be a valid URL");
       }
     }),
+    body("phone").optional().isString(),
   ],
   async (req, res) => {
     try {
@@ -59,7 +60,7 @@ router.post(
         });
       }
 
-      const { jobId, coverLetter, cvUrl, portfolioUrl: rawPortfolioUrl, applicantEmail } = req.body;
+      const { jobId, coverLetter, cvUrl, portfolioUrl: rawPortfolioUrl, applicantEmail, phone } = req.body;
 
       // Process portfolio URL to ensure it has proper protocol
       let portfolioUrl = rawPortfolioUrl;
@@ -121,6 +122,7 @@ router.post(
         coverLetter,
         cvUrl,
         portfolioUrl,
+        phone,
       });
 
       await application.save();
