@@ -54,39 +54,32 @@ const ApplyRedirect: React.FC = () => {
 
     const checkRegistration = async () => {
       try {
-        console.log("ApplyRedirect: Starting checkRegistration");
-        console.log("ApplyRedirect: isAuthenticated:", apiService.isAuthenticated());
-        console.log("ApplyRedirect: Telegram WebApp available:", !!tg);
-        console.log("ApplyRedirect: Telegram user:", tg?.initDataUnsafe?.user);
+        // Add a small delay to ensure everything is loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // First check: is user already logged in with a valid token?
         if (apiService.isAuthenticated()) {
-          console.log("ApplyRedirect: User is authenticated, checking user data");
           try {
             const user = await apiService.getCurrentUser();
-            console.log("ApplyRedirect: User data:", user);
             if (user && effectiveRedirect) {
               if (user.profile?.isProfileComplete) {
-                console.log("ApplyRedirect: Profile complete, redirecting to job");
                 redirectToJob(effectiveRedirect);
               } else {
-                console.log("ApplyRedirect: Profile not complete, redirecting to profile setup");
                 redirectToProfileSetup();
               }
               return;
             }
           } catch (error) {
-            console.log("ApplyRedirect: Token invalid, falling through to registration");
-            // Token invalid — fall through to registration
+            // Token invalid — clear it and fall through to registration
+            localStorage.removeItem("token");
+            apiService.clearToken();
           }
         }
 
         // If not authenticated, always redirect to registration
         // The registration flow will handle: Registration → Share Phone → Profile Setup → Job Details
-        console.log("ApplyRedirect: User not authenticated, redirecting to registration");
         redirectToRegister();
       } catch (err: any) {
-        console.error("ApplyRedirect: Error checking registration:", err);
         setError("Failed to check registration status");
         redirectToRegister();
       }
