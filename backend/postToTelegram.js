@@ -162,15 +162,14 @@ async function postJobToTelegram(job) {
   const message = lines.join("\n");
 
   // Create inline keyboard with Apply button.
-  // Redirect to ApplyRedirect page to check if user is registered via phone number
+  // Use web_app type to open inside Telegram as a Mini App instead of external browser.
   const applyRedirectUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent(`/job-details/${jobId}`)}`;
-  const applyUrl = applyRedirectUrl;
-  const inlineKeyboard = applyUrl ? [[
+  const inlineKeyboard = [[
     {
-      text: "Apply for this job",
-      url: applyUrl
+      text: "🚀 Apply for this job",
+      web_app: { url: applyRedirectUrl }
     }
-  ]] : null;
+  ]];
 
   try {
     const results = await Promise.allSettled(

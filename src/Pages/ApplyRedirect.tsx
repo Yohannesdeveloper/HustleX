@@ -14,6 +14,17 @@ const ApplyRedirect: React.FC = () => {
   const redirectParam = searchParams.get('redirect');
 
   useEffect(() => {
+    // Initialize Telegram WebApp immediately — makes window.Telegram.WebApp
+    // usable and tells Telegram the Mini App is ready to display.
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand?.();
+      // Apply Telegram-like dark background to avoid flash
+      document.documentElement.style.backgroundColor = '#17212b';
+      document.body.style.backgroundColor = '#17212b';
+    }
+
     // Persist the pending job redirect in sessionStorage so it survives
     // across registration, profile setup, and page refreshes.
     if (redirectParam) {
@@ -61,10 +72,10 @@ const ApplyRedirect: React.FC = () => {
         }
 
         // Second check: Telegram mini app with phone number
-        if (window.Telegram && window.Telegram.WebApp) {
-          const telegramUser = window.Telegram.WebApp.initDataUnsafe?.user as TelegramUser;
+        if (tg && tg.initDataUnsafe?.user) {
+          const telegramUser = tg.initDataUnsafe.user as TelegramUser;
 
-          if (telegramUser && telegramUser.phone_number) {
+          if (telegramUser.phone_number) {
             const response = await fetch(`${apiService['baseUrl']}/applications/check-phone/${telegramUser.phone_number}`);
             const data = await response.json();
 
@@ -93,18 +104,18 @@ const ApplyRedirect: React.FC = () => {
     checkRegistration();
   }, [redirectParam]);
 
-  // Always show loading while redirecting
+  // Always show loading while redirecting — uses Telegram theme colors
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-        <p className="text-gray-400">
-          {error ? error : "Checking your account..."}
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--tg-theme-bg-color, #17212b)' }}>
+      <div className="text-center px-6">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
+        <p style={{ color: 'var(--tg-theme-text-color, #ffffff)' }} className="text-base">
+          {error || "Loading..."}
         </p>
         {error && (
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-cyan-500 rounded-lg text-white"
+            className="mt-4 px-5 py-2.5 bg-cyan-500 rounded-lg text-white font-medium"
           >
             Retry
           </button>
