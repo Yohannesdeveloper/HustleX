@@ -162,9 +162,9 @@ async function postJobToTelegram(job) {
   const message = lines.join("\n");
 
   // Create inline keyboard with Apply button.
-  // Redirect to registration page for new users, with redirect to job details after registration
-  const registerUrl = `${baseUrl}/Register?redirect=${encodeURIComponent(`/job-details/${jobId}`)}`;
-  const applyUrl = registerUrl;
+  // Redirect to ApplyRedirect page to check if user is registered via phone number
+  const applyRedirectUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent(`/job-details/${jobId}`)}`;
+  const applyUrl = applyRedirectUrl;
   const inlineKeyboard = applyUrl ? [[
     {
       text: "Apply for this job",

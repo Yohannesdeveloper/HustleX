@@ -322,4 +322,28 @@ router.get("/check/:jobId", auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/applications/check-phone/:phone
+// @desc    Check if a phone number is registered
+// @access  Public
+router.get("/check-phone/:phone", async (req, res) => {
+  try {
+    const { phone } = req.params;
+    
+    if (!phone) {
+      return res.status(400).json({ message: "Phone number is required" });
+    }
+
+    // Check if a user with this phone number exists
+    const user = await User.findOne({ phone: phone });
+    
+    res.json({
+      isRegistered: !!user,
+      userId: user ? user._id : null,
+    });
+  } catch (error) {
+    console.error("Check phone error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;
