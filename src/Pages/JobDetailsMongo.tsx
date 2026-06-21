@@ -414,17 +414,6 @@ const JobDetailsMongo: React.FC = () => {
 
       // Show animation instead of alert
       setShowSuccessAnimation(true);
-
-      // Delay navigation to let animation play
-      setTimeout(() => {
-        navigate("/dashboard/freelancer", {
-          state: {
-            tab: "myApplications",
-            previewApplicationId: application._id,
-            focusJobId: job._id,
-          },
-        });
-      }, 3500); // Wait for animation to finish
     } catch (error: any) {
       console.error("Full error object:", error);
       if (error.response) {
