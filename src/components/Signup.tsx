@@ -26,7 +26,6 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"freelancer" | "client">("freelancer");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +53,11 @@ const Signup: React.FC = () => {
       // Case 1: Backend returned a token immediately (fallback when notification fails)
       if (("token" in result) && result.token && result.user) {
         setUser(result.user);
+        // If user has no roles, send to role selection
+        if (!result.user.roles || result.user.roles.length === 0) {
+          navigate('/select-role', { replace: true, state: { redirectPath, pendingJobId } });
+          return;
+        }
         if (isAdminAccount(result.user)) {
           navigate("/admin/dashboard", { replace: true });
         } else if (result.user.currentRole === "freelancer") {
@@ -95,6 +99,11 @@ const Signup: React.FC = () => {
               if (telegramPollRef.current) clearInterval(telegramPollRef.current);
               telegramPollRef.current = null;
               setUser(status.user);
+              // If user has no roles, send to role selection
+              if (!status.user.roles || status.user.roles.length === 0) {
+                navigate('/select-role', { replace: true, state: { redirectPath, pendingJobId } });
+                return;
+              }
               if (isAdminAccount(status.user)) {
                 navigate("/admin/dashboard", { replace: true });
               } else if (status.user.currentRole === "freelancer") {
@@ -216,6 +225,7 @@ const Signup: React.FC = () => {
   // Get redirect path from URL params
   const searchParams = new URLSearchParams(location.search);
   const redirectPath = searchParams.get("redirect");
+  const pendingJobId = searchParams.get("pendingJob") || (location.state as any)?.pendingJobId;
 
   const checkExistingUser = async (emailToCheck: string) => {
     if (!emailToCheck || !emailToCheck.includes('@')) {
@@ -337,6 +347,12 @@ const Signup: React.FC = () => {
       }
 
       // Navigate based on role and profile completion status
+      // Priority 0: If user has no roles, send to role selection
+      if (!loggedInUser?.roles || loggedInUser.roles.length === 0) {
+        navigate('/select-role', { replace: true, state: { redirectPath, pendingJobId } });
+        return;
+      }
+
       // Priority 1: Admin users always go to admin panel
       console.log("Login redirect check:", {
         user: loggedInUser,
@@ -432,27 +448,14 @@ const Signup: React.FC = () => {
       await register({
         email,
         password,
-        role,
         firstName,
         lastName,
       });
 
       console.log("Registration successful");
 
-      // Priority 1: Use explicit redirect path if provided (e.g. from pricing/payment)
-      if (redirectPath && redirectPath !== "/job-listings") {
-        navigate(redirectPath, { replace: true });
-        return;
-      }
-
-      // Priority 2: Redirect to profile setup for new accounts
-      if (role === 'freelancer') {
-        navigate('/profile-setup?role=freelancer', { replace: true });
-      } else if (role === 'client') {
-        navigate('/profile-setup?role=client', { replace: true });
-      } else {
-        navigate('/job-listings', { replace: true });
-      }
+      // Navigate to role selection page
+      navigate('/select-role', { replace: true, state: { redirectPath, pendingJobId } });
     } catch (err: any) {
       let errorMessage = t.signup.failedToCreateAccount;
 
@@ -519,11 +522,14 @@ const Signup: React.FC = () => {
             }`}
         >
           <h2
-            className={`text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center drop-shadow-lg ${darkMode ? "text-cyan-400" : "text-cyan-600"
+            className={`text-2xl sm:text-3xl font-bold mb-1 text-center drop-shadow-lg ${darkMode ? "text-cyan-400" : "text-cyan-600"
               }`}
           >
-            {t.signup.createAccount}
+            {isLoginPage ? "Welcome Back" : t.signup.createAccount}
           </h2>
+          <p className={`text-sm text-center mb-6 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            {isLoginPage ? "Sign in to your HustleX account" : "Join HustleX to get started"}
+          </p>
 
 
 
@@ -966,41 +972,6 @@ const Signup: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label
-                  className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"
-                    }`}
-                >
-                  {t.signup.iWantTo}
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole("freelancer")}
-                    className={`px-4 py-3 rounded-xl border transition-all ${role === "freelancer"
-                      ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400"
-                      : darkMode
-                        ? "bg-gray-800/50 border-gray-600/50 text-gray-300 hover:border-gray-500/50"
-                        : "bg-gray-100/50 border-gray-300/50 text-gray-600 hover:border-gray-400/50"
-                      }`}
-                  >
-                    Find Work
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole("client")}
-                    className={`px-4 py-3 rounded-xl border transition-all ${role === "client"
-                      ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400"
-                      : darkMode
-                        ? "bg-gray-800/50 border-gray-600/50 text-gray-300 hover:border-gray-500/50"
-                        : "bg-gray-100/50 border-gray-300/50 text-gray-600 hover:border-gray-400/50"
-                      }`}
-                  >
-                    {t.signup.hireFreelancers}
-                  </button>
-                </div>
-              </div>
-
               {error && (
                 <p className="text-red-400 text-sm font-semibold bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   {error}
@@ -1022,10 +993,16 @@ const Signup: React.FC = () => {
 
           {!existingUser && (
             <p
-              className={`text-center mt-6 text-sm whitespace-nowrap ${darkMode ? "text-gray-300" : "text-gray-600"
-                }`}
+              className={`text-center mt-6 text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}
             >
-              {t.signup.alreadyHaveAccount}
+              {isLoginPage ? "Don't have an account? " : "Already have an account? "}
+              <button
+                type="button"
+                onClick={() => navigate(isLoginPage ? "/signup" : "/login")}
+                className={`font-semibold hover:underline transition-colors ${darkMode ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-600 hover:text-cyan-500"}`}
+              >
+                {isLoginPage ? "Sign Up" : "Sign In"}
+              </button>
             </p>
           )}
         </div>

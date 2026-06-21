@@ -158,7 +158,7 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   async register(userData: {
     email: string;
     password?: string;
-    role: "freelancer" | "client";
+    role?: "freelancer" | "client";
     firstName?: string;
     lastName?: string;
   }): Promise<{ token: string }> {
@@ -213,6 +213,12 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     const response = await axios.post(`${this.baseUrl}/auth/add-role`, { role });
     this.clearUserCache();
     return (response.data as { user: User }).user;
+  }
+
+  async selectRole(role: "freelancer" | "client" | "admin"): Promise<{ user: User }> {
+    const response = await axios.post(`${this.baseUrl}/auth/select-role`, { role });
+    this.clearUserCache();
+    return response.data as { user: User };
   }
 
   async updateMyProfile(profile: {

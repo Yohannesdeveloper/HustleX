@@ -43,6 +43,7 @@ import ClientProfileWizard from "./components/ClientProfileWizard";
 import ProfileSetupRouter from "./components/ProfileSetupRouter";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRouteGuard from "./components/RoleRouteGuard";
+import RoleSelection from "./Pages/RoleSelection";
 import AccountSettings from "./Pages/AccountSettings";
 import CompanyProfile from "./Pages/CompanyProfile";
 import FreelancerProfilePage from "./Pages/FreelancerProfilePage";
@@ -97,6 +98,7 @@ function AppContent() {
           <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Signup />} />
+          <Route path="/select-role" element={<RoleSelection />} />
           <Route path="/register" element={<RegistrationPage />} />
           <Route path="/Register" element={<RegistrationPage />} />
           <Route path="/ApplyRedirect" element={<ApplyRedirect />} />

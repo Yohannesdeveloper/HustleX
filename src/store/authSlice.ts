@@ -93,7 +93,7 @@ export const register = createAsyncThunk(
     userData: {
       email: string;
       password?: string;
-      role: "freelancer" | "client";
+      role?: "freelancer" | "client";
       roles?: string[];
       firstName?: string;
       lastName?: string;
@@ -103,11 +103,28 @@ export const register = createAsyncThunk(
     try {
       await apiService.register(userData);
       let currentUser = await apiService.getCurrentUser();
-      // For new users, use the role they registered with
-      persistActiveRole(userData.role);
+      // Only persist role if one was provided during registration
+      if (userData.role) {
+        persistActiveRole(userData.role);
+      }
       return currentUser;
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || "Registration failed";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+export const selectRole = createAsyncThunk(
+  "auth/selectRole",
+  async (role: "freelancer" | "client" | "admin", { rejectWithValue }) => {
+    try {
+      const response = await apiService.selectRole(role);
+      let currentUser = await apiService.getCurrentUser();
+      persistActiveRole(role);
+      return currentUser;
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to set role";
       return rejectWithValue(errorMessage);
     }
   }
@@ -259,6 +276,18 @@ const authSlice = createSlice({
         state.loading = false;
       })
       .addCase(addRole.rejected, (state) => {
+        state.loading = false;
+      })
+      // Select Role
+      .addCase(selectRole.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(selectRole.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+      })
+      .addCase(selectRole.rejected, (state) => {
         state.loading = false;
       })
       // Refresh User

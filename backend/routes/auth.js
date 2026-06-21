@@ -60,26 +60,32 @@ router.post(
       }
 
       // Support both single role (backward compatibility) and multiple roles
+      // Role is now optional — users can select their role after signup
       let userRoles = [];
       if (roles && Array.isArray(roles) && roles.length > 0) {
         userRoles = roles;
       } else if (role) {
         userRoles = [role];
-      } else {
-        return res.status(400).json({ message: "At least one role is required" });
       }
 
-      // Create new user with multiple role support
-      const user = new User({
+      // Build user fields — omit roles when none provided so
+      // the Mongoose default (["freelancer"]) applies automatically
+      const userFields = {
         email,
-        password: password || undefined, // Make password optional
-        roles: userRoles,
-        currentRole: userRoles[0], // Set first role as current
+        password: password || undefined,
         profile: {
           firstName: firstName || '',
           lastName: lastName || '',
         },
-      });
+      };
+
+      if (userRoles.length > 0) {
+        userFields.roles = userRoles;
+        userFields.currentRole = userRoles[0];
+      }
+
+      // Create new user
+      const user = new User(userFields);
 
       await user.save();
 
@@ -98,6 +104,48 @@ router.post(
       });
     } catch (error) {
       console.error("Registration error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   POST /api/auth/select-role
+// @desc    Set or change the user's active role (freelancer / client / admin)
+// @access  Private
+router.post(
+  "/select-role",
+  [body("role").isIn(["freelancer", "client", "admin"])],
+  auth,
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { role } = req.body;
+      const user = req.user;
+
+      // Admin role: only designated admin accounts can select it
+      if (role === "admin") {
+        const { isDesignatedAdminEmail } = require("../config/admin");
+        if (!isDesignatedAdminEmail(user.email) && !user.roles?.includes("admin")) {
+          return res.status(403).json({ message: "You are not authorized to access admin features." });
+        }
+      }
+
+      // Add role to user.roles if not already present
+      if (!user.roles) user.roles = [];
+      if (!user.roles.includes(role)) {
+        user.roles.push(role);
+      }
+      user.currentRole = role;
+      await user.save();
+
+      const hasCompanyProfile = !!(await Company.findOne({ owner: user._id }));
+      res.json({ user: toAuthUserPayload(user, { hasCompanyProfile }) });
+    } catch (error) {
+      console.error("Select role error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
