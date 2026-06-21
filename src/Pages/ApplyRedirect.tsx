@@ -38,9 +38,9 @@ const ApplyRedirect: React.FC = () => {
             if (data.isRegistered) {
               // User is registered — check profile completeness
               if (data.isProfileComplete && effectiveRedirect) {
-                // Profile complete — go straight to job details
+                // Profile complete — go straight to job details with auto-apply
                 sessionStorage.removeItem('pendingJobRedirect');
-                window.location.href = `https://hustlexet.vercel.app${effectiveRedirect}`;
+                window.location.href = `https://hustlexet.vercel.app${effectiveRedirect}?autoApply=true`;
               } else {
                 // Profile incomplete — send to profile setup first
                 const profileSetupUrl = effectiveRedirect

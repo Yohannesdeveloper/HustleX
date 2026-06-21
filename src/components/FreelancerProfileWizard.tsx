@@ -1474,10 +1474,10 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         onSubmit();
       }
 
-      // Redirect to job details if redirectParam exists
+      // Redirect to job details if redirectParam exists (with auto-apply flag)
       if (redirectParam) {
         sessionStorage.removeItem('pendingJobRedirect');
-        window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
+        window.location.href = `https://hustlexet.vercel.app${redirectParam}?autoApply=true`;
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);

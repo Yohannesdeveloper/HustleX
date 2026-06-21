@@ -81,9 +81,9 @@ const RegistrationPage: React.FC = () => {
     if (isAuthenticated && user && redirectParam) {
       const isProfileComplete = user?.profile?.isProfileComplete || false;
       if (isProfileComplete) {
-        // Profile complete — go to job details
+        // Profile complete — go to job details and auto-apply
         sessionStorage.removeItem('pendingJobRedirect');
-        window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
+        window.location.href = `https://hustlexet.vercel.app${redirectParam}?autoApply=true`;
       } else {
         // Profile incomplete — go to profile setup
         window.location.href = `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`;
@@ -177,10 +177,10 @@ const RegistrationPage: React.FC = () => {
                       const checkData = await checkResponse.json();
                       
                       if (checkData.isRegistered && checkData.isProfileComplete) {
-                        // User already fully registered — go straight to job details
+                        // User already fully registered — go straight to job details with auto-apply
                         sessionStorage.removeItem('pendingJobRedirect');
                         if (redirectParam) {
-                          window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
+                          window.location.href = `https://hustlexet.vercel.app${redirectParam}?autoApply=true`;
                         } else {
                           window.location.href = "https://hustlexet.vercel.app/job-listings";
                         }
