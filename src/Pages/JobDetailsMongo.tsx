@@ -298,17 +298,21 @@ const JobDetailsMongo: React.FC = () => {
   };
 
   const handleApply = async () => {
+    if (!currentUser) {
+      navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
+      return;
+    }
     if (!job) {
       alert("Job information not available. Please refresh the page.");
       return;
     }
-    if (job.postedBy?._id === currentUser?.id) {
+    if (job.postedBy?._id === currentUser.id) {
       alert("You cannot apply to your own job posting.");
       return;
     }
 
     // Auto-populate portfolio link and CV from freelancer profile
-    if (currentUser?.profile) {
+    if (currentUser.profile) {
       // Set portfolio link from profile (inherit from profile wizard)
       if (currentUser.profile.portfolioUrl || currentUser.profile.portfolio) {
         setPortfolioLink(currentUser.profile.portfolioUrl || currentUser.profile.portfolio);
