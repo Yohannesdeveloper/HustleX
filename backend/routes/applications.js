@@ -350,6 +350,7 @@ router.get("/check-phone/:phone", async (req, res) => {
     res.json({
       isRegistered: !!user,
       userId: user ? user._id : null,
+      isProfileComplete: user ? !!(user.profile && user.profile.isProfileComplete) : false,
     });
   } catch (error) {
     console.error("Check phone error:", error);

@@ -525,7 +525,7 @@ const FreelancerProfileWizard: React.FC = () => {
       case 2:
         return <ProfessionalDetailsStep {...stepProps} />;
       case 3:
-        const redirectParam = searchParams.get('redirect');
+        const redirectParam = searchParams.get('redirect') || sessionStorage.getItem('pendingJobRedirect');
         return <ReviewStep {...stepProps} onSubmit={() => {}} navigate={navigate} refreshUser={refreshUser} redirectParam={redirectParam} />;
       default:
         return <BasicInfoStep {...stepProps} />;
@@ -1476,6 +1476,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
 
       // Redirect to job details if redirectParam exists
       if (redirectParam) {
+        sessionStorage.removeItem('pendingJobRedirect');
         window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
       }
     } catch (error: any) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import apiService from "../services/api";
 
 interface TelegramUser {
@@ -8,7 +8,6 @@ interface TelegramUser {
 }
 
 const ApplyRedirect: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,8 +15,17 @@ const ApplyRedirect: React.FC = () => {
   const redirectParam = searchParams.get('redirect');
 
   useEffect(() => {
+    // Persist the pending job redirect in sessionStorage so it survives
+    // across registration, profile setup, and page refreshes.
+    if (redirectParam) {
+      sessionStorage.setItem('pendingJobRedirect', redirectParam);
+    }
+
     const checkRegistration = async () => {
       try {
+        // Determine the effective redirect (URL param or sessionStorage fallback)
+        const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
+
         // Check if running in Telegram mini app
         if (window.Telegram && window.Telegram.WebApp) {
           const telegramUser = window.Telegram.WebApp.initDataUnsafe?.user as TelegramUser;
@@ -28,30 +36,36 @@ const ApplyRedirect: React.FC = () => {
             const data = await response.json();
             
             if (data.isRegistered) {
-              // User is registered, redirect to job details
-              if (redirectParam) {
-                window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
+              // User is registered — check profile completeness
+              if (data.isProfileComplete && effectiveRedirect) {
+                // Profile complete — go straight to job details
+                sessionStorage.removeItem('pendingJobRedirect');
+                window.location.href = `https://hustlexet.vercel.app${effectiveRedirect}`;
               } else {
-                window.location.href = "https://hustlexet.vercel.app/job-listings";
+                // Profile incomplete — send to profile setup first
+                const profileSetupUrl = effectiveRedirect
+                  ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(effectiveRedirect)}`
+                  : "https://hustlexet.vercel.app/freelancer-profile-setup";
+                window.location.href = profileSetupUrl;
               }
             } else {
               // User is not registered, redirect to registration
-              const registerUrl = redirectParam 
-                ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(redirectParam)}`
+              const registerUrl = effectiveRedirect 
+                ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
                 : "https://hustlexet.vercel.app/Register";
               window.location.href = registerUrl;
             }
           } else {
             // No phone number available, redirect to registration
-            const registerUrl = redirectParam 
-              ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(redirectParam)}`
+            const registerUrl = effectiveRedirect 
+              ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
               : "https://hustlexet.vercel.app/Register";
             window.location.href = registerUrl;
           }
         } else {
           // Not in Telegram mini app, redirect to registration
-          const registerUrl = redirectParam 
-            ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(redirectParam)}`
+          const registerUrl = effectiveRedirect 
+            ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
             : "https://hustlexet.vercel.app/Register";
           window.location.href = registerUrl;
         }
@@ -59,8 +73,9 @@ const ApplyRedirect: React.FC = () => {
         console.error("Error checking registration:", err);
         setError("Failed to check registration status");
         // Fallback to registration
-        const registerUrl = redirectParam 
-          ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(redirectParam)}`
+        const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
+        const registerUrl = effectiveRedirect 
+          ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
           : "https://hustlexet.vercel.app/Register";
         window.location.href = registerUrl;
       } finally {

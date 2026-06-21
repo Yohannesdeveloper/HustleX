@@ -69,8 +69,9 @@ const RegistrationPage: React.FC = () => {
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
 
-  // Get redirect parameter from URL
-  const redirectParam = searchParams.get('redirect');
+  // Get redirect parameter from URL, fallback to sessionStorage
+  const urlRedirect = searchParams.get('redirect');
+  const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
   const DEFAULT_REDIRECT = "https://hustlexet.vercel.app/freelancer-profile-setup";
 
   // Auto-redirect after successful registration to phone permission step
@@ -141,7 +142,7 @@ const RegistrationPage: React.FC = () => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={async () => {
-                  // Allow phone - check if phone number is registered
+                  // Share phone number - save it to the DB then proceed to profile setup
                   try {
                     // Get the current user's phone number from the registration data
                     const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/me`, {
@@ -152,12 +153,13 @@ const RegistrationPage: React.FC = () => {
                     const userData = await response.json();
                     
                     if (userData.user && userData.user.profile?.phone) {
-                      // Check if phone number is registered
+                      // Check if phone number is already registered
                       const checkResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/applications/check-phone/${userData.user.profile.phone}`);
                       const checkData = await checkResponse.json();
                       
-                      if (checkData.isRegistered) {
-                        // User is already registered, redirect to job details
+                      if (checkData.isRegistered && checkData.isProfileComplete) {
+                        // User already fully registered — go straight to job details
+                        sessionStorage.removeItem('pendingJobRedirect');
                         if (redirectParam) {
                           window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
                         } else {
@@ -167,7 +169,8 @@ const RegistrationPage: React.FC = () => {
                       }
                     }
                     
-                    // Phone number not registered, redirect to freelancer profile setup
+                    // Phone number saved — redirect to freelancer profile setup
+                    // (sessionStorage keeps the pendingJobRedirect alive for the wizard)
                     const profileSetupUrl = redirectParam 
                       ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
                       : DEFAULT_REDIRECT;
@@ -183,11 +186,12 @@ const RegistrationPage: React.FC = () => {
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
               >
-                Allow Phone Access
+                Share Phone Number
               </button>
               <button
                 onClick={() => {
-                  // Cancel - redirect to home page
+                  // Cancel - clear pending job and redirect to home page
+                  sessionStorage.removeItem('pendingJobRedirect');
                   window.location.href = "https://hustlexet.vercel.app";
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-white/10 text-gray-300 font-semibold hover:bg-white/20 transition-all border border-white/10"
