@@ -69,11 +69,14 @@ const Signup: React.FC = () => {
       // Case 2: Backend returned a pending login request – start polling
       if (("loginRequestId" in result) && result.loginRequestId) {
         setTelegramPending("waiting");
+        setIsLoading(false); // Loading done, now just waiting for Telegram confirmation
 
         const requestId = result.loginRequestId;
         const startTime = Date.now();
-        const POLL_INTERVAL = 2000;
+        const POLL_INTERVAL = 2500;
         const TIMEOUT = 5 * 60 * 1000; // 5 minutes
+        let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 10; // Allow up to 10 transient errors
 
         telegramPollRef.current = setInterval(async () => {
           // Stop polling after timeout
@@ -81,12 +84,13 @@ const Signup: React.FC = () => {
             if (telegramPollRef.current) clearInterval(telegramPollRef.current);
             telegramPollRef.current = null;
             setTelegramPending("expired");
-            setIsLoading(false);
             return;
           }
 
           try {
             const status = await apiService.telegramLoginStatus(requestId);
+            consecutiveErrors = 0; // Reset on success
+
             if (status.status === "confirmed" && status.token && status.user) {
               if (telegramPollRef.current) clearInterval(telegramPollRef.current);
               telegramPollRef.current = null;
@@ -104,19 +108,29 @@ const Signup: React.FC = () => {
               if (telegramPollRef.current) clearInterval(telegramPollRef.current);
               telegramPollRef.current = null;
               setTelegramPending("declined");
-              setIsLoading(false);
             } else if (status.status === "expired") {
               if (telegramPollRef.current) clearInterval(telegramPollRef.current);
               telegramPollRef.current = null;
               setTelegramPending("expired");
-              setIsLoading(false);
             }
-          } catch (pollErr) {
-            console.error("Polling error:", pollErr);
-            if (telegramPollRef.current) clearInterval(telegramPollRef.current);
-            telegramPollRef.current = null;
-            setTelegramPending("error");
-            setIsLoading(false);
+            // status === "pending" → keep polling silently
+          } catch (pollErr: any) {
+            consecutiveErrors++;
+            console.warn(`Polling attempt ${consecutiveErrors} failed:`, pollErr?.message || pollErr);
+
+            // If entry is gone (404) or too many errors, give up
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS || pollErr?.response?.status === 404) {
+              if (telegramPollRef.current) clearInterval(telegramPollRef.current);
+              telegramPollRef.current = null;
+              // 404 means the request expired or server restarted
+              if (pollErr?.response?.status === 404) {
+                setTelegramPending("expired");
+              } else {
+                setTelegramPending("error");
+                setError("Connection lost. Please try logging in again.");
+              }
+            }
+            // Otherwise keep retrying – transient network/rate-limit issue
           }
         }, POLL_INTERVAL);
       }
@@ -130,10 +144,7 @@ const Signup: React.FC = () => {
       }
       setError(errorMessage);
     } finally {
-      // Only stop loading if we're not in the waiting state
-      if (telegramPending !== "waiting") {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
@@ -578,6 +589,22 @@ const Signup: React.FC = () => {
                 className={`mt-2 text-xs underline ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
               >
                 Dismiss
+              </button>
+            </div>
+          )}
+
+          {telegramConfig?.configured && telegramPending === "error" && (
+            <div className={`p-4 rounded-2xl border mb-6 text-center transition-all ${
+              darkMode ? "bg-red-950/20 border-red-500/30" : "bg-red-50/70 border-red-300/50"
+            }`}>
+              <p className={`text-sm font-semibold ${darkMode ? "text-red-400" : "text-red-600"}`}>
+                Connection lost. Please try logging in with Telegram again.
+              </p>
+              <button
+                onClick={() => setTelegramPending("idle")}
+                className={`mt-2 text-xs underline ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Try Again
               </button>
             </div>
           )}

@@ -218,6 +218,10 @@ const authLimiter = rateLimit({
   },
   skipSuccessfulRequests: true,
   store: createRateLimitStore('auth'),
+  skip: (req) => {
+    // Don't rate-limit the Telegram login status polling endpoint
+    return req.path.startsWith('/telegram-login-status/');
+  },
 });
 
 const uploadLimiter = rateLimit({
