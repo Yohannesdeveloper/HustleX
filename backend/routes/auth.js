@@ -22,7 +22,7 @@ router.post(
   "/register",
   [
     body("email").isEmail().normalizeEmail(),
-    body("password").isLength({ min: 8 }).matches(/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/),
+    body("password").optional().isLength({ min: 8 }).matches(/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/),
     body("firstName").optional().isString().trim(),
     body("lastName").optional().isString().trim(),
     body("role").optional().isIn(["freelancer", "client"]),
@@ -57,7 +57,7 @@ router.post(
       // Create new user with multiple role support
       const user = new User({
         email,
-        password,
+        password: password || undefined, // Make password optional
         roles: userRoles,
         currentRole: userRoles[0], // Set first role as current
         profile: {

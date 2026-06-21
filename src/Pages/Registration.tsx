@@ -57,7 +57,6 @@ const RegistrationPage: React.FC = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [country, setCountry] = useState("");
@@ -89,8 +88,6 @@ const RegistrationPage: React.FC = () => {
 
     // Validation
     if (!email.trim()) return setError("Email is required.");
-    if (!password || password.length < 8) return setError("Password must be at least 8 characters.");
-    if (!/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(password)) return setError("Password must contain letters and numbers.");
     if (!firstName.trim()) return setError("First name is required.");
     if (!lastName.trim()) return setError("Last name is required.");
     if (!dateOfBirth) return setError("Date of birth is required.");
@@ -111,7 +108,6 @@ const RegistrationPage: React.FC = () => {
     try {
       const result = await dispatch(registerUser({
         email,
-        password,
         role: "freelancer",
         firstName,
         lastName,
@@ -267,23 +263,6 @@ const RegistrationPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
-              <div className="relative">
-                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 8 chars, letters + numbers"
-                  required
-                  minLength={8}
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
                 />
               </div>

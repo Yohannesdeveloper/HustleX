@@ -92,7 +92,7 @@ export const register = createAsyncThunk(
   async (
     userData: {
       email: string;
-      password: string;
+      password?: string;
       role: "freelancer" | "client";
       roles?: string[];
       firstName?: string;

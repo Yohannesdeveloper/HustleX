@@ -148,7 +148,7 @@ class ApiService {
 
   async register(userData: {
     email: string;
-    password: string;
+    password?: string;
     role: "freelancer" | "client";
     firstName?: string;
     lastName?: string;
