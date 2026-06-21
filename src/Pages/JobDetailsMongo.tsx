@@ -1345,16 +1345,20 @@ const JobDetailsMongo: React.FC = () => {
                   <div className="space-y-4">
                     <button
                       onClick={handleApply}
-                      className={`w-full bg-gradient-to-r from-cyan-500 to-blue-500 font-bold py-4 px-6 rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-cyan-500/25 hover:shadow-cyan-400/40 hover:scale-105 text-lg font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode ? "text-white" : "text-black"
-                        }`}
+                      disabled={applied}
+                      className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg text-lg font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${
+                        applied
+                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white cursor-not-allowed"
+                          : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 hover:scale-105 shadow-cyan-500/25 hover:shadow-cyan-400/40"
+                      } ${darkMode ? "text-white" : "text-black"}`}
                     >
-                      Apply Now
+                      {applied ? "Application Sent" : "Apply Now"}
                     </button>
                     <p
                       className={`text-center text-sm font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
                         }`}
                     >
-                      Join thousands of successful applicants
+                      {applied ? "Your application has been submitted successfully" : "Join thousands of successful applicants"}
                     </p>
                   </div>
                 )}
