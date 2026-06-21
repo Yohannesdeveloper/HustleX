@@ -333,8 +333,19 @@ router.get("/check-phone/:phone", async (req, res) => {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Check if a user with this phone number exists
-    const user = await User.findOne({ phone: phone });
+    // Normalize phone number (remove +, spaces, dashes, etc.)
+    const normalizedPhone = phone.replace(/[\s\-\+\(\)]/g, '');
+
+    // Check if a user with this phone number exists in profile.phone (try both normalized and original)
+    const user = await User.findOne({
+      $or: [
+        { "profile.phone": phone },
+        { "profile.phone": normalizedPhone },
+        { "profile.phone": `+${normalizedPhone}` },
+      ]
+    });
+    
+    console.log(`Checking phone: ${phone}, normalized: ${normalizedPhone}, user found: ${!!user}`);
     
     res.json({
       isRegistered: !!user,
