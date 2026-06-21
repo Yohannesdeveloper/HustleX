@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/hooks';
 import { useAppSelector } from '../store/hooks';
 import { getActiveRole, dashboardPathForRole } from '../utils/activeRole';
+import { isAdminAccount } from '../utils/admin';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -53,8 +54,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         }
     }
 
-    // Admin-only routes: check if user has admin role
-    if (requireRole === 'admin' && !user.roles?.includes('admin')) {
+    // Admin-only routes: allow admins identified by the admin role OR the
+    // designated admin email (keeps this consistent with isAdminAccount used
+    // for the post-login redirect, so email-based admins aren't bounced off).
+    if (requireRole === 'admin' && !isAdminAccount(user)) {
         // Redirect non-admin users to their dashboard
         if (user.roles?.includes('freelancer')) {
             return <Navigate to="/dashboard/freelancer" replace />;
