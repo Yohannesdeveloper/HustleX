@@ -54,7 +54,7 @@ const RegistrationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const dispatch = useAppDispatch();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -90,6 +90,18 @@ const RegistrationPage: React.FC = () => {
       }
     }
   }, [isAuthenticated, user, redirectParam]);
+
+  // Show loading while checking auth (prevents flash of registration form for returning users)
+  if (authLoading && redirectParam) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Checking your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Auto-redirect after successful registration to phone permission step
   useEffect(() => {
