@@ -9,11 +9,10 @@ const axios = require("axios");
 const router = express.Router();
 
 // @route   POST /api/applications
-// @desc    Submit a job application
-// @access  Private
+// @desc    Submit a job application (supports both authenticated and anonymous users)
+// @access  Public
 router.post(
   "/",
-  auth,
   [
     body("jobId").custom((value) => {
       if (!value) {
@@ -60,7 +59,7 @@ router.post(
         });
       }
 
-      const { jobId, coverLetter, cvUrl, portfolioUrl: rawPortfolioUrl } = req.body;
+      const { jobId, coverLetter, cvUrl, portfolioUrl: rawPortfolioUrl, applicantEmail } = req.body;
 
       // Process portfolio URL to ensure it has proper protocol
       let portfolioUrl = rawPortfolioUrl;
@@ -77,37 +76,39 @@ router.post(
         return res.status(404).json({ message: "Job not found" });
       }
 
-      // Check if user is trying to apply to their own job
-      if (job.postedBy.toString() === req.user._id.toString()) {
+      // For authenticated users, check if they're applying to their own job
+      if (req.user && job.postedBy.toString() === req.user._id.toString()) {
         return res
           .status(400)
           .json({ message: "You cannot apply to your own job" });
       }
 
-      // Check if user has already applied
-      const existingApplication = await Application.findOne({
-        job: jobId,
-        applicant: req.user._id,
-      });
+      // For authenticated users, check if they've already applied
+      if (req.user) {
+        const existingApplication = await Application.findOne({
+          job: jobId,
+          applicant: req.user._id,
+        });
 
-      if (existingApplication) {
-        // Allow re-application if status is rejected
-        if (existingApplication.status === "rejected") {
-          existingApplication.coverLetter = coverLetter;
-          existingApplication.cvUrl = cvUrl;
-          existingApplication.portfolioUrl = portfolioUrl;
-          existingApplication.status = "pending";
-          existingApplication.appliedAt = new Date();
-          await existingApplication.save();
+        if (existingApplication) {
+          // Allow re-application if status is rejected
+          if (existingApplication.status === "rejected") {
+            existingApplication.coverLetter = coverLetter;
+            existingApplication.cvUrl = cvUrl;
+            existingApplication.portfolioUrl = portfolioUrl;
+            existingApplication.status = "pending";
+            existingApplication.appliedAt = new Date();
+            await existingApplication.save();
 
-          return res.json({
-            message: "Application resubmitted successfully",
-            application: existingApplication,
-          });
-        } else {
-          return res
-            .status(400)
-            .json({ message: "You have already applied to this job" });
+            return res.json({
+              message: "Application resubmitted successfully",
+              application: existingApplication,
+            });
+          } else {
+            return res
+              .status(400)
+              .json({ message: "You have already applied to this job" });
+          }
         }
       }
 
@@ -115,8 +116,8 @@ router.post(
       const application = new Application({
         job: jobId,
         jobTitle: job.title,
-        applicant: req.user._id,
-        applicantEmail: req.user.email,
+        applicant: req.user ? req.user._id : null, // null for anonymous users
+        applicantEmail: req.user ? req.user.email : applicantEmail || 'anonymous@example.com',
         coverLetter,
         cvUrl,
         portfolioUrl,
@@ -127,9 +128,9 @@ router.post(
       // Update job application count
       await Job.findByIdAndUpdate(jobId, { $inc: { applicationCount: 1 } });
 
-      // Emit real-time event for application submission
+      // Emit real-time event for application submission (only for authenticated users)
       const io = req.app.get('io');
-      if (io) {
+      if (io && req.user) {
         // Emit to the job poster (company/client)
         const job = await Job.findById(jobId).populate('postedBy', 'email');
         if (job && job.postedBy) {

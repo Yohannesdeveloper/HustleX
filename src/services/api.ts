@@ -258,7 +258,7 @@ class ApiService {
 
   async getFreelancerProfileDraft(): Promise<any> {
     const response = await axios.get(`${this.baseUrl}/auth/profile-draft`);
-    return response.data.draft;
+    return (response.data as { draft: any }).draft;
   }
 
   logout(): void {
