@@ -76,40 +76,14 @@ const ApplyRedirect: React.FC = () => {
               return;
             }
           } catch (error) {
-            console.log("ApplyRedirect: Token invalid, falling through to Telegram check");
-            // Token invalid — fall through to Telegram check or registration
+            console.log("ApplyRedirect: Token invalid, falling through to registration");
+            // Token invalid — fall through to registration
           }
         }
 
-        // Second check: Telegram mini app with phone number
-        if (tg && tg.initDataUnsafe?.user) {
-          const telegramUser = tg.initDataUnsafe.user as TelegramUser;
-          console.log("ApplyRedirect: Telegram user found:", telegramUser);
-          console.log("ApplyRedirect: Telegram phone number:", telegramUser.phone_number);
-
-          if (telegramUser.phone_number) {
-            const response = await fetch(`${apiService['baseUrl']}/applications/check-phone/${telegramUser.phone_number}`);
-            const data = await response.json();
-            console.log("ApplyRedirect: Phone check result:", data);
-
-            if (data.isRegistered) {
-              if (data.isProfileComplete && effectiveRedirect) {
-                redirectToJob(effectiveRedirect);
-              } else {
-                redirectToProfileSetup();
-              }
-            } else {
-              console.log("ApplyRedirect: Phone not registered, redirecting to registration");
-              redirectToRegister();
-            }
-            return;
-          } else {
-            console.log("ApplyRedirect: No phone number from Telegram");
-          }
-        }
-
-        // Fallback: no auth, no Telegram — go to registration
-        console.log("ApplyRedirect: Fallback - redirecting to registration");
+        // If not authenticated, always redirect to registration
+        // The registration flow will handle: Registration → Share Phone → Profile Setup → Job Details
+        console.log("ApplyRedirect: User not authenticated, redirecting to registration");
         redirectToRegister();
       } catch (err: any) {
         console.error("ApplyRedirect: Error checking registration:", err);
