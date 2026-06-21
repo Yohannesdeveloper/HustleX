@@ -323,8 +323,8 @@ const JobDetailsMongo: React.FC = () => {
   };
 
   const handleSubmitApplication = async () => {
-    if (!currentUser || !job) {
-      alert("Please ensure you are logged in and job details are available.");
+    if (!job) {
+      alert("Job information not available. Please refresh the page.");
       return;
     }
 
@@ -334,8 +334,8 @@ const JobDetailsMongo: React.FC = () => {
       return;
     }
 
-    if (!cvFile && !currentUser?.profile?.cvUrl) {
-      alert("Please upload a CV or ensure you have one in your profile.");
+    if (!cvFile) {
+      alert("Please upload a CV.");
       return;
     }
 
