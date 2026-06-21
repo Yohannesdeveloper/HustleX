@@ -157,15 +157,12 @@ const RegistrationPage: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  // Deny phone - still redirect to freelancer profile setup with job details redirect
-                  const profileSetupUrl = redirectParam 
-                    ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                    : DEFAULT_REDIRECT;
-                  window.location.href = profileSetupUrl;
+                  // Cancel - redirect to home page
+                  window.location.href = "https://hustlexet.vercel.app";
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-white/10 text-gray-300 font-semibold hover:bg-white/20 transition-all border border-white/10"
               >
-                Skip for Now
+                Cancel
               </button>
             </div>
           </div>

@@ -410,6 +410,8 @@ const JobDetailsMongo: React.FC = () => {
       if (processedPortfolioUrl) {
         payload.portfolioUrl = processedPortfolioUrl;
       }
+
+      console.log("Submitting application with payload:", payload);
       const application = await apiService.submitApplication(payload);
       console.log("Application submitted successfully:", application);
       setApplied(true);
