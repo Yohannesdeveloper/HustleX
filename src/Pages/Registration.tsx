@@ -144,12 +144,46 @@ const RegistrationPage: React.FC = () => {
             {/* Phone permission buttons */}
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => {
-                  // Allow phone - redirect to freelancer profile setup with job details redirect
-                  const profileSetupUrl = redirectParam 
-                    ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                    : DEFAULT_REDIRECT;
-                  window.location.href = profileSetupUrl;
+                onClick={async () => {
+                  // Allow phone - check if phone number is registered
+                  try {
+                    // Get the current user's phone number from the registration data
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/me`, {
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                      }
+                    });
+                    const userData = await response.json();
+                    
+                    if (userData.user && userData.user.profile?.phone) {
+                      // Check if phone number is registered
+                      const checkResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/applications/check-phone/${userData.user.profile.phone}`);
+                      const checkData = await checkResponse.json();
+                      
+                      if (checkData.isRegistered) {
+                        // User is already registered, redirect to job details
+                        if (redirectParam) {
+                          window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
+                        } else {
+                          window.location.href = "https://hustlexet.vercel.app/job-listings";
+                        }
+                        return;
+                      }
+                    }
+                    
+                    // Phone number not registered, redirect to freelancer profile setup
+                    const profileSetupUrl = redirectParam 
+                      ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                      : DEFAULT_REDIRECT;
+                    window.location.href = profileSetupUrl;
+                  } catch (error) {
+                    console.error("Error checking phone number:", error);
+                    // Fallback to freelancer profile setup
+                    const profileSetupUrl = redirectParam 
+                      ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                      : DEFAULT_REDIRECT;
+                    window.location.href = profileSetupUrl;
+                  }
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
               >

@@ -248,6 +248,13 @@ const Signup: React.FC = () => {
 
       // Navigate based on role and profile completion status
       // Priority 1: Admin users always go to admin panel
+      console.log("Login redirect check:", {
+        user: loggedInUser,
+        isAdmin: isAdminAccount(loggedInUser),
+        email: loggedInUser?.email,
+        roles: loggedInUser?.roles,
+        redirectPath
+      });
       if (isAdminAccount(loggedInUser)) {
         navigate('/admin/dashboard', { replace: true });
         return;
