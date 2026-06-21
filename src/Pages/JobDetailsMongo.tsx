@@ -396,11 +396,6 @@ const JobDetailsMongo: React.FC = () => {
         coverLetter: coverLetter.trim(),
       };
 
-      // Include phone number from user profile for identification
-      if (currentUser?.profile?.phone) {
-        payload.phone = currentUser.profile.phone;
-      }
-
       // Only include cvUrl if it's a valid non-empty string
       if (cvUrl && cvUrl.trim() !== "") {
         payload.cvUrl = cvUrl;

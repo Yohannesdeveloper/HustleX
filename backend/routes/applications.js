@@ -28,7 +28,6 @@ router.post(
     body("coverLetter").optional().isLength({ max: 2000 }),
     body("cvUrl").optional(),
     body("portfolioUrl").optional(),
-    body("phone").optional(),
   ],
   async (req, res) => {
     try {
@@ -44,7 +43,7 @@ router.post(
         });
       }
 
-      const { jobId, coverLetter, cvUrl, portfolioUrl: rawPortfolioUrl, applicantEmail, phone } = req.body;
+      const { jobId, coverLetter, cvUrl, portfolioUrl: rawPortfolioUrl, applicantEmail } = req.body;
 
       // Process portfolio URL to ensure it has proper protocol
       let portfolioUrl = rawPortfolioUrl;
@@ -106,7 +105,6 @@ router.post(
         coverLetter,
         cvUrl,
         portfolioUrl,
-        phone,
       });
 
       await application.save();

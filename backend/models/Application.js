@@ -30,9 +30,6 @@ const applicationSchema = new mongoose.Schema(
     portfolioUrl: {
       type: String,
     },
-    phone: {
-      type: String,
-    },
     status: {
       type: String,
       enum: ["pending", "in_review", "hired", "rejected"],
