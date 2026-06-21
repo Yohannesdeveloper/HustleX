@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck, FaPhone } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
 import { register as registerUser } from "../store/authSlice";
+import { useAuth } from "../store/hooks";
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
@@ -53,6 +54,7 @@ const RegistrationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const dispatch = useAppDispatch();
+  const { isAuthenticated, user } = useAuth();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -73,6 +75,21 @@ const RegistrationPage: React.FC = () => {
   const urlRedirect = searchParams.get('redirect');
   const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
   const DEFAULT_REDIRECT = "https://hustlexet.vercel.app/freelancer-profile-setup";
+
+  // If already authenticated and has a redirect, skip registration
+  useEffect(() => {
+    if (isAuthenticated && user && redirectParam) {
+      const isProfileComplete = user?.profile?.isProfileComplete || false;
+      if (isProfileComplete) {
+        // Profile complete — go to job details
+        sessionStorage.removeItem('pendingJobRedirect');
+        window.location.href = `https://hustlexet.vercel.app${redirectParam}`;
+      } else {
+        // Profile incomplete — go to profile setup
+        window.location.href = `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`;
+      }
+    }
+  }, [isAuthenticated, user, redirectParam]);
 
   // Auto-redirect after successful registration to phone permission step
   useEffect(() => {
@@ -117,7 +134,9 @@ const RegistrationPage: React.FC = () => {
       console.log("Registration successful:", result);
       setSuccess(true);
     } catch (err: any) {
-      setError(err?.message || "Registration failed. Please try again.");
+      // err may be a plain string from rejectWithValue, or an Error object
+      const msg = typeof err === 'string' ? err : (err?.message || 'Registration failed. Please try again.');
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
