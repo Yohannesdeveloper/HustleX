@@ -1741,6 +1741,18 @@ const JobListings: React.FC = () => {
                       View Details
                     </motion.button>
 
+                    {/* Sign In to Apply button - only for non-authenticated users */}
+                    {!isAuthenticated && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate("/signup?redirect=" + encodeURIComponent(`/job-details/${job.id}`))}
+                        className={`px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-green-600 font-bold rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg shadow-green-500/25 hover:shadow-green-400/40 text-xs sm:text-sm font-inter text-white`}
+                      >
+                        Sign In to Apply
+                      </motion.button>
+                    )}
+
                     {/* Go to Site button - only show if job has external link */}
                     {job.jobLink && (
                       <motion.a

@@ -298,21 +298,17 @@ const JobDetailsMongo: React.FC = () => {
   };
 
   const handleApply = async () => {
-    if (!currentUser) {
-      navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
-      return;
-    }
     if (!job) {
       alert("Job information not available. Please refresh the page.");
       return;
     }
-    if (job.postedBy?._id === currentUser.id) {
+    if (job.postedBy?._id === currentUser?.id) {
       alert("You cannot apply to your own job posting.");
       return;
     }
 
     // Auto-populate portfolio link and CV from freelancer profile
-    if (currentUser.profile) {
+    if (currentUser?.profile) {
       // Set portfolio link from profile (inherit from profile wizard)
       if (currentUser.profile.portfolioUrl || currentUser.profile.portfolio) {
         setPortfolioLink(currentUser.profile.portfolioUrl || currentUser.profile.portfolio);
@@ -1313,26 +1309,6 @@ const JobDetailsMongo: React.FC = () => {
                         </button>
                       )}
                     </div>
-                  </div>
-                ) : userRole === "guest" ? (
-                  <div className="space-y-4">
-                    <button
-                      onClick={() =>
-                        navigate(
-                          "/login?redirect=" +
-                          encodeURIComponent(location.pathname)
-                        )
-                      }
-                      className={`w-full bg-gradient-to-r from-green-500 to-green-600 font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-green-500/25 hover:shadow-green-400/40 hover:scale-105 text-lg font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] text-white`}
-                    >
-                      Sign In to Apply
-                    </button>
-                    <p
-                      className={`text-center text-sm font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
-                        }`}
-                    >
-                      Create an account or sign in to submit your application
-                    </p>
                   </div>
                 ) : userRole === "client" ? (
                   <div className="space-y-4 text-center">
