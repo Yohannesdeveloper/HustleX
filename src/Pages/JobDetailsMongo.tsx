@@ -166,6 +166,14 @@ const JobDetailsMongo: React.FC = () => {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const hasAutoApplied = useRef(false);
+  const [isTelegramMiniApp, setIsTelegramMiniApp] = useState(false);
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      setIsTelegramMiniApp(true);
+    }
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -672,16 +680,18 @@ const JobDetailsMongo: React.FC = () => {
         >
           <div className="max-w-6xl mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
-              <button
-                onClick={() => navigate("/job-listings")}
-                className={`flex items-center gap-3 px-4 py-2 rounded-xl font-inter transition-all duration-300 border shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
-                  ? "bg-black/40 text-cyan-400 border-cyan-500/20 hover:text-cyan-300 hover:border-cyan-400/40"
-                  : "bg-white/40 text-cyan-600 border-cyan-500/10 hover:text-cyan-500 hover:border-cyan-400/20"
-                  }`}
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Back to Jobs
-              </button>
+              {!isTelegramMiniApp && (
+                <button
+                  onClick={() => navigate("/job-listings")}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl font-inter transition-all duration-300 border shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                    ? "bg-black/40 text-cyan-400 border-cyan-500/20 hover:text-cyan-300 hover:border-cyan-400/40"
+                    : "bg-white/40 text-cyan-600 border-cyan-500/10 hover:text-cyan-500 hover:border-cyan-400/20"
+                    }`}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  Back to Jobs
+                </button>
+              )}
 
               <div className="flex items-center gap-3">
                 <button
@@ -1874,7 +1884,7 @@ const JobDetailsMongo: React.FC = () => {
         darkMode={darkMode}
         onComplete={() => setShowSuccessAnimation(false)}
       />
-      <Footer />
+      {!isTelegramMiniApp && <Footer />}
     </div>
   );
 };
