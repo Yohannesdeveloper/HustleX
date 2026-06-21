@@ -3,16 +3,17 @@ const { body, validationResult } = require("express-validator");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
 const User = require("../models/User");
-const { auth } = require("../middleware/auth");
+const { auth, optionalAuth } = require("../middleware/auth");
 const axios = require("axios");
 
 const router = express.Router();
 
 // @route   POST /api/applications
 // @desc    Submit a job application (supports both authenticated and anonymous users)
-// @access  Public
+// @access  Public (with optional auth for duplicate detection)
 router.post(
   "/",
+  optionalAuth,
   [
     body("jobId").custom((value) => {
       if (!value) {

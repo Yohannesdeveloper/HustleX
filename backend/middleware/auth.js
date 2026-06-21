@@ -85,4 +85,18 @@ const adminAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, adminAuth };
+// Optional auth - sets req.user if token present, but doesn't reject unauthenticated requests
+async function optionalAuth(req, res, next) {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select("-password");
+    if (user) req.user = user;
+  } catch (_) {
+    // Token invalid/expired — continue as unauthenticated
+  }
+  next();
+}
+
+module.exports = { auth, adminAuth, optionalAuth };
