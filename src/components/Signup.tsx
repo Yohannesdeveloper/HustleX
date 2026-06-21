@@ -179,7 +179,7 @@ const Signup: React.FC = () => {
     script.dataset.size = "large";
     script.dataset.avatar = "true";
     script.dataset.theme = darkMode ? "dark" : "light";
-    script.dataset.authUrl = "javascript:window.telegramLoginCallback";
+    script.dataset.onauth = "window.telegramLoginCallback(user)";
     script.dataset.requestAccess = "write";
     
     // Insert into our div – use a short delay to let the DOM update first
