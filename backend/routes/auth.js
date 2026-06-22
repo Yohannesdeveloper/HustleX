@@ -911,7 +911,7 @@ router.get("/telegram-login-status/:requestId", async (req, res) => {
 });
 
 // @route   POST /api/auth/telegram-webhook
-// @desc    Receive Telegram callback queries (button presses)
+// @desc    Receive ALL Telegram updates: commands (/start, /help), messages, and callback queries
 // @access  Public (Telegram servers call this)
 router.post("/telegram-webhook", async (req, res) => {
   const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
@@ -919,65 +919,181 @@ router.post("/telegram-webhook", async (req, res) => {
   // Acknowledge immediately so Telegram doesn't retry
   res.sendStatus(200);
 
+  if (!botToken) return;
+
+  // Helper to send a Telegram message
+  const sendMessage = (chatId, text, extra = {}) =>
+    axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+      ...extra,
+    }).catch((e) => console.error("sendMessage error:", e?.response?.data || e.message));
+
   try {
-    const callbackQuery = req.body?.callback_query;
-    if (!callbackQuery) return;
+    const update = req.body;
 
-    const chatId = callbackQuery.from?.id;
-    const messageId = callbackQuery.message?.message_id;
-    const data = callbackQuery.data; // e.g. "tglogin_confirm_<requestId>"
+    // ── 1. Handle callback queries (login confirm/decline buttons) ──────────
+    const callbackQuery = update?.callback_query;
+    if (callbackQuery) {
+      const chatId = callbackQuery.from?.id;
+      const messageId = callbackQuery.message?.message_id;
+      const data = callbackQuery.data;
 
-    if (!data || !data.startsWith("tglogin_")) return;
+      if (data && data.startsWith("tglogin_")) {
+        const action = data.startsWith("tglogin_confirm_")
+          ? "confirm"
+          : data.startsWith("tglogin_decline_")
+            ? "decline"
+            : null;
 
-    // data format: "tglogin_confirm_<requestId>" or "tglogin_decline_<requestId>"
-    // requestId may contain underscores, so we must treat everything after the prefix as the requestId.
-    const action = data.startsWith("tglogin_confirm_")
-      ? "confirm"
-      : data.startsWith("tglogin_decline_")
-        ? "decline"
-        : null;
+        if (action) {
+          const requestId = data.replace(/^tglogin_(confirm|decline)_/, "");
+          const entry = await getPendingEntry(requestId);
 
-    if (!action) return;
+          // Answer the spinner
+          await axios.post(
+            `https://api.telegram.org/bot${botToken}/answerCallbackQuery`,
+            {
+              callback_query_id: callbackQuery.id,
+              text: action === "confirm" ? "Login confirmed!" : "Login declined.",
+            }
+          ).catch(() => {});
 
-    const requestId = data.replace(/^tglogin_(confirm|decline)_/, "");
-
-
-    const entry = await getPendingEntry(requestId);
-
-    // Answer the callback query to remove the loading spinner in Telegram
-    if (botToken) {
-      await axios.post(
-        `https://api.telegram.org/bot${botToken}/answerCallbackQuery`,
-        {
-          callback_query_id: callbackQuery.id,
-          text:
+          // Edit the original message
+          const updatedText =
             action === "confirm"
-              ? "Login confirmed! You can close this."
-              : "Login declined.",
-        }
-      ).catch(() => {});
+              ? "✅ <b>Login Confirmed</b>\n\nYou have been logged in to HustleX successfully."
+              : "❌ <b>Login Declined</b>\n\nThe login request has been rejected. If this wasn't you, please change your password.";
 
-      // Update the message to reflect the action taken
-      const updatedText =
-        action === "confirm"
-          ? "✅ <b>Login Confirmed</b>\n\nYou have been logged in to HustleX successfully."
-          : "❌ <b>Login Declined</b>\n\nThe login request has been rejected. If this wasn't you, please change your password.";
+          await axios.post(
+            `https://api.telegram.org/bot${botToken}/editMessageText`,
+            { chat_id: chatId, message_id: messageId, text: updatedText, parse_mode: "HTML" }
+          ).catch(() => {});
 
-      await axios.post(
-        `https://api.telegram.org/bot${botToken}/editMessageText`,
-        {
-          chat_id: chatId,
-          message_id: messageId,
-          text: updatedText,
-          parse_mode: "HTML",
+          if (entry) {
+            entry.status = action === "confirm" ? "confirmed" : "declined";
+            await setPendingEntry(requestId, entry);
+          }
         }
-      ).catch(() => {});
+      }
+      return; // done with callback_query
     }
 
-    if (entry) {
-      entry.status = action === "confirm" ? "confirmed" : "declined";
-      await setPendingEntry(requestId, entry);
+    // ── 2. Handle message updates (commands and text) ──────────────────────
+    const message = update?.message;
+    if (!message) return;
+
+    const chatId = message.chat?.id;
+    const text = message.text || "";
+    const user = message.from;
+    const firstName = user?.first_name || "there";
+    const username = user?.username ? `@${user.username}` : firstName;
+
+    // /start command
+    if (text.startsWith("/start")) {
+      const welcomeText = [
+        `🌟 <b>Welcome to HustleX!</b> 🌟`,
+        ``,
+        `Hello <b>${firstName}</b>! 👋`,
+        ``,
+        `I'm your HustleX assistant. Here's what I can do:`,
+        ``,
+        `🔐 <b>Login</b> — Confirm login requests from the HustleX website`,
+        `👤 <b>Profile</b> — Manage your freelancer profile`,
+        ``,
+        `<b>Available commands:</b>`,
+        `/start — Show this welcome message`,
+        `/help — Show help information`,
+        `/profile — View your profile status`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━`,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
+
+      await sendMessage(chatId, welcomeText, {
+        reply_markup: {
+          keyboard: [
+            [{ text: "👤 My Profile" }, { text: "ℹ️ About HustleX" }],
+            [{ text: "🆘 Help" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
+      return;
     }
+
+    // /help command
+    if (text.startsWith("/help") || text === "🆘 Help") {
+      const helpText = [
+        `🆘 <b>HustleX Bot Help</b>`,
+        ``,
+        `<b>Commands:</b>`,
+        `/start — Start the bot and see main menu`,
+        `/help — Show this help message`,
+        `/profile — Check your profile status`,
+        ``,
+        `<b>Login Confirmation:</b>`,
+        `When you click "Login with Telegram" on the HustleX website, this bot will send you a confirmation message with <b>Confirm</b> and <b>Decline</b> buttons.`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━`,
+        `💼 <b>HustleX</b> — Your Freelance Journey`,
+      ].join("\n");
+
+      await sendMessage(chatId, helpText);
+      return;
+    }
+
+    // /profile command or button
+    if (text.startsWith("/profile") || text === "👤 My Profile") {
+      const profileText = [
+        `👤 <b>Your Profile</b>`,
+        ``,
+        `<b>Telegram:</b> ${username}`,
+        `<b>Name:</b> ${firstName} ${user?.last_name || ""}`.trim(),
+        ``,
+        `To complete your HustleX profile, visit the website and sign in with Telegram.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app">HustleX Platform</a>`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━`,
+        `💼 <b>HustleX</b> — Your Freelance Journey`,
+      ].join("\n");
+
+      await sendMessage(chatId, profileText, { disable_web_page_preview: true });
+      return;
+    }
+
+    // About HustleX button
+    if (text === "ℹ️ About HustleX") {
+      const aboutText = [
+        `🌟 <b>About HustleX</b> 🌟`,
+        ``,
+        `HustleX is Ethiopia's premier freelance platform connecting talented professionals with businesses worldwide.`,
+        ``,
+        `🎯 <b>Key Features:</b>`,
+        `• ✅ Verified freelancers and companies`,
+        `• ✅ Project management tools`,
+        `• ✅ Skill-based job matching`,
+        `• ✅ Professional networking`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app">Visit HustleX</a>`,
+        `📧 support@hustleX.et`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━`,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
+
+      await sendMessage(chatId, aboutText, { disable_web_page_preview: true });
+      return;
+    }
+
+    // Default fallback for unrecognized messages
+    await sendMessage(
+      chatId,
+      `💬 Hi ${firstName}! Use /start to see available options or /help for more info.`
+    );
+
   } catch (err) {
     console.error(
       "Telegram webhook error:",
