@@ -76,7 +76,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'phone': None
         }
 
-    # Ask to share phone number
+    user_profile = user_profiles[user.id]
+
+    # If user already has phone number, welcome back
+    if user_profile.get('phone'):
+        await update.message.reply_html(
+            f"👋 Welcome back, {user.first_name}!"
+        )
+        await show_main_menu(update, context)
+        return
+
+    # Otherwise, ask to share phone number
     keyboard = [
         [KeyboardButton("📱 Share Phone Number", request_contact=True)],
         [KeyboardButton("❌ Cancel")]
@@ -110,17 +120,17 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # First, check if user exists by phone
     try:
-        response = requests.get(f"{API_BASE_URL}/auth/check-user-by-phone", params={"phone": phone})
+        response = requests.get(f"{API_BASE_URL}/auth/check-user-by-phone", params={"phone": phone}, timeout=5)
         if response.status_code == 200:
             # User exists, welcome back
-            data = response.json()
             await update.message.reply_html(
                 f"👋 Welcome back, {user.first_name}! We've recognized you from your phone number.\n\nLet's get started!"
             )
             await show_main_menu(update, context)
             return
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logger.error(f"Error checking user by phone: {e}")
+        # Continue even if API fails
 
     # If no user found, ask to proceed to profile setup
     keyboard = [
