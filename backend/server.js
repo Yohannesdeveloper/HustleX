@@ -737,7 +737,7 @@ app.get("/api/port", (req, res) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             url: webhookEndpoint,
-            allowed_updates: ["callback_query"],
+            // Remove allowed_updates to receive all update types (messages, commands, callbacks, etc.)
           }),
         })
           .then((r) => r.json())
