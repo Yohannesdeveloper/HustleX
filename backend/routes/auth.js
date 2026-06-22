@@ -11,19 +11,51 @@ const { ensureAdminRole, toAuthUserPayload } = require("../config/admin");
 
 const router = express.Router();
 
-// ── In-memory store for pending Telegram login confirmations ──────────────
-// Key: requestId, Value: { telegramUserId, userId, token, status, createdAt }
-const pendingTelegramLogins = new Map();
+// ── Shared store for pending Telegram login confirmations (Redis) ──────────────
+// We must not use in-memory Map because webhook callbacks can hit a different
+// server instance (Railway/K8s). Redis ensures requestId correlation works.
+const { redisClient: getCacheRedisClient } = require("../middleware/cache");
 
-// Clean up expired entries (>5 min old) every 2 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, entry] of pendingTelegramLogins) {
-    if (now - entry.createdAt > 5 * 60 * 1000) {
-      pendingTelegramLogins.delete(id);
-    }
+const PENDING_TG_PREFIX = "telegram:login:pending:";
+const PENDING_TG_TTL_SECONDS = 5 * 60; // 5 minutes
+
+function getPendingKey(requestId) {
+  return `${PENDING_TG_PREFIX}${requestId}`;
+}
+
+async function getPendingEntry(requestId) {
+  const redis = getCacheRedisClient();
+  if (!redis) return null;
+  try {
+    const raw = await redis.get(getPendingKey(requestId));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("Telegram pendingEntry GET error:", e.message || e);
+    return null;
   }
-}, 2 * 60 * 1000);
+}
+
+async function setPendingEntry(requestId, entry) {
+  const redis = getCacheRedisClient();
+  if (!redis) return;
+  try {
+    await redis.setex(getPendingKey(requestId), PENDING_TG_TTL_SECONDS, JSON.stringify(entry));
+  } catch (e) {
+    console.error("Telegram pendingEntry SET error:", e.message || e);
+  }
+}
+
+async function deletePendingEntry(requestId) {
+  const redis = getCacheRedisClient();
+  if (!redis) return;
+  try {
+    await redis.del(getPendingKey(requestId));
+  } catch (e) {
+    console.error("Telegram pendingEntry DEL error:", e.message || e);
+  }
+}
+
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -690,7 +722,7 @@ router.post("/telegram-login", async (req, res) => {
     }
 
     // Verify Telegram data
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
       return res.status(500).json({ message: "Telegram bot token not configured" });
     }
@@ -862,7 +894,7 @@ router.get("/telegram-login-status/:requestId", (req, res) => {
 // @desc    Receive Telegram callback queries (button presses)
 // @access  Public (Telegram servers call this)
 router.post("/telegram-webhook", async (req, res) => {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 
   // Acknowledge immediately so Telegram doesn't retry
   res.sendStatus(200);
@@ -937,9 +969,10 @@ router.post("/telegram-webhook", async (req, res) => {
 // @desc    Get Telegram bot username
 // @access  Public
 router.get("/telegram-config", (req, res) => {
+  const configured = !!(process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN);
   res.json({
     botUsername: process.env.TELEGRAM_BOT_USERNAME || null,
-    configured: !!process.env.TELEGRAM_BOT_TOKEN,
+    configured,
   });
 });
 

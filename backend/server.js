@@ -728,8 +728,8 @@ app.get("/api/port", (req, res) => {
       console.log(`========================================\n`);
 
       // Register Telegram webhook for login confirmation callbacks
-      const tgBotToken = process.env.TELEGRAM_BOT_TOKEN;
-      const tgWebhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
+      const tgBotToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      const tgWebhookUrl = process.env.TELEGRAM_LOGIN_WEBHOOK_URL || process.env.TELEGRAM_WEBHOOK_URL;
       if (tgBotToken && tgWebhookUrl) {
         // First, delete the existing webhook to clear any old configuration
         fetch(`https://api.telegram.org/bot${tgBotToken}/deleteWebhook`)

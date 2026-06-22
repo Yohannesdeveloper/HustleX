@@ -18,7 +18,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Bot token
-TOKEN = '8289162137:AAG1ccjTbr9ZMPiU4OxVeiXyUla3pMzAOJw'
+TOKEN = os.getenv("TELEGRAM_PROFILE_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("Telegram bot token is required. Set TELEGRAM_PROFILE_BOT_TOKEN or TELEGRAM_BOT_TOKEN.")
 
 # User profile data storage (in production, use a database)
 user_profiles: Dict[int, Dict[str, Any]] = {}
