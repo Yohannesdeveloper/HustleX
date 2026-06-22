@@ -108,12 +108,47 @@ requirements.txt           # Python dependencies
 TELEGRAM_BOT_README.md     # This documentation
 ```
 
-## API Key
+## API Key & Setup
 
-The bot uses the following Telegram API key:
-```
-8289162137:AAG1ccjTbr9ZMPiU4OxVeiXyUla3pMzAOJw
-```
+**⚠️ IMPORTANT: Telegram Bot Tokens are sensitive credentials - Never share them publicly!**
+
+### Getting Your Bot Token:
+
+1. **Create a new bot with @BotFather:**
+   - Open Telegram and search for @BotFather
+   - Send `/newbot`
+   - Follow the prompts to create your bot
+   - Copy the API token provided
+
+2. **Configure the token securely:**
+   ```bash
+   # Add to your .env file (NEVER commit this to git!)
+   TELEGRAM_PROFILE_BOT_TOKEN=your_new_token_here
+   ```
+
+3. **Set git to ignore .env:**
+   ```bash
+   echo ".env" >> .gitignore
+   ```
+
+### Telegram Bot Restrictions & Troubleshooting
+
+If your bot features are being blocked:
+
+**Common causes:**
+- Token has been exposed publicly (revoked by Telegram)
+- Rate limiting due to too many requests
+- Spam detection triggered
+- Bot hasn't been properly configured in @BotFather
+
+**Solutions:**
+1. Generate a new token using @BotFather
+2. Enable required settings in @BotFather:
+   - `/setcommands` - Register bot commands
+   - `/setdescription` - Set bot description
+   - `/setuserpic` - Set bot profile picture
+3. Wait 5-10 minutes for changes to propagate
+4. Test with `/start` command
 
 ## Future Enhancements
 

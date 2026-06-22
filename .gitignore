@@ -14,6 +14,14 @@ dist-ssr
 port.json
 backend/.redis-port
 
+# Environment variables - NEVER COMMIT THESE!
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
