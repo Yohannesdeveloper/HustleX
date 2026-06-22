@@ -25,12 +25,12 @@ function loadPreloadedState(): {
 
     // Restore auth session — only if a token also exists in localStorage
     const token = localStorage.getItem("token");
-    let authState: AuthState = { user: null, isAuthenticated: false, loading: true };
+    let authState: AuthState = { user: null, isAuthenticated: false, loading: false };
     if (authRaw && token) {
       try {
         const parsed = JSON.parse(authRaw);
         if (parsed && parsed.user) {
-          authState = { user: parsed.user, isAuthenticated: true, loading: true };
+          authState = { user: parsed.user, isAuthenticated: true, loading: false };
         }
       } catch {
         // ignore parse errors
@@ -48,7 +48,7 @@ function loadPreloadedState(): {
       jobs: { jobs: [] },
       theme: { darkMode: false },
       language: { language: "en" as Language },
-      auth: { user: null, isAuthenticated: false, loading: true },
+      auth: { user: null, isAuthenticated: false, loading: false },
     };
   }
 }
