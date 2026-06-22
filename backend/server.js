@@ -732,9 +732,10 @@ app.get("/api/port", (req, res) => {
       const tgWebhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
       if (tgBotToken && tgWebhookUrl) {
         // First, delete the existing webhook to clear any old configuration
-        await fetch(`https://api.telegram.org/bot${tgBotToken}/deleteWebhook`)
+        fetch(`https://api.telegram.org/bot${tgBotToken}/deleteWebhook`)
           .then(() => console.log("🤖 Old webhook deleted"))
           .catch((err) => console.log("No existing webhook to delete:", err.message));
+
 
         // Then register the new webhook with all updates allowed
         const webhookEndpoint = `${tgWebhookUrl}`;
