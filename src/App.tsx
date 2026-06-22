@@ -81,7 +81,8 @@ function AppContent() {
     handledStartParam.current = true;
     const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
     if (match) {
-      navigate(`/job-details/${match[1]}`, { replace: true });
+      const redirectPath = `/job-details/${match[1]}`;
+      navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
     }
   }, [navigate]);
 
