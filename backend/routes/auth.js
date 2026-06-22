@@ -877,9 +877,18 @@ router.post("/telegram-webhook", async (req, res) => {
 
     if (!data || !data.startsWith("tglogin_")) return;
 
-    const parts = data.split("_");
-    const action = parts[1]; // "confirm" | "decline"
-    const requestId = parts[2];
+    // data format: "tglogin_confirm_<requestId>" or "tglogin_decline_<requestId>"
+    // requestId may contain underscores, so we must treat everything after the prefix as the requestId.
+    const action = data.startsWith("tglogin_confirm_")
+      ? "confirm"
+      : data.startsWith("tglogin_decline_")
+        ? "decline"
+        : null;
+
+    if (!action) return;
+
+    const requestId = data.replace(/^tglogin_(confirm|decline)_/, "");
+
 
     const entry = pendingTelegramLogins.get(requestId);
 
