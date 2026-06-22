@@ -56,12 +56,19 @@ export const checkAuth = createAsyncThunk(
     try {
       if (apiService.isAuthenticated()) {
         apiService.clearUserCache(); // Clear cache to get fresh user
-        let currentUser = await apiService.getCurrentUser();
+        // Add a timeout to the auth check
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Auth check timeout")), 5000)
+        );
+
+        const userPromise = apiService.getCurrentUser();
+        let currentUser = await Promise.race([userPromise, timeoutPromise]) as any;
         currentUser = await syncPersistedRole(currentUser);
         return currentUser;
       }
       return null;
     } catch (error: any) {
+      console.error("Auth check failed:", error);
       apiService.logout();
       return null;
     }
