@@ -11,13 +11,16 @@ const { ensureAdminRole, toAuthUserPayload } = require("../config/admin");
 
 const router = express.Router();
 
-// ── Shared store for pending Telegram login confirmations (Redis) ──────────────
-// We must not use in-memory Map because webhook callbacks can hit a different
+// ── Shared store for pending Telegram login confirmations (Redis with Local Fallback) ──
+// We must not use in-memory Map solely because webhook callbacks can hit a different
 // server instance (Railway/K8s). Redis ensures requestId correlation works.
+// However, during local development or when Redis is disabled, we fall back to a local Map.
 const { redisClient: getCacheRedisClient } = require("../middleware/cache");
 
 const PENDING_TG_PREFIX = "telegram:login:pending:";
 const PENDING_TG_TTL_SECONDS = 5 * 60; // 5 minutes
+
+const localPendingLogins = new Map();
 
 function getPendingKey(requestId) {
   return `${PENDING_TG_PREFIX}${requestId}`;
@@ -25,34 +28,51 @@ function getPendingKey(requestId) {
 
 async function getPendingEntry(requestId) {
   const redis = getCacheRedisClient();
-  if (!redis) return null;
+  if (!redis) {
+    return localPendingLogins.get(requestId) || null;
+  }
   try {
     const raw = await redis.get(getPendingKey(requestId));
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (e) {
     console.error("Telegram pendingEntry GET error:", e.message || e);
-    return null;
+    return localPendingLogins.get(requestId) || null;
   }
 }
 
 async function setPendingEntry(requestId, entry) {
   const redis = getCacheRedisClient();
-  if (!redis) return;
+  if (!redis) {
+    localPendingLogins.set(requestId, entry);
+    // Auto-delete after 5 minutes to prevent leaks
+    setTimeout(() => {
+      localPendingLogins.delete(requestId);
+    }, PENDING_TG_TTL_SECONDS * 1000);
+    return;
+  }
   try {
     await redis.setex(getPendingKey(requestId), PENDING_TG_TTL_SECONDS, JSON.stringify(entry));
   } catch (e) {
     console.error("Telegram pendingEntry SET error:", e.message || e);
+    localPendingLogins.set(requestId, entry);
+    setTimeout(() => {
+      localPendingLogins.delete(requestId);
+    }, PENDING_TG_TTL_SECONDS * 1000);
   }
 }
 
 async function deletePendingEntry(requestId) {
   const redis = getCacheRedisClient();
-  if (!redis) return;
+  if (!redis) {
+    localPendingLogins.delete(requestId);
+    return;
+  }
   try {
     await redis.del(getPendingKey(requestId));
   } catch (e) {
     console.error("Telegram pendingEntry DEL error:", e.message || e);
+    localPendingLogins.delete(requestId);
   }
 }
 
@@ -795,7 +815,7 @@ router.post("/telegram-login", async (req, res) => {
 
     // ── Create pending login request & send Telegram confirmation ──
     const loginRequestId = crypto.randomBytes(16).toString("hex");
-    pendingTelegramLogins.set(loginRequestId, {
+    await setPendingEntry(loginRequestId, {
       telegramUserId: telegramData.id,
       userId: user._id,
       token,
@@ -858,9 +878,9 @@ router.post("/telegram-login", async (req, res) => {
 // @route   GET /api/auth/telegram-login-status/:requestId
 // @desc    Poll for Telegram login confirmation result
 // @access  Public
-router.get("/telegram-login-status/:requestId", (req, res) => {
+router.get("/telegram-login-status/:requestId", async (req, res) => {
   const { requestId } = req.params;
-  const entry = pendingTelegramLogins.get(requestId);
+  const entry = await getPendingEntry(requestId);
 
   if (!entry) {
     return res.status(404).json({ message: "Login request not found or expired" });
@@ -872,7 +892,7 @@ router.get("/telegram-login-status/:requestId", (req, res) => {
 
   if (entry.status === "confirmed") {
     // Clean up
-    pendingTelegramLogins.delete(requestId);
+    await deletePendingEntry(requestId);
     return res.json({
       status: "confirmed",
       token: entry.token,
@@ -881,12 +901,12 @@ router.get("/telegram-login-status/:requestId", (req, res) => {
   }
 
   if (entry.status === "declined") {
-    pendingTelegramLogins.delete(requestId);
+    await deletePendingEntry(requestId);
     return res.json({ status: "declined", message: "Login was declined." });
   }
 
   // expired or unknown
-  pendingTelegramLogins.delete(requestId);
+  await deletePendingEntry(requestId);
   res.json({ status: "expired" });
 });
 
@@ -922,7 +942,7 @@ router.post("/telegram-webhook", async (req, res) => {
     const requestId = data.replace(/^tglogin_(confirm|decline)_/, "");
 
 
-    const entry = pendingTelegramLogins.get(requestId);
+    const entry = await getPendingEntry(requestId);
 
     // Answer the callback query to remove the loading spinner in Telegram
     if (botToken) {
@@ -956,6 +976,7 @@ router.post("/telegram-webhook", async (req, res) => {
 
     if (entry) {
       entry.status = action === "confirm" ? "confirmed" : "declined";
+      await setPendingEntry(requestId, entry);
     }
   } catch (err) {
     console.error(

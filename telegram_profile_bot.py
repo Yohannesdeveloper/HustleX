@@ -1,11 +1,16 @@
 import os
 os.environ['TZ'] = 'UTC'
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
+import asyncio
+
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 from telegram.constants import ParseMode
-import asyncio
 from typing import Dict, Any
 import json
 import pytz
@@ -18,11 +23,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Bot token
-TOKEN = os.getenv("TELEGRAM_PROFILE_BOT_TOKEN")
-if not TOKEN:
-    raise RuntimeError(
-        "Telegram profile bot token is required. Set TELEGRAM_PROFILE_BOT_TOKEN in the bot environment."
-    )
+TOKEN = os.getenv("TELEGRAM_PROFILE_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
+if not TOKEN or "YOUR_" in TOKEN:
+    raise RuntimeError("Telegram bot token is required. Set TELEGRAM_PROFILE_BOT_TOKEN or TELEGRAM_BOT_TOKEN in .env file.\nGenerate new token from @BotFather: https://t.me/botfather")
 
 # User profile data storage (in production, use a database)
 user_profiles: Dict[int, Dict[str, Any]] = {}
@@ -663,8 +666,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def main() -> None:
     """Start the bot."""
     # Create the Application and pass it your bot's token
-    # Configure job queue with proper timezone to avoid issues
-    utc = pytz.UTC
     application = Application.builder().token(TOKEN).build()
 
     # Add handlers
@@ -682,4 +683,21 @@ async def main() -> None:
     await application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    import sys
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
+    application = Application.builder().token(TOKEN).build()
+    
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("profile", view_profile))
+    application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    
+    print("🤖 HustleX Telegram Bot is starting...")
+    print("💼 HustleX - Connecting Talent with Opportunity")
+    
+    application.run_polling(allowed_updates=Update.ALL_TYPES)

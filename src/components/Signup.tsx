@@ -450,6 +450,7 @@ const Signup: React.FC = () => {
         password,
         firstName,
         lastName,
+        role: "freelancer",
       });
 
       console.log("Registration successful");
