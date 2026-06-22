@@ -73,9 +73,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # Create main menu keyboard
     keyboard = [
-        [KeyboardButton("👤 Profile Setup")],
-        [KeyboardButton("📋 View Profile")],
-        [KeyboardButton("ℹ️ About HustleX")]
+        [KeyboardButton("ℹ️ About HustleX"), KeyboardButton("� Profile")],
+        [KeyboardButton("📋 Applications"), KeyboardButton("⚙️ Settings")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -88,8 +87,9 @@ I'm your HustleX assistant bot. I help you create and manage your professional p
 
 🚀 *What can I do for you?*
 • Set up your professional profile
-• Update your education and certificates
-• Showcase your skills to potential clients
+• View your applications
+• Manage your account settings
+• Learn about HustleX
 
 Use the buttons below to get started!
 
@@ -126,12 +126,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     wizard = ProfileWizard()
 
     # Handle main menu options
-    if text == "👤 Profile Setup":
+    if text == "👤 Profile":
         await start_profile_wizard(update, context)
-    elif text == "📋 View Profile":
-        await view_profile(update, context)
+    elif text == "📋 Applications":
+        await view_applications(update, context)
+    elif text == "⚙️ Settings":
+        await show_settings_menu(update, context)
     elif text == "ℹ️ About HustleX":
         await about_hustlex(update, context)
+    elif text == "🌐 Languages":
+        await show_languages(update, context)
+    elif text == "👤 Account":
+        await show_account(update, context)
+    elif text == "📄 My CV":
+        await show_cv(update, context)
+    elif text == "🔙 Back to Main Menu":
+        await show_main_menu(update, context)
     else:
         # Handle profile setup wizard steps
         current_step = user_profile.get('current_step', 'start')
@@ -626,6 +636,197 @@ To empower freelancers and businesses by providing a seamless, secure, and effic
         disable_web_page_preview=True
     )
 
+async def view_applications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show user's job applications."""
+    user = update.effective_user
+    
+    applications_message = f"""
+📋 *Your Applications* 📋
+
+━━━━━━━━━━━━━━━━━━━━━
+Hello {user.first_name}! 👋
+
+Here you can view all your job applications.
+
+🔍 *Status:*
+• Pending applications
+• Accepted offers
+• Completed projects
+
+━━━━━━━━━━━━━━━━━━━━━
+💼 *HustleX* - Your Application Dashboard
+━━━━━━━━━━━━━━━━━━━━━
+
+📝 *Note:* This feature connects to your HustleX account to show real-time application status.
+"""
+
+    keyboard = [
+        [KeyboardButton("🔙 Back to Main Menu")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_text(
+        applications_message,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
+async def show_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show settings menu with sub-options."""
+    settings_message = """
+⚙️ *Settings* ⚙️
+
+━━━━━━━━━━━━━━━━━━━━━
+Manage your account preferences and settings.
+
+🔧 *Available Options:*
+• 🌐 Languages - Change language preferences
+• 👤 Account - Manage account details
+• 📄 My CV - Update your CV/resume
+
+━━━━━━━━━━━━━━━━━━━━━
+💼 *HustleX* - Your Settings
+━━━━━━━━━━━━━━━━━━━━━
+"""
+
+    keyboard = [
+        [KeyboardButton("🌐 Languages"), KeyboardButton("👤 Account")],
+        [KeyboardButton("📄 My CV")],
+        [KeyboardButton("🔙 Back to Main Menu")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_text(
+        settings_message,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
+async def show_languages(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show language settings."""
+    languages_message = """
+🌐 *Language Settings* 🌐
+
+━━━━━━━━━━━━━━━━━━━━━
+Select your preferred language for the HustleX platform.
+
+🗣️ *Available Languages:*
+• 🇬🇧 English
+• 🇪🇹 Amharic
+• 🇫🇷 French
+• 🇸🇴 Somali
+
+━━━━━━━━━━━━━━━━━━━━━
+💼 *HustleX* - Language Preferences
+━━━━━━━━━━━━━━━━━━━━━
+"""
+
+    keyboard = [
+        [KeyboardButton("🔙 Back to Main Menu")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_text(
+        languages_message,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
+async def show_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show account settings."""
+    user = update.effective_user
+    
+    account_message = f"""
+👤 *Account Settings* 👤
+
+━━━━━━━━━━━━━━━━━━━━━
+Manage your HustleX account details.
+
+📋 *Account Information:*
+• Username: @{user.username or 'Not set'}
+• Name: {user.first_name} {user.last_name or ''}
+
+🔧 *Account Options:*
+• Update profile information
+• Change password
+• Notification settings
+• Privacy settings
+
+━━━━━━━━━━━━━━━━━━━━━
+💼 *HustleX* - Account Management
+━━━━━━━━━━━━━━━━━━━━━
+"""
+
+    keyboard = [
+        [KeyboardButton("🔙 Back to Main Menu")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_text(
+        account_message,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
+async def show_cv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show CV settings."""
+    cv_message = """
+📄 *My CV* 📄
+
+━━━━━━━━━━━━━━━━━━━━━
+Manage your professional CV/resume.
+
+📝 *CV Options:*
+• Upload new CV
+• View current CV
+• Download CV
+• Update CV sections
+
+━━━━━━━━━━━━━━━━━━━━━
+💼 *HustleX* - CV Management
+━━━━━━━━━━━━━━━━━━━━━
+"""
+
+    keyboard = [
+        [KeyboardButton("🔙 Back to Main Menu")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_text(
+        cv_message,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show the main menu."""
+    user = update.effective_user
+    
+    keyboard = [
+        [KeyboardButton("ℹ️ About HustleX"), KeyboardButton("👤 Profile")],
+        [KeyboardButton("📋 Applications"), KeyboardButton("⚙️ Settings")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    welcome_message = f"""
+🌟 *HustleX Main Menu* 🌟
+
+━━━━━━━━━━━━━━━━━━━━━
+Welcome back, {user.first_name}! 👋
+
+What would you like to do today?
+
+━━━━━━━━━━━━━━━━━━━━━
+💼 *HustleX* - Connecting Talent with Opportunity
+━━━━━━━━━━━━━━━━━━━━━
+"""
+
+    await update.message.reply_text(
+        welcome_message,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
     help_message = """
@@ -642,15 +843,21 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 📱 *How to Use:*
 
 1. *Profile Setup:*
-   - Click "👤 Profile Setup"
+   - Click "👤 Profile"
    - Upload your profile picture
    - Add your education details
    - List your certificates
 
 2. *View Profile:*
-   - Click "📋 View Profile" to see your completed profile
+   - Click "� Profile" to see your completed profile
 
-3. *About:*
+3. *Applications:*
+   - Click "📋 Applications" to view your job applications
+
+4. *Settings:*
+   - Click "⚙️ Settings" to manage your account preferences
+
+5. *About:*
    - Click "ℹ️ About HustleX" for platform information
 
 ━━━━━━━━━━━━━━━━━━━━━
