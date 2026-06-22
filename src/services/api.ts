@@ -37,6 +37,9 @@ class ApiService {
       axios.defaults.headers.common["Authorization"] = `Bearer ${this.token}`;
     }
 
+    // Set default timeout for all requests
+    axios.defaults.timeout = 10000; // 10 seconds
+
     axios.interceptors.request.use((config) => {
       const latestToken = localStorage.getItem("token");
       if (latestToken && config.headers) {

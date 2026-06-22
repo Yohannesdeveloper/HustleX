@@ -11,6 +11,7 @@ const ApplyRedirect: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
   const redirectParam = searchParams.get('redirect');
 
@@ -55,10 +56,17 @@ const ApplyRedirect: React.FC = () => {
 
     const checkRegistration = async () => {
       try {
+        // Add a timeout to avoid infinite loading
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Request timeout")), 5000)
+        );
+
         // First check: is user already logged in with a valid token?
         if (apiService.isAuthenticated()) {
           try {
-            const user = await apiService.getCurrentUser();
+            const userPromise = apiService.getCurrentUser();
+            const user = await Promise.race([userPromise, timeoutPromise]) as any;
+            
             if (user && effectiveRedirect) {
               if (user.profile?.isProfileComplete) {
                 redirectToJob(effectiveRedirect);
@@ -68,18 +76,21 @@ const ApplyRedirect: React.FC = () => {
               return;
             }
           } catch (error) {
-            // Token invalid — clear it and fall through to registration
+            // Token invalid or timeout — clear it and fall through to registration
+            console.error("Auth check failed:", error);
             localStorage.removeItem("token");
             apiService.clearToken();
           }
         }
 
         // If not authenticated, always redirect to registration
-        // The registration flow will handle: Registration → Share Phone → Profile Setup → Job Details
         redirectToRegister();
       } catch (err: any) {
+        console.error("Registration check failed:", err);
         setError("Failed to check registration status");
         redirectToRegister();
+      } finally {
+        setIsChecking(false);
       }
     };
 
@@ -94,7 +105,7 @@ const ApplyRedirect: React.FC = () => {
         <p style={{ color: 'var(--tg-theme-text-color, #ffffff)' }} className="text-base">
           {error || "Loading..."}
         </p>
-        {error && (
+        {(error || !isChecking) && (
           <button
             onClick={() => window.location.reload()}
             className="mt-4 px-5 py-2.5 bg-cyan-500 rounded-lg text-white font-medium"
