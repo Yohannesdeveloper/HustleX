@@ -76,37 +76,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'phone': None
         }
 
-    user_profile = user_profiles[user.id]
-
-    # If user already has phone number, welcome back
-    if user_profile.get('phone'):
-        await update.message.reply_html(
-            f"👋 Welcome back, {user.first_name}!"
-        )
-        await show_main_menu(update, context)
-        return
-
-    # Otherwise, ask to share phone number
-    keyboard = [
-        [KeyboardButton("📱 Share Phone Number", request_contact=True)],
-        [KeyboardButton("❌ Cancel")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
-
-    welcome_message = f"""
-🌟 *Welcome to HustleX Freelance Platform!* 🌟
-
-Hello {user.mention_html()}! 👋
-
-I'm your HustleX assistant bot. To help you get started quickly, would you like to share your phone number? This will let us recognize you when you come back!
-
-Use the buttons below.
-"""
-
-    await update.message.reply_html(
-        welcome_message,
-        reply_markup=reply_markup
-    )
+    # Show main menu directly
+    await show_main_menu(update, context)
 
 
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -118,21 +89,7 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_profile = user_profiles.get(user.id, {})
     user_profile['phone'] = phone
 
-    # First, check if user exists by phone
-    try:
-        response = requests.get(f"{API_BASE_URL}/auth/check-user-by-phone", params={"phone": phone}, timeout=5)
-        if response.status_code == 200:
-            # User exists, welcome back
-            await update.message.reply_html(
-                f"👋 Welcome back, {user.first_name}! We've recognized you from your phone number.\n\nLet's get started!"
-            )
-            await show_main_menu(update, context)
-            return
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error checking user by phone: {e}")
-        # Continue even if API fails
-
-    # If no user found, ask to proceed to profile setup
+    # Show thank you and main menu
     keyboard = [
         [KeyboardButton("ℹ️ About HustleX"), KeyboardButton("👤 Profile")],
         [KeyboardButton("📋 Applications"), KeyboardButton("⚙️ Settings")]
@@ -140,7 +97,7 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     await update.message.reply_html(
-        f"✅ Thank you for sharing your phone number, {user.first_name}!\n\nNow let's set up your profile!"
+        f"✅ Thank you for sharing your phone number, {user.first_name}!"
     )
     await update.message.reply_text(
         "What would you like to do?",
@@ -170,12 +127,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_profile = user_profiles[user.id]
     wizard = ProfileWizard()
 
-    # Handle phone number cancel
-    if text == "❌ Cancel":
-        await update.message.reply_text(
-            "Okay, maybe another time! If you change your mind, just type /start again."
-        )
-        return
+
 
     # Handle main menu options
     if text == "👤 Profile":
@@ -853,11 +805,17 @@ Manage your professional CV/resume.
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show the main menu."""
     user = update.effective_user
+    user_profile = user_profiles.get(user.id, {})
     
     keyboard = [
         [KeyboardButton("ℹ️ About HustleX"), KeyboardButton("👤 Profile")],
         [KeyboardButton("📋 Applications"), KeyboardButton("⚙️ Settings")]
     ]
+    
+    # Add phone number button if not already shared
+    if not user_profile.get('phone'):
+        keyboard.insert(0, [KeyboardButton("📱 Share Phone Number", request_contact=True)])
+    
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     welcome_message = f"""
