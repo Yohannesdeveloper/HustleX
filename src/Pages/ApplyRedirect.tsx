@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import apiService from "../services/api";
 
 interface TelegramUser {
@@ -9,6 +9,7 @@ interface TelegramUser {
 
 const ApplyRedirect: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
   const redirectParam = searchParams.get('redirect');
@@ -35,28 +36,25 @@ const ApplyRedirect: React.FC = () => {
 
     const redirectToRegister = () => {
       const registerUrl = effectiveRedirect
-        ? `https://hustlexet.vercel.app/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
-        : "https://hustlexet.vercel.app/Register";
-      window.location.href = registerUrl;
+        ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
+        : "/Register";
+      navigate(registerUrl, { replace: true });
     };
 
     const redirectToJob = (path: string) => {
       sessionStorage.removeItem('pendingJobRedirect');
-      window.location.href = `https://hustlexet.vercel.app${path}?autoApply=true`;
+      navigate(`${path}?autoApply=true`, { replace: true });
     };
 
     const redirectToProfileSetup = () => {
       const profileSetupUrl = effectiveRedirect
-        ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(effectiveRedirect)}`
-        : "https://hustlexet.vercel.app/freelancer-profile-setup";
-      window.location.href = profileSetupUrl;
+        ? `/freelancer-profile-setup?redirect=${encodeURIComponent(effectiveRedirect)}`
+        : "/freelancer-profile-setup";
+      navigate(profileSetupUrl, { replace: true });
     };
 
     const checkRegistration = async () => {
       try {
-        // Add a small delay to ensure everything is loaded
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         // First check: is user already logged in with a valid token?
         if (apiService.isAuthenticated()) {
           try {
@@ -86,7 +84,7 @@ const ApplyRedirect: React.FC = () => {
     };
 
     checkRegistration();
-  }, [redirectParam]);
+  }, [redirectParam, navigate]);
 
   // Always show loading while redirecting — uses Telegram theme colors
   return (

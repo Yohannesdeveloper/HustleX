@@ -74,7 +74,7 @@ const RegistrationPage: React.FC = () => {
   // Get redirect parameter from URL, fallback to sessionStorage
   const urlRedirect = searchParams.get('redirect');
   const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
-  const DEFAULT_REDIRECT = "https://hustlexet.vercel.app/freelancer-profile-setup";
+  const DEFAULT_REDIRECT = "/freelancer-profile-setup";
 
   // If already authenticated and has a redirect, skip registration
   useEffect(() => {
@@ -83,13 +83,13 @@ const RegistrationPage: React.FC = () => {
       if (isProfileComplete) {
         // Profile complete — go to job details and auto-apply
         sessionStorage.removeItem('pendingJobRedirect');
-        window.location.href = `https://hustlexet.vercel.app${redirectParam}?autoApply=true`;
+        navigate(`${redirectParam}?autoApply=true`, { replace: true });
       } else {
         // Profile incomplete — go to profile setup
-        window.location.href = `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`;
+        navigate(`/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`, { replace: true });
       }
     }
-  }, [isAuthenticated, user, redirectParam]);
+  }, [isAuthenticated, user, redirectParam, navigate]);
 
   // Show loading while checking auth (prevents flash of registration form for returning users)
   if (authLoading && redirectParam) {
@@ -192,9 +192,9 @@ const RegistrationPage: React.FC = () => {
                         // User already fully registered — go straight to job details with auto-apply
                         sessionStorage.removeItem('pendingJobRedirect');
                         if (redirectParam) {
-                          window.location.href = `https://hustlexet.vercel.app${redirectParam}?autoApply=true`;
+                          navigate(`${redirectParam}?autoApply=true`, { replace: true });
                         } else {
-                          window.location.href = "https://hustlexet.vercel.app/job-listings";
+                          navigate("/job-listings", { replace: true });
                         }
                         return;
                       }
@@ -203,16 +203,16 @@ const RegistrationPage: React.FC = () => {
                     // Phone number saved — redirect to freelancer profile setup
                     // (sessionStorage keeps the pendingJobRedirect alive for the wizard)
                     const profileSetupUrl = redirectParam 
-                      ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                      ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
                       : DEFAULT_REDIRECT;
-                    window.location.href = profileSetupUrl;
+                    navigate(profileSetupUrl, { replace: true });
                   } catch (error) {
                     console.error("Error checking phone number:", error);
                     // Fallback to freelancer profile setup
                     const profileSetupUrl = redirectParam 
-                      ? `https://hustlexet.vercel.app/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                      ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
                       : DEFAULT_REDIRECT;
-                    window.location.href = profileSetupUrl;
+                    navigate(profileSetupUrl, { replace: true });
                   }
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
@@ -223,7 +223,7 @@ const RegistrationPage: React.FC = () => {
                 onClick={() => {
                   // Cancel - clear pending job and redirect to home page
                   sessionStorage.removeItem('pendingJobRedirect');
-                  window.location.href = "https://hustlexet.vercel.app";
+                  navigate("/", { replace: true });
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-white/10 text-gray-300 font-semibold hover:bg-white/20 transition-all border border-white/10"
               >
