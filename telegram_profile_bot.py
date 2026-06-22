@@ -880,31 +880,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         parse_mode=ParseMode.MARKDOWN
     )
 
-async def main() -> None:
-    """Start the bot."""
-    # Create the Application and pass it your bot's token
-    application = Application.builder().token(TOKEN).build()
-
-    # Add handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("profile", view_profile))
-
-    application.add_handler(CallbackQueryHandler(handle_callback))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-
-    # Start the bot
-    print("🤖 HustleX Telegram Bot is starting...")
-    print("💼 HustleX - Connecting Talent with Opportunity")
-    await application.run_polling(allowed_updates=Update.ALL_TYPES)
-
 if __name__ == '__main__':
     import sys
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     
+    print("🤖 HustleX Telegram Bot is starting...")
+    print("💼 HustleX - Connecting Talent with Opportunity")
+    
+    # Create and start the bot
     application = Application.builder().token(TOKEN).build()
     
     # Add handlers
@@ -915,8 +899,5 @@ if __name__ == '__main__':
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    
-    print("🤖 HustleX Telegram Bot is starting...")
-    print("💼 HustleX - Connecting Talent with Opportunity")
     
     application.run_polling(allowed_updates=Update.ALL_TYPES)
