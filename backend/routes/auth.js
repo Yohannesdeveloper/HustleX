@@ -1113,4 +1113,77 @@ router.get("/telegram-config", (req, res) => {
   });
 });
 
+// @route   POST /api/auth/save-phone
+// @desc    Save user's phone number
+// @access  Private
+router.post(
+  "/save-phone",
+  [
+    auth,
+    body("phone").isString().trim().notEmpty().withMessage("Phone number is required")
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { phone } = req.body;
+      const user = req.user;
+
+      // Check if phone number already exists
+      const existingUser = await User.findOne({ "profile.phone": phone });
+      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ message: "This phone number is already in use" });
+      }
+
+      // Update user's phone number
+      user.profile.phone = phone;
+      await user.save();
+
+      res.json({
+        message: "Phone number saved successfully",
+        user: toAuthUserPayload(user)
+      });
+    } catch (error) {
+      console.error("Save phone error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   GET /api/auth/check-user-by-phone
+// @desc    Check if user exists by phone number
+// @access  Public
+router.get("/check-user-by-phone", async (req, res) => {
+  try {
+    const { phone } = req.query;
+
+    if (!phone) {
+      return res.status(400).json({ message: "Phone number is required" });
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ "profile.phone": phone });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      user: {
+        _id: user._id,
+        email: user.email,
+        roles: user.roles,
+        currentRole: user.currentRole,
+        role: user.currentRole,
+        profile: user.profile,
+      },
+    });
+  } catch (error) {
+    console.error("Check user by phone error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

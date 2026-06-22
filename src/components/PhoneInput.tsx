@@ -37,6 +37,7 @@ interface PhoneInputProps {
   required?: boolean;
   darkMode?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
 const PhoneInput: React.FC<PhoneInputProps> = ({
@@ -46,6 +47,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   required = false,
   darkMode = false,
   className = '',
+  disabled = false,
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(countryCodes[0]); // Default to Ethiopia
@@ -110,11 +112,12 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
           <button
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
+            disabled={disabled}
             className={`h-full px-3 py-3 rounded-lg border flex items-center gap-2 transition-colors ${
               darkMode
                 ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
                 : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+            } focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <span className="text-lg">{selectedCountry.flag}</span>
             <span className="text-sm font-medium">{selectedCountry.code}</span>
@@ -178,13 +181,14 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           required={required}
+          disabled={disabled}
           inputMode="numeric"
           pattern="[0-9\s\-\(\)]*"
           className={`flex-1 px-4 py-3 rounded-lg border transition-colors ${
             darkMode
               ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-          } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+          } focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed`}
         />
       </div>
     </div>

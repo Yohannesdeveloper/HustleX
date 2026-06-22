@@ -221,6 +221,17 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     return response.data as { user: User };
   }
 
+  async savePhone(phone: string): Promise<{ message: string; user: User }> {
+    const response = await axios.post(`${this.baseUrl}/auth/save-phone`, { phone });
+    this.clearUserCache();
+    return response.data as { message: string; user: User };
+  }
+
+  async checkUserByPhone(phone: string): Promise<{ user: User }> {
+    const response = await axios.get(`${this.baseUrl}/auth/check-user-by-phone`, { params: { phone } });
+    return response.data as { user: User };
+  }
+
   async updateMyProfile(profile: {
     firstName?: string;
     lastName?: string;

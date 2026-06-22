@@ -14,6 +14,7 @@ from telegram.constants import ParseMode
 from typing import Dict, Any
 import json
 import pytz
+import requests
 
 # Enable logging
 logging.basicConfig(
@@ -26,6 +27,9 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("TELEGRAM_PROFILE_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
 if not TOKEN or "YOUR_" in TOKEN:
     raise RuntimeError("Telegram bot token is required. Set TELEGRAM_PROFILE_BOT_TOKEN or TELEGRAM_BOT_TOKEN in .env file.\nGenerate new token from @BotFather: https://t.me/botfather")
+
+# API base URL
+API_BASE_URL = os.getenv("API_BASE_URL") or "http://localhost:5000/api"
 
 # User profile data storage (in production, use a database)
 user_profiles: Dict[int, Dict[str, Any]] = {}
@@ -68,38 +72,68 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             'profile_image': None,
             'education': None,
             'certificates': None,
-            'completed': False
+            'completed': False,
+            'phone': None
         }
 
-    # Create main menu keyboard
+    # Ask to share phone number
     keyboard = [
-        [KeyboardButton("ℹ️ About HustleX"), KeyboardButton("� Profile")],
-        [KeyboardButton("📋 Applications"), KeyboardButton("⚙️ Settings")]
+        [KeyboardButton("📱 Share Phone Number", request_contact=True)],
+        [KeyboardButton("❌ Cancel")]
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
 
     welcome_message = f"""
 🌟 *Welcome to HustleX Freelance Platform!* 🌟
 
 Hello {user.mention_html()}! 👋
 
-I'm your HustleX assistant bot. I help you create and manage your professional profile on our freelance platform.
+I'm your HustleX assistant bot. To help you get started quickly, would you like to share your phone number? This will let us recognize you when you come back!
 
-🚀 *What can I do for you?*
-• Set up your professional profile
-• View your applications
-• Manage your account settings
-• Learn about HustleX
-
-Use the buttons below to get started!
-
-━━━━━━━━━━━━━━━━━━━━━
-💼 *HustleX* - Connecting Talent with Opportunity
-━━━━━━━━━━━━━━━━━━━━━
+Use the buttons below.
 """
 
     await update.message.reply_html(
         welcome_message,
+        reply_markup=reply_markup
+    )
+
+
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle when user shares their contact."""
+    user = update.effective_user
+    contact = update.message.contact
+    phone = contact.phone_number
+
+    user_profile = user_profiles.get(user.id, {})
+    user_profile['phone'] = phone
+
+    # First, check if user exists by phone
+    try:
+        response = requests.get(f"{API_BASE_URL}/auth/check-user-by-phone", params={"phone": phone})
+        if response.status_code == 200:
+            # User exists, welcome back
+            data = response.json()
+            await update.message.reply_html(
+                f"👋 Welcome back, {user.first_name}! We've recognized you from your phone number.\n\nLet's get started!"
+            )
+            await show_main_menu(update, context)
+            return
+    except Exception as e:
+        logger.error(f"Error checking user by phone: {e}")
+
+    # If no user found, ask to proceed to profile setup
+    keyboard = [
+        [KeyboardButton("ℹ️ About HustleX"), KeyboardButton("👤 Profile")],
+        [KeyboardButton("📋 Applications"), KeyboardButton("⚙️ Settings")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_html(
+        f"✅ Thank you for sharing your phone number, {user.first_name}!\n\nNow let's set up your profile!"
+    )
+    await update.message.reply_text(
+        "What would you like to do?",
         reply_markup=reply_markup
     )
 
@@ -119,11 +153,19 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             'profile_image': None,
             'education': None,
             'certificates': None,
-            'completed': False
+            'completed': False,
+            'phone': None
         }
 
     user_profile = user_profiles[user.id]
     wizard = ProfileWizard()
+
+    # Handle phone number cancel
+    if text == "❌ Cancel":
+        await update.message.reply_text(
+            "Okay, maybe another time! If you change your mind, just type /start again."
+        )
+        return
 
     # Handle main menu options
     if text == "👤 Profile":
@@ -883,6 +925,7 @@ async def main() -> None:
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
 
     # Start the bot
     print("🤖 HustleX Telegram Bot is starting...")
@@ -903,6 +946,7 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     
     print("🤖 HustleX Telegram Bot is starting...")
     print("💼 HustleX - Connecting Talent with Opportunity")
