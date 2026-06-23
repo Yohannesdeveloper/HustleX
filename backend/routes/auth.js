@@ -770,22 +770,24 @@ router.post("/telegram-login", async (req, res) => {
 
     if (initData && typeof initData === 'string') {
       // ── Mini App format: raw query string ──
-      // Telegram's HMAC is computed over the RAW (URL-encoded) query params,
-      // NOT decoded values.  We must split, sort, and join the original string.
-      const pairs = initData.split('&').filter(p => p);
-      const hashPairIdx = pairs.findIndex(p => p.startsWith('hash='));
-      queryHash = hashPairIdx !== -1 ? pairs[hashPairIdx].slice(5) : '';
-      if (hashPairIdx !== -1) pairs.splice(hashPairIdx, 1);
+      // Parse with URLSearchParams to get URL-decoded values, matching
+      // Telegram's official validation algorithm (@telegram-apps/init-data-node).
+      const sp = new URLSearchParams(initData);
+      queryHash = sp.get('hash') || '';
 
-      pairs.sort((a, b) => a.localeCompare(b));
+      // Build sorted key=value pairs (URL-decoded), excluding hash
+      const pairs = [];
+      sp.forEach((value, key) => {
+        if (key === 'hash') return;
+        pairs.push(`${key}=${value}`);
+      });
+      pairs.sort();
       const dataCheckString = pairs.join('\n');
 
-      // secretKey = HMAC-SHA256(key=botToken, data="WebAppData") for Mini App.
+      // secretKey = HMAC-SHA256(key="WebAppData", data=botToken) for Mini App.
       // (SHA256(botToken) is only used by Login Widget.)
-      const secretKey = crypto.createHmac("sha256", botToken).update("WebAppData").digest();
-      const hmac = crypto.createHmac("sha256", secretKey);
-      hmac.update(dataCheckString);
-      const computedHash = hmac.digest("hex");
+      const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+      const computedHash = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
       console.log("[TelegramLogin] MiniApp dataCheckString:", JSON.stringify(dataCheckString));
       console.log("[TelegramLogin] MiniApp computed hash:", computedHash);
       console.log("[TelegramLogin] MiniApp expected hash:", queryHash);
@@ -793,21 +795,15 @@ router.post("/telegram-login", async (req, res) => {
         return res.status(400).json({ message: "Invalid Telegram data" });
       }
 
-      // Parse individual params for extracting user info
-      const paramMap = new Map(pairs.map(p => {
-        const eq = p.indexOf('=');
-        return eq === -1 ? [p, ''] : [p.slice(0, eq), p.slice(eq + 1)];
-      }));
-
-      const authDate = parseInt(paramMap.get('auth_date') || '0');
+      const authDate = parseInt(sp.get('auth_date') || '0');
       if (Date.now() - authDate * 1000 > 24 * 60 * 60 * 1000) {
         return res.status(400).json({ message: "Telegram data expired" });
       }
 
-      // Extract user from the JSON-encoded `user` param
-      const rawUser = paramMap.get('user');
+      // Extract user from the JSON-encoded `user` param (already URL-decoded)
+      const rawUser = sp.get('user');
       if (!rawUser) return res.status(400).json({ message: "User data missing" });
-      flatUser = JSON.parse(decodeURIComponent(rawUser));
+      flatUser = JSON.parse(rawUser);
     } else if (telegramData) {
       // ── Login Widget format: flat object ──
       const dataToCheck = { ...telegramData };
