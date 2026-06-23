@@ -76,6 +76,12 @@ const RegistrationPage: React.FC = () => {
   const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
   const DEFAULT_REDIRECT = "/freelancer-profile-setup";
 
+  // Reset body background from ApplyRedirect's navy (#17212b) to dark gray
+  useEffect(() => {
+    document.body.style.backgroundColor = '#111827';
+    document.documentElement.style.backgroundColor = '#111827';
+  }, []);
+
   // If already authenticated (e.g. after a page refresh), skip registration.
   // Don't redirect if the user just registered (success=true) so they see the
   // success message and phone permission step.
@@ -97,18 +103,6 @@ const RegistrationPage: React.FC = () => {
     }
   }, [isAuthenticated, user, authLoading, success, redirectParam, navigate]);
 
-  // Show loading while checking auth (prevents flash of registration form for returning users)
-  if (authLoading && redirectParam) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Checking your account...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Auto-advance to phone permission step after registration success
   useEffect(() => {
     if (!success) return;
@@ -117,6 +111,20 @@ const RegistrationPage: React.FC = () => {
     }, 1500);
     return () => clearTimeout(timer);
   }, [success]);
+
+  // ── All hooks are above this line. Early returns below are safe. ──
+
+  // Show loading while checking auth (prevents flash of registration form for returning users)
+  if (authLoading && redirectParam) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#111827' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Checking your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +171,7 @@ const RegistrationPage: React.FC = () => {
   if (success) {
     if (showPhonePermission) {
       return (
-        <div className="min-h-screen flex items-center justify-center px-4 bg-gray-900">
+        <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#111827' }}>
           <div className="max-w-md w-full bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center shadow-2xl">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <FaPhone className="w-10 h-10 text-white" />
@@ -177,7 +185,6 @@ const RegistrationPage: React.FC = () => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={async () => {
-                  // Try Telegram native request first (v8.0+)
                   const tg = window.Telegram?.WebApp;
                   if (tg?.requestPhoneNumber) {
                     tg.requestPhoneNumber(
@@ -211,7 +218,6 @@ const RegistrationPage: React.FC = () => {
                     return;
                   }
 
-                  // Browser fallback — fetch phone from profile
                   try {
                     const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/me`, {
                       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -262,9 +268,8 @@ const RegistrationPage: React.FC = () => {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto" style={{ backgroundColor: '#111827' }}>
         <div className="max-w-md w-full bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center shadow-2xl">
-          {/* Success Icon */}
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -276,7 +281,6 @@ const RegistrationPage: React.FC = () => {
             Welcome, <span className="text-cyan-400 font-semibold">{firstName}</span>! Your account has been created.
           </p>
 
-          {/* Redirect notice */}
           <div className="flex flex-col items-center gap-3 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
             <div className="flex items-center gap-2 text-cyan-400 text-sm font-medium">
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -292,7 +296,7 @@ const RegistrationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 overflow-y-auto bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 overflow-y-auto" style={{ backgroundColor: '#111827' }}>
       <div className="max-w-lg w-full">
         {/* Card */}
         <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 shadow-2xl">
