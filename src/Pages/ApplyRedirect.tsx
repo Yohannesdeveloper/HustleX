@@ -65,11 +65,17 @@ const ApplyRedirect: React.FC = () => {
       }
       if (result.loginRequestId) {
         setStatus("Waiting for Telegram confirmation...");
+        const pollTimeout = setTimeout(() => {
+          clearInterval(interval);
+          setStatus("Timed out — going to registration");
+          goToRegister(effectiveRedirect, navigate);
+        }, 15000);
         const interval = setInterval(async () => {
           try {
             const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
             if (poll.status === 'confirmed' && poll.token) {
               clearInterval(interval);
+              clearTimeout(pollTimeout);
               setStatus("Confirmed — redirecting");
               const dest = effectiveRedirect
                 ? `${effectiveRedirect}?autoApply=true`
@@ -77,11 +83,13 @@ const ApplyRedirect: React.FC = () => {
               navigate(dest, { replace: true });
             } else if (poll.status === 'declined' || poll.status === 'expired') {
               clearInterval(interval);
+              clearTimeout(pollTimeout);
               setStatus("Declined — going to registration");
               goToRegister(effectiveRedirect, navigate);
             }
           } catch {
             clearInterval(interval);
+            clearTimeout(pollTimeout);
             goToRegister(effectiveRedirect, navigate);
           }
         }, 2000);

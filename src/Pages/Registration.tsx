@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck, FaPhone } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
-import { register as registerUser } from "../store/authSlice";
+import { register as registerUser, setUser } from "../store/authSlice";
 import { useAuth } from "../store/hooks";
 import apiService from "../services/api";
 
@@ -126,22 +126,29 @@ const RegistrationPage: React.FC = () => {
     apiService.telegramLogin({ initData: tg.initData }).then((result: any) => {
       if (result.token) {
         setTelegramLoginStatus('done');
-        window.location.reload();
+        if (result.user) dispatch(setUser(result.user as any));
       } else if (result.loginRequestId) {
         setTelegramLoginStatus('checking');
+        const pollTimeout = setTimeout(() => {
+          if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+          setTelegramLoginStatus('failed');
+        }, 15000);
         telegramLoginPollRef.current = setInterval(async () => {
           try {
             const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
             if (poll.status === 'confirmed' && poll.token) {
               if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+              clearTimeout(pollTimeout);
               setTelegramLoginStatus('done');
-              window.location.reload();
+              if (poll.user) dispatch(setUser(poll.user as any));
             } else if (poll.status === 'declined' || poll.status === 'expired') {
               if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+              clearTimeout(pollTimeout);
               setTelegramLoginStatus('failed');
             }
           } catch {
             if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+            clearTimeout(pollTimeout);
             setTelegramLoginStatus('failed');
           }
         }, 2000);
