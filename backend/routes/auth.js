@@ -1142,8 +1142,10 @@ router.post(
         return res.status(400).json({ message: "Invalid phone number" });
       }
 
-      // Check if phone number already exists
-      const existingUser = await User.findOne({ "profile.phone": normalized });
+      // Check if phone number already exists (fuzzy match for country-code variants)
+      const existingUser = await User.findOne({
+        $where: `this.profile.phone && (this.profile.phone.endsWith("${normalized}") || "${normalized}".endsWith(this.profile.phone))`
+      });
       if (existingUser && existingUser._id.toString() !== user._id.toString()) {
         return res.status(400).json({ message: "This phone number is already in use" });
       }
@@ -1175,8 +1177,18 @@ router.get("/check-user-by-phone", async (req, res) => {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Check if user exists (normalized lookup)
-    const user = await User.findOne({ "profile.phone": phone });
+    // Try exact normalized match first, then suffix match so that
+    // e.g. 251912345678 matches 912345678 (with or without country code).
+    let user = await User.findOne({ "profile.phone": phone });
+    if (!user) {
+      // The stored phone may have a country-code prefix the query lacks, or vice versa.
+      // Use $where to check that one string ends with the other (safe since phone is
+      // digits-only after normalizePhone, so no injection risk).
+      user = await User.findOne({
+        $where: `this.profile.phone && (this.profile.phone.endsWith("${phone}") || "${phone}".endsWith(this.profile.phone))`
+      });
+    }
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
