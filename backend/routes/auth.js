@@ -844,14 +844,14 @@ router.post("/telegram-login", async (req, res) => {
     }
 
     // ── 3) Fallback: fetch phone from Telegram API & match by phone ──
-    // Short timeout — this is only needed to link web-registered users who
-    // don't have telegram.id stored yet.  For completely new users we'll
-    // redirect to registration, so don't block long.
+    // Short timeout — this only helps link web-registered users who don't
+    // have telegram.id stored.  For new Mini App users we'll return
+    // needsRegistration, so don't wait long.
     if (!user) {
       try {
         const chatRes = await axios.get(
           `https://api.telegram.org/bot${botToken}/getChat?chat_id=${flatUser.id}`,
-          { timeout: 2000 }
+          { timeout: 1000 }
         );
         const tgPhoneRaw = chatRes.data?.ok ? chatRes.data.result?.phone_number : null;
         console.log("[TelegramLogin] getChat phone_number:", tgPhoneRaw || "(none)");
