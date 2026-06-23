@@ -883,30 +883,13 @@ router.post("/telegram-login", async (req, res) => {
       }
     }
 
-    // ── 4) Still nothing?  Create a brand-new user ──
+    // ── 4) Still nothing?  Send user to registration page ──
     if (!user) {
-      user = new User({
-        telegram: {
-          id: flatUser.id,
-          username: flatUser.username,
-          firstName: flatUser.first_name,
-          lastName: flatUser.last_name,
-          photoUrl: flatUser.photo_url,
-        },
-        roles: ["freelancer"],
-        currentRole: "freelancer",
-        profile: {
-          firstName: flatUser.first_name || "",
-          lastName: flatUser.last_name || "",
-          avatar: flatUser.photo_url || "",
-        },
+      console.log(`[TelegramLogin] No existing user for telegram.id ${flatUser.id} — redirecting to registration`);
+      return res.json({
+        needsRegistration: true,
+        telegramUser: flatUser,
       });
-
-      const randomPassword = crypto.randomBytes(32).toString("hex");
-      user.password = randomPassword;
-
-      await user.save();
-      console.log(`[TelegramLogin] Created new user ${user._id} for telegram.id ${flatUser.id}`);
     }
 
     // Generate token

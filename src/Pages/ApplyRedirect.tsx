@@ -47,6 +47,15 @@ const ApplyRedirect: React.FC = () => {
       navigate(dest, { replace: true });
       return true;
     }
+    if (result.needsRegistration) {
+      console.log("[ApplyRedirect] user not registered, redirecting to registration");
+      sessionStorage.setItem('telegramUser', JSON.stringify(result.telegramUser));
+      const url = effectiveRedirect
+        ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
+        : "/Register";
+      navigate(url, { replace: true });
+      return true;
+    }
     if (result.loginRequestId) {
       console.log("[ApplyRedirect] pending confirmation, requestId:", result.loginRequestId);
       setStatus("Waiting for Telegram confirmation...");

@@ -167,6 +167,17 @@ const RegistrationPage: React.FC = () => {
     };
   }, []);
 
+  // Pre-fill form from Telegram user data (set by ApplyRedirect)
+  useEffect(() => {
+    const stored = sessionStorage.getItem('telegramUser');
+    if (!stored) return;
+    try {
+      const tgUser = JSON.parse(stored);
+      if (tgUser.first_name) setFirstName(tgUser.first_name);
+      if (tgUser.last_name) setLastName(tgUser.last_name);
+    } catch { /* ignore */ }
+  }, []);
+
   // Auto-advance to phone permission step after registration success
   useEffect(() => {
     if (!success) return;
