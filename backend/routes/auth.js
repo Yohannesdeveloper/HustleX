@@ -913,12 +913,9 @@ router.post("/telegram-login", async (req, res) => {
     const token = generateToken(user._id);
     await ensureAdminRole(user);
 
-    // For Mini App (initData), the data is already verified by Telegram so
-    // auto-login without pending confirmation.  For Login Widget, still
-    // require manual confirmation via the bot.
-    if (initData && typeof initData === 'string') {
-      return res.json({ token, user: toAuthUserPayload(user) });
-    }
+    // Data already verified by server-side HMAC check — auto-login without
+    // pending confirmation (for both Mini App initData and Login Widget).
+    return res.json({ token, user: toAuthUserPayload(user) });
 
     // ── Create pending login request & send Telegram confirmation ──
     const loginRequestId = crypto.randomBytes(16).toString("hex");
