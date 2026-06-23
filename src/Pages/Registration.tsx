@@ -156,11 +156,21 @@ const RegistrationPage: React.FC = () => {
     // phone-permission step).
     setSuccess(true);
     try {
+      const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      const telegram = tg?.id ? {
+        id: tg.id,
+        username: tg.username,
+        firstName: tg.first_name,
+        lastName: tg.last_name,
+        photoUrl: tg.photo_url,
+      } : undefined;
+
       const result = await dispatch(registerUser({
         email,
         role: "freelancer",
         firstName,
         lastName,
+        telegram,
       })).unwrap();
 
       console.log("Registration successful:", result);

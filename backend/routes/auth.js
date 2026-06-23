@@ -100,6 +100,11 @@ router.post(
     body("role").optional().isIn(["freelancer", "client"]),
     body("roles").optional().isArray(),
     body("roles.*").optional().isIn(["freelancer", "client"]),
+    body("telegram.id").optional().isNumeric(),
+    body("telegram.username").optional().isString(),
+    body("telegram.firstName").optional().isString(),
+    body("telegram.lastName").optional().isString(),
+    body("telegram.photoUrl").optional().isString(),
   ],
   async (req, res) => {
     try {
@@ -108,7 +113,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, role, roles, firstName, lastName } = req.body;
+      const { email, password, role, roles, firstName, lastName, telegram } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -139,6 +144,17 @@ router.post(
       if (userRoles.length > 0) {
         userFields.roles = userRoles;
         userFields.currentRole = userRoles[0];
+      }
+
+      // Attach Telegram data if provided
+      if (telegram && telegram.id) {
+        userFields.telegram = {
+          id: telegram.id,
+          username: telegram.username || '',
+          firstName: telegram.firstName || '',
+          lastName: telegram.lastName || '',
+          photoUrl: telegram.photoUrl || '',
+        };
       }
 
       // Create new user

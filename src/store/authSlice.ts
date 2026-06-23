@@ -104,6 +104,13 @@ export const register = createAsyncThunk(
       roles?: string[];
       firstName?: string;
       lastName?: string;
+      telegram?: {
+        id: number;
+        username?: string;
+        firstName?: string;
+        lastName?: string;
+        photoUrl?: string;
+      };
     },
     { rejectWithValue }
   ) => {
