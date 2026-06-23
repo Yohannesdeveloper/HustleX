@@ -70,6 +70,7 @@ const RegistrationPage: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPhonePermission, setShowPhonePermission] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [telegramLoginStatus, setTelegramLoginStatus] = useState<'idle' | 'checking' | 'logging-in' | 'failed' | 'done'>('idle');
   const telegramLoginAttempted = useRef(false);
   const telegramLoginPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -114,30 +115,41 @@ const RegistrationPage: React.FC = () => {
     if (telegramLoginAttempted.current) return;
 
     const tg = window.Telegram?.WebApp;
-    if (!tg?.initData) return;
+    if (!tg?.initData) {
+      setTelegramLoginStatus(tg ? 'failed' : 'idle');
+      return;
+    }
 
+    setTelegramLoginStatus('logging-in');
     telegramLoginAttempted.current = true;
 
     apiService.telegramLogin({ initData: tg.initData }).then((result: any) => {
       if (result.token) {
+        setTelegramLoginStatus('done');
         window.location.reload();
       } else if (result.loginRequestId) {
+        setTelegramLoginStatus('checking');
         telegramLoginPollRef.current = setInterval(async () => {
           try {
             const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
             if (poll.status === 'confirmed' && poll.token) {
               if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+              setTelegramLoginStatus('done');
               window.location.reload();
             } else if (poll.status === 'declined' || poll.status === 'expired') {
               if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+              setTelegramLoginStatus('failed');
             }
           } catch {
             if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+            setTelegramLoginStatus('failed');
           }
         }, 2000);
+      } else {
+        setTelegramLoginStatus('failed');
       }
     }).catch(() => {
-      // initData login failed, user fills registration form as normal
+      setTelegramLoginStatus('failed');
     });
   }, [authLoading, isAuthenticated]);
 
@@ -401,6 +413,19 @@ const RegistrationPage: React.FC = () => {
             </h1>
             <p className="text-gray-400 mt-2">Fill in your details to get started</p>
           </div>
+
+          {/* Telegram login status */}
+          {telegramLoginStatus === 'logging-in' && (
+            <div className="mb-6 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm text-center">
+              <span className="animate-spin inline-block w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full mr-2 align-middle"></span>
+              Logging in with Telegram...
+            </div>
+          )}
+          {telegramLoginStatus === 'failed' && (
+            <div className="mb-6 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm text-center">
+              Telegram login unavailable — please fill in the form
+            </div>
+          )}
 
           {/* Error */}
           {error && (

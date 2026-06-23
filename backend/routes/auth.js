@@ -833,6 +833,17 @@ router.post("/telegram-login", async (req, res) => {
     // Find or create user
     let user = await User.findOne({ "telegram.id": flatUser.id });
 
+    if (!user && flatUser.username) {
+      // Fallback: check by Telegram username (e.g. for accounts registered
+      // before the telegram.id field was stored).
+      user = await User.findOne({ "telegram.username": flatUser.username });
+      if (user) {
+        // Link the telegram.id to this existing user
+        user.telegram.id = flatUser.id;
+        await user.save();
+      }
+    }
+
     if (!user) {
       // Create new user
       user = new User({
@@ -926,7 +937,7 @@ router.post("/telegram-login", async (req, res) => {
 
     res.json({ loginRequestId, status: "pending" });
   } catch (error) {
-    console.error("Telegram login error:", error);
+    console.error("Telegram login error:", error?.response?.data || error.message);
     res.status(500).json({ message: "Server error" });
   }
 });
