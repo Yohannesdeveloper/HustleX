@@ -1047,4 +1047,13 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   }
 }
 
-export default new ApiService();
+// Use a Proxy for lazy initialization to prevent Vite/Rollup TDZ issues
+// with class singletons in production builds.
+let _apiInstance: ApiService | null = null;
+const _apiHandler: ProxyHandler<ApiService> = {
+  get(_target, prop: string | symbol, receiver) {
+    if (!_apiInstance) _apiInstance = new ApiService();
+    return Reflect.get(_apiInstance, prop, _apiInstance);
+  }
+};
+export default new Proxy<ApiService>({} as ApiService, _apiHandler);
