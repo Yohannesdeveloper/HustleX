@@ -202,6 +202,7 @@ const RegistrationPage: React.FC = () => {
                 onClick={async () => {
                   setPhoneLoading(true);
                   const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                  const normalize = (p: string) => p.replace(/\D/g, '');
                   const tg = window.Telegram?.WebApp;
 
                   try {
@@ -235,6 +236,7 @@ const RegistrationPage: React.FC = () => {
                     }
 
                     // Save phone to backend if we got one
+                    phone = normalize(phone);
                     if (phone) {
                       const saveRes = await fetch(`${API}/auth/save-phone`, {
                         method: 'POST',

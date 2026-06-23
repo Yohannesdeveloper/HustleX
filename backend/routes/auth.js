@@ -11,6 +11,11 @@ const { ensureAdminRole, toAuthUserPayload } = require("../config/admin");
 
 const router = express.Router();
 
+/** Strip all non-digit characters from a phone number for consistent storage/lookup */
+function normalizePhone(phone) {
+  return (phone || '').replace(/\D/g, '');
+}
+
 // ── Shared store for pending Telegram login confirmations (Redis with Local Fallback) ──
 // We must not use in-memory Map solely because webhook callbacks can hit a different
 // server instance (Railway/K8s). Redis ensures requestId correlation works.
@@ -1130,16 +1135,21 @@ router.post(
       }
 
       const { phone } = req.body;
+      const normalized = normalizePhone(phone);
       const user = req.user;
 
+      if (!normalized) {
+        return res.status(400).json({ message: "Invalid phone number" });
+      }
+
       // Check if phone number already exists
-      const existingUser = await User.findOne({ "profile.phone": phone });
+      const existingUser = await User.findOne({ "profile.phone": normalized });
       if (existingUser && existingUser._id.toString() !== user._id.toString()) {
         return res.status(400).json({ message: "This phone number is already in use" });
       }
 
-      // Update user's phone number
-      user.profile.phone = phone;
+      // Update user's phone number (store normalized)
+      user.profile.phone = normalized;
       await user.save();
 
       res.json({
@@ -1158,13 +1168,14 @@ router.post(
 // @access  Public
 router.get("/check-user-by-phone", async (req, res) => {
   try {
-    const { phone } = req.query;
+    const rawPhone = req.query.phone;
+    const phone = normalizePhone(rawPhone);
 
     if (!phone) {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Check if user exists
+    // Check if user exists (normalized lookup)
     const user = await User.findOne({ "profile.phone": phone });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
