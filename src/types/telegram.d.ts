@@ -16,6 +16,13 @@ declare global {
         // Lifecycle methods
         ready: () => void;
         expand: () => void;
+
+        // Phone number request (v8.0+)
+        // Shows native Telegram dialog asking user to share their phone number
+        requestPhoneNumber?: (
+          callback?: (result: { status: 'sent' | 'cancelled'; phone_number?: string }) => void,
+          onError?: (error: unknown) => void
+        ) => void;
         
         // CloudStorage API (v6.9+)
         CloudStorage?: {

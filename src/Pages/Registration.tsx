@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck, FaPhone } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
@@ -70,26 +70,56 @@ const RegistrationPage: React.FC = () => {
   const [showPhonePermission, setShowPhonePermission] = useState(false);
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
+  const phoneRequestInitiated = useRef(false);
 
   // Get redirect parameter from URL, fallback to sessionStorage
   const urlRedirect = searchParams.get('redirect');
   const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
   const DEFAULT_REDIRECT = "/freelancer-profile-setup";
 
-  // If already authenticated and has a redirect, skip registration
+  const navigateToProfileSetup = useCallback(() => {
+    const profileSetupUrl = redirectParam
+      ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+      : DEFAULT_REDIRECT;
+    navigate(profileSetupUrl, { replace: true });
+  }, [navigate, redirectParam]);
+
+  const handleTgPhoneResult = useCallback(async (phone: string) => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/save-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ phone })
+      });
+    } catch (e) {
+      console.error("Failed to save phone via Telegram:", e);
+    }
+    navigateToProfileSetup();
+  }, [navigateToProfileSetup]);
+
+  // If already authenticated (e.g. after a page refresh), skip registration.
+  // Don't redirect if the user just registered (success=true) so they see the
+  // success message and phone permission step.
   useEffect(() => {
-    if (isAuthenticated && user && redirectParam) {
-      const isProfileComplete = user?.profile?.isProfileComplete || false;
+    if (authLoading) return;
+    if (!isAuthenticated || !user) return;
+    if (success) return;
+
+    const isProfileComplete = user?.profile?.isProfileComplete || false;
+    if (redirectParam) {
       if (isProfileComplete) {
-        // Profile complete — go to job details and auto-apply
         sessionStorage.removeItem('pendingJobRedirect');
         navigate(`${redirectParam}?autoApply=true`, { replace: true });
       } else {
-        // Profile incomplete — go to profile setup
         navigate(`/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`, { replace: true });
       }
+    } else {
+      navigate(isProfileComplete ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
-  }, [isAuthenticated, user, redirectParam, navigate]);
+  }, [isAuthenticated, user, authLoading, success, redirectParam, navigate]);
 
   // Show loading while checking auth (prevents flash of registration form for returning users)
   if (authLoading && redirectParam) {
@@ -103,7 +133,7 @@ const RegistrationPage: React.FC = () => {
     );
   }
 
-  // Auto-redirect after successful registration to phone permission step
+  // Auto-advance to phone permission step after registration success
   useEffect(() => {
     if (!success) return;
     const timer = setTimeout(() => {
@@ -111,6 +141,31 @@ const RegistrationPage: React.FC = () => {
     }, 1500);
     return () => clearTimeout(timer);
   }, [success]);
+
+  // In Telegram Mini App, use the native requestPhoneNumber dialog instead of
+  // the custom UI. This shows the "Do you want to share this phone number?"
+  // system prompt from Telegram.
+  useEffect(() => {
+    if (!showPhonePermission) return;
+    if (phoneRequestInitiated.current) return;
+
+    const tg = window.Telegram?.WebApp;
+    if (tg?.requestPhoneNumber) {
+      phoneRequestInitiated.current = true;
+      tg.requestPhoneNumber(
+        (result) => {
+          if (result?.status === 'sent' && result?.phone_number) {
+            handleTgPhoneResult(result.phone_number);
+          } else {
+            navigateToProfileSetup();
+          }
+        },
+        () => {
+          navigateToProfileSetup();
+        }
+      );
+    }
+  }, [showPhonePermission, handleTgPhoneResult, navigateToProfileSetup]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,9 +211,26 @@ const RegistrationPage: React.FC = () => {
 
   if (success) {
     if (showPhonePermission) {
+      // If running inside Telegram with native requestPhoneNumber, show a simple
+      // loading state while the native dialog ("Do you want to share your phone
+      // number?") is displayed by Telegram.
+      const hasTgNativeRequest = !!window.Telegram?.WebApp?.requestPhoneNumber;
+
+      if (hasTgNativeRequest) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-900">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent mx-auto mb-4" />
+              <p className="text-gray-400 text-sm">Requesting phone number via Telegram...</p>
+            </div>
+          </div>
+        );
+      }
+
+      // Browser / no native Telegram API — show the custom phone permission UI
       return (
-        <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto">
-          <div className="max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center shadow-2xl">
+        <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto bg-gray-900">
+          <div className="max-w-md w-full bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center shadow-2xl">
             {/* Phone Icon */}
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <FaPhone className="w-10 h-10 text-white" />
@@ -173,23 +245,19 @@ const RegistrationPage: React.FC = () => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={async () => {
-                  // Share phone number - save it to the DB then proceed to profile setup
                   try {
-                    // Get the current user's phone number from the registration data
                     const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/me`, {
                       headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                       }
                     });
                     const userData = await response.json();
-                    
+
                     if (userData.user && userData.user.profile?.phone) {
-                      // Check if phone number is already registered
                       const checkResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/applications/check-phone/${userData.user.profile.phone}`);
                       const checkData = await checkResponse.json();
-                      
+
                       if (checkData.isRegistered && checkData.isProfileComplete) {
-                        // User already fully registered — go straight to job details with auto-apply
                         sessionStorage.removeItem('pendingJobRedirect');
                         if (redirectParam) {
                           navigate(`${redirectParam}?autoApply=true`, { replace: true });
@@ -199,17 +267,14 @@ const RegistrationPage: React.FC = () => {
                         return;
                       }
                     }
-                    
-                    // Phone number saved — redirect to freelancer profile setup
-                    // (sessionStorage keeps the pendingJobRedirect alive for the wizard)
-                    const profileSetupUrl = redirectParam 
+
+                    const profileSetupUrl = redirectParam
                       ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
                       : DEFAULT_REDIRECT;
                     navigate(profileSetupUrl, { replace: true });
                   } catch (error) {
                     console.error("Error checking phone number:", error);
-                    // Fallback to freelancer profile setup
-                    const profileSetupUrl = redirectParam 
+                    const profileSetupUrl = redirectParam
                       ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
                       : DEFAULT_REDIRECT;
                     navigate(profileSetupUrl, { replace: true });
@@ -221,7 +286,6 @@ const RegistrationPage: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  // Cancel - clear pending job and redirect to home page
                   sessionStorage.removeItem('pendingJobRedirect');
                   navigate("/", { replace: true });
                 }}
@@ -236,8 +300,8 @@ const RegistrationPage: React.FC = () => {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto">
-        <div className="max-w-md w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 text-center shadow-2xl">
+      <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto bg-gray-900">
+        <div className="max-w-md w-full bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center shadow-2xl">
           {/* Success Icon */}
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,10 +330,10 @@ const RegistrationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 overflow-y-auto">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 overflow-y-auto bg-gray-900">
       <div className="max-w-lg w-full">
         {/* Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
