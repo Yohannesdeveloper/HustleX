@@ -375,6 +375,7 @@ const RegistrationPage: React.FC = () => {
                 Cancel
               </button>
             </div>
+            )}
           </div>
         </div>
       );
