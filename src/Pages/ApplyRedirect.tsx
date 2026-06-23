@@ -36,12 +36,30 @@ const ApplyRedirect: React.FC = () => {
       return;
     }
 
-    // Try Telegram silent login via initData
-    const initData = tg?.initDataUnsafe;
-    if (initData && initData.id) {
+    // Try Telegram login via initData
+    const initDataUnsafe = tg?.initDataUnsafe;
+    const tgUser = initDataUnsafe?.user;
+    if (initDataUnsafe && tgUser?.id) {
       setStatus('confirming');
 
-      apiService.telegramLogin(initData).then((result: any) => {
+      // Flatten: the backend expects id, first_name, last_name, etc.
+      // at the top level (Telegram Login Widget format), but Mini App
+      // initDataUnsafe nests user fields under `user`.
+      const flatData: Record<string, any> = {
+        id: tgUser.id,
+        first_name: tgUser.first_name,
+        last_name: tgUser.last_name,
+        username: tgUser.username,
+        photo_url: tgUser.photo_url,
+        auth_date: initDataUnsafe.auth_date,
+        hash: initDataUnsafe.hash,
+        query_id: initDataUnsafe.query_id,
+        signature: initDataUnsafe.signature,
+      };
+      // Remove undefined keys (Telegram's HMAC check ignores missing fields)
+      Object.keys(flatData).forEach(k => flatData[k] === undefined && delete flatData[k]);
+
+      apiService.telegramLogin(flatData).then((result: any) => {
         if (result.token) {
           // Immediate token (user hasn't started the bot — auto-login fallback)
           const dest = effectiveRedirect
