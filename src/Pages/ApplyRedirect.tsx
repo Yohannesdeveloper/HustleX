@@ -24,68 +24,71 @@ const ApplyRedirect: React.FC = () => {
   const redirectParam = searchParams.get('redirect');
   const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
 
+  console.log("[ApplyRedirect] mounted, redirectParam:", redirectParam, "effectiveRedirect:", effectiveRedirect);
+
   if (redirectParam) {
     sessionStorage.setItem('pendingJobRedirect', redirectParam);
   }
 
   const goToRegister = useCallback(() => {
+    console.log("[ApplyRedirect] goToRegister called");
     const url = effectiveRedirect
       ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
       : "/Register";
     navigate(url, { replace: true });
   }, [effectiveRedirect, navigate]);
 
-  // Called by the Telegram Login Widget after user authorizes
-  const onTelegramAuth = useCallback((user: TelegramUser) => {
-    setStatus("Logging in via Telegram...");
-    apiService.telegramLogin(user).then((result: any) => {
-      if (result.token) {
-        setStatus("Login successful — redirecting");
-        const dest = effectiveRedirect
-          ? `${effectiveRedirect}?autoApply=true`
-          : '/dashboard/freelancer';
-        navigate(dest, { replace: true });
-      } else if (result.loginRequestId) {
-        setStatus("Waiting for Telegram confirmation...");
-        const pollTimeout = setTimeout(() => {
-          clearInterval(interval);
-          goToRegister();
-        }, 15000);
-        const interval = setInterval(async () => {
-          try {
-            const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
-            if (poll.status === 'confirmed' && poll.token) {
-              clearInterval(interval);
-              clearTimeout(pollTimeout);
-              setStatus("Confirmed — redirecting");
-              const dest = effectiveRedirect
-                ? `${effectiveRedirect}?autoApply=true`
-                : '/dashboard/freelancer';
-              navigate(dest, { replace: true });
-            } else if (poll.status === 'declined' || poll.status === 'expired') {
-              clearInterval(interval);
-              clearTimeout(pollTimeout);
-              setStatus("Declined");
-              goToRegister();
-            }
-          } catch {
+  const handleLoginResult = useCallback((result: any) => {
+    if (result.token) {
+      console.log("[ApplyRedirect] login success, token received, redirecting to job");
+      const dest = effectiveRedirect
+        ? `${effectiveRedirect}?autoApply=true`
+        : '/dashboard/freelancer';
+      navigate(dest, { replace: true });
+      return true;
+    }
+    if (result.loginRequestId) {
+      console.log("[ApplyRedirect] pending confirmation, requestId:", result.loginRequestId);
+      setStatus("Waiting for Telegram confirmation...");
+      const pollTimeout = setTimeout(() => {
+        clearInterval(interval);
+        console.log("[ApplyRedirect] poll timed out");
+        goToRegister();
+      }, 15000);
+      const interval = setInterval(async () => {
+        try {
+          const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
+          console.log("[ApplyRedirect] poll result:", poll.status);
+          if (poll.status === 'confirmed' && poll.token) {
             clearInterval(interval);
             clearTimeout(pollTimeout);
+            console.log("[ApplyRedirect] confirmed, redirecting");
+            const dest = effectiveRedirect
+              ? `${effectiveRedirect}?autoApply=true`
+              : '/dashboard/freelancer';
+            navigate(dest, { replace: true });
+          } else if (poll.status === 'declined' || poll.status === 'expired') {
+            clearInterval(interval);
+            clearTimeout(pollTimeout);
+            console.log("[ApplyRedirect] declined/expired");
             goToRegister();
           }
-        }, 2000);
-      } else {
-        goToRegister();
-      }
-    }).catch((err: any) => {
-      setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-      setTimeout(goToRegister, 2000);
-    });
+        } catch (e) {
+          clearInterval(interval);
+          clearTimeout(pollTimeout);
+          console.log("[ApplyRedirect] poll error:", e);
+          goToRegister();
+        }
+      }, 2000);
+      return true;
+    }
+    return false;
   }, [effectiveRedirect, navigate, goToRegister]);
 
   const doLogin = useCallback(() => {
-    // Already logged in
     const existingToken = localStorage.getItem('token');
+    console.log("[ApplyRedirect] doLogin, existingToken:", !!existingToken);
+
     if (existingToken) {
       const dest = effectiveRedirect
         ? `${effectiveRedirect}?autoApply=true`
@@ -94,80 +97,74 @@ const ApplyRedirect: React.FC = () => {
       return;
     }
 
-    // Try Mini App initData (works inside Telegram Mini App)
     const tg = window.Telegram?.WebApp;
+    console.log("[ApplyRedirect] window.Telegram?.WebApp:", !!tg);
+    if (tg) {
+      console.log("[ApplyRedirect] tg.initData:", tg.initData ? tg.initData.substring(0, 80) + '...' : '(empty)');
+      console.log("[ApplyRedirect] tg.initDataUnsafe:", tg.initDataUnsafe);
+    }
+
     if (tg?.initData) {
+      console.log("[ApplyRedirect] found initData, calling telegramLogin API");
       setTelegramAvailable(true);
       setStatus("Logging in via Telegram...");
+
       apiService.telegramLogin({ initData: tg.initData }).then((result: any) => {
-        if (result.token) {
-          setStatus("Login successful — redirecting");
-          const dest = effectiveRedirect
-            ? `${effectiveRedirect}?autoApply=true`
-            : '/dashboard/freelancer';
-          navigate(dest, { replace: true });
-        } else if (result.loginRequestId) {
-          setStatus("Waiting for Telegram confirmation...");
-          const pollTimeout = setTimeout(() => {
-            clearInterval(interval);
-            goToRegister();
-          }, 15000);
-          const interval = setInterval(async () => {
-            try {
-              const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
-              if (poll.status === 'confirmed' && poll.token) {
-                clearInterval(interval);
-                clearTimeout(pollTimeout);
-                onTelegramAuth({ ...poll });
-              } else if (poll.status === 'declined' || poll.status === 'expired') {
-                clearInterval(interval);
-                clearTimeout(pollTimeout);
-                goToRegister();
-              }
-            } catch {
-              clearInterval(interval);
-              clearTimeout(pollTimeout);
-              goToRegister();
-            }
-          }, 2000);
-        } else {
+        console.log("[ApplyRedirect] telegramLogin response:", result);
+        if (!handleLoginResult(result)) {
+          console.log("[ApplyRedirect] unexpected response format");
           goToRegister();
         }
       }).catch((err: any) => {
+        console.log("[ApplyRedirect] telegramLogin error:", err?.response?.data || err.message);
         setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
         setTimeout(goToRegister, 1000);
       });
       return;
-    } else if (tg) {
-      // Telegram context exists but no initData — can't auto-login
+    }
+
+    if (tg) {
+      console.log("[ApplyRedirect] Telegram WebApp exists but initData is empty");
       setTelegramAvailable(true);
-      setStatus("Telegram context found but no init data — use button below");
+      setStatus("Telegram context found but no init data");
       return;
     }
 
-    // Retry: window.Telegram might load async
     if (retryCount.current < MAX_RETRIES) {
       retryCount.current++;
+      console.log("[ApplyRedirect] retry", retryCount.current, "of", MAX_RETRIES);
       setStatus(`Waiting for Telegram... (${retryCount.current})`);
       setTimeout(doLogin, 400);
       return;
     }
 
-    // No Telegram context at all — show Login Widget
+    console.log("[ApplyRedirect] no Telegram context after retries, showing Login Widget");
     setTelegramAvailable(false);
     setStatus("Log in with Telegram to continue");
-  }, [effectiveRedirect, navigate, goToRegister, onTelegramAuth]);
+  }, [effectiveRedirect, navigate, goToRegister, handleLoginResult]);
 
   useEffect(() => {
     doLogin();
   }, [doLogin]);
 
-  // Load Telegram Login Widget when Telegram Mini App is unavailable
   useEffect(() => {
     if (telegramAvailable !== false) return;
 
-    // Expose callback globally for the widget
-    (window as any).onTelegramAuth = onTelegramAuth;
+    console.log("[ApplyRedirect] loading Telegram Login Widget");
+    (window as any).onTelegramAuth = (user: TelegramUser) => {
+      console.log("[ApplyRedirect] Login Widget callback received:", user.id);
+      setStatus("Logging in via Telegram...");
+      apiService.telegramLogin(user).then((result: any) => {
+        console.log("[ApplyRedirect] Login Widget login response:", result);
+        if (!handleLoginResult(result)) {
+          goToRegister();
+        }
+      }).catch((err: any) => {
+        console.log("[ApplyRedirect] Login Widget error:", err?.response?.data || err.message);
+        setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
+        setTimeout(goToRegister, 2000);
+      });
+    };
 
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
@@ -178,7 +175,7 @@ const ApplyRedirect: React.FC = () => {
     script.setAttribute('data-request-access', 'write');
     script.async = true;
     document.getElementById('telegram-login-container')?.appendChild(script);
-  }, [telegramAvailable, onTelegramAuth]);
+  }, [telegramAvailable, handleLoginResult, goToRegister]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#17212b' }}>
