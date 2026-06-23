@@ -505,18 +505,18 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   async uploadCV(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("cv", file);
-    const response = await axios.post(`${this.baseUrl}/upload/cv`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/cv`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
   async uploadAvatar(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("avatar", file);
-    const response = await axios.post(`${this.baseUrl}/upload/avatar`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/avatar`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
@@ -627,36 +627,36 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   async uploadLogo(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("logo", file);
-    const response = await axios.post(`${this.baseUrl}/upload/logo`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/logo`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
   async uploadTradeLicense(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("tradeLicense", file);
-    const response = await axios.post(`${this.baseUrl}/upload/trade-license`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/trade-license`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
   async uploadPortfolio(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("portfolio", file);
-    const response = await axios.post(`${this.baseUrl}/upload/portfolio`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/portfolio`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
   async uploadBlogImage(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("blogImage", file);
-    const response = await axios.post(`${this.baseUrl}/upload/blog-image`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/blog-image`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
@@ -1005,9 +1005,9 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   async uploadReceipt(file: File): Promise<{ fileUrl: string }> {
     const formData = new FormData();
     formData.append("receipt", file);
-    const response = await axios.post(`${this.baseUrl}/upload/receipt`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await this.withPortRetry(async (base) =>
+      axios.post(`${base}/upload/receipt`, formData)
+    );
     return response.data as { fileUrl: string };
   }
 
