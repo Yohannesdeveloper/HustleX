@@ -770,14 +770,15 @@ router.post("/telegram-login", async (req, res) => {
 
     if (initData && typeof initData === 'string') {
       // ── Mini App format: raw query string ──
-      const params = new URLSearchParams(initData);
-      queryHash = params.get('hash') || '';
-      params.delete('hash');
+      // Telegram's HMAC is computed over the RAW (URL-encoded) query params,
+      // NOT decoded values.  We must split, sort, and join the original string.
+      const pairs = initData.split('&').filter(p => p);
+      const hashPairIdx = pairs.findIndex(p => p.startsWith('hash='));
+      queryHash = hashPairIdx !== -1 ? pairs[hashPairIdx].slice(5) : '';
+      if (hashPairIdx !== -1) pairs.splice(hashPairIdx, 1);
 
-      // Re-create the data-check string exactly as Telegram signed it:
-      // all params sorted alphabetically, joined by \n
-      const sorted = [...params.entries()].sort(([a], [b]) => a.localeCompare(b));
-      const dataCheckString = sorted.map(([k, v]) => `${k}=${v}`).join('\n');
+      pairs.sort((a, b) => a.localeCompare(b));
+      const dataCheckString = pairs.join('\n');
 
       const secretKey = crypto.createHash("sha256").update(botToken).digest();
       const hmac = crypto.createHmac("sha256", secretKey);
@@ -786,15 +787,21 @@ router.post("/telegram-login", async (req, res) => {
         return res.status(400).json({ message: "Invalid Telegram data" });
       }
 
-      const authDate = parseInt(params.get('auth_date') || '0');
+      // Parse individual params for extracting user info
+      const paramMap = new Map(pairs.map(p => {
+        const eq = p.indexOf('=');
+        return eq === -1 ? [p, ''] : [p.slice(0, eq), p.slice(eq + 1)];
+      }));
+
+      const authDate = parseInt(paramMap.get('auth_date') || '0');
       if (Date.now() - authDate * 1000 > 24 * 60 * 60 * 1000) {
         return res.status(400).json({ message: "Telegram data expired" });
       }
 
       // Extract user from the JSON-encoded `user` param
-      const userStr = params.get('user');
-      if (!userStr) return res.status(400).json({ message: "User data missing" });
-      flatUser = JSON.parse(decodeURIComponent(userStr));
+      const rawUser = paramMap.get('user');
+      if (!rawUser) return res.status(400).json({ message: "User data missing" });
+      flatUser = JSON.parse(decodeURIComponent(rawUser));
     } else if (telegramData) {
       // ── Login Widget format: flat object ──
       const dataToCheck = { ...telegramData };
