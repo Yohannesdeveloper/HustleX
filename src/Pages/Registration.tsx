@@ -156,13 +156,13 @@ const RegistrationPage: React.FC = () => {
     // phone-permission step).
     setSuccess(true);
     try {
-      const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      const telegram = tg?.id ? {
-        id: tg.id,
-        username: tg.username,
-        firstName: tg.first_name,
-        lastName: tg.last_name,
-        photoUrl: tg.photo_url,
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      const telegram = tgUser?.id ? {
+        id: tgUser.id,
+        username: tgUser.username,
+        firstName: tgUser.first_name,
+        lastName: tgUser.last_name,
+        photoUrl: tgUser.photo_url,
       } : undefined;
 
       const result = await dispatch(registerUser({
@@ -218,26 +218,41 @@ const RegistrationPage: React.FC = () => {
                   try {
                     let phone = '';
 
-                    // 1) Try Telegram native requestPhoneNumber API
-                    if (tg?.requestPhoneNumber) {
-                      const result = await new Promise<any>((resolve) => {
-                        tg!.requestPhoneNumber!(
-                          (r) => resolve(r),
-                          () => resolve(null)
-                        );
-                      });
-                      if (result?.status === 'sent' && result?.phone_number) {
+                    // 1) First try initDataUnsafe.user.phone_number (instant, no dialog)
+                    if (tg?.initDataUnsafe?.user?.phone_number) {
+                      phone = tg.initDataUnsafe.user.phone_number;
+                    }
+
+                    // 2) Try Telegram native requestPhoneNumber API with 15s timeout
+                    if (!phone && tg?.requestPhoneNumber) {
+                      const result = await Promise.race([
+                        new Promise<any>((resolve) => {
+                          tg!.requestPhoneNumber!(
+                            (r) => resolve(r),
+                            () => resolve(null)
+                          );
+                        }),
+                        new Promise<any>((resolve) => setTimeout(() => resolve({ status: 'timeout' }), 15000)),
+                      ]);
+                      if (result?.phone_number) {
                         phone = result.phone_number;
                       }
                     }
 
-                    // 2) Fallback: try initDataUnsafe.user.phone_number
-                    if (!phone && tg?.initDataUnsafe?.user?.phone_number) {
-                      phone = tg.initDataUnsafe.user.phone_number;
+                    // 3) If still empty, try parsing the raw initData string
+                    if (!phone && tg?.initData) {
+                      const params = new URLSearchParams(tg.initData);
+                      const userStr = params.get('user');
+                      if (userStr) {
+                        try {
+                          const userData = JSON.parse(decodeURIComponent(userStr));
+                          if (userData?.phone_number) phone = userData.phone_number;
+                        } catch {}
+                      }
                     }
 
                     if (!phone) {
-                      // 3) Last resort: fetch from backend profile
+                      // 4) Last resort: fetch from backend profile
                       const meRes = await fetch(`${API}/auth/me`, {
                         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                       });
