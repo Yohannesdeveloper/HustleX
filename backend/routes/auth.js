@@ -785,7 +785,11 @@ router.post("/telegram-login", async (req, res) => {
       const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
       const hmac = crypto.createHmac("sha256", secretKey);
       hmac.update(dataCheckString);
-      if (hmac.digest("hex") !== queryHash) {
+      const computedHash = hmac.digest("hex");
+      console.log("[TelegramLogin] MiniApp dataCheckString:", JSON.stringify(dataCheckString));
+      console.log("[TelegramLogin] MiniApp computed hash:", computedHash);
+      console.log("[TelegramLogin] MiniApp expected hash:", queryHash);
+      if (computedHash !== queryHash) {
         return res.status(400).json({ message: "Invalid Telegram data" });
       }
 
