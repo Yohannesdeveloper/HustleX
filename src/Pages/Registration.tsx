@@ -149,6 +149,11 @@ const RegistrationPage: React.FC = () => {
     if (age < 13) return setError("You must be at least 13 years old to register.");
 
     setIsLoading(true);
+    // Optimistically set success BEFORE the await so the auth-redirect
+    // useEffect sees `success=true` when the Redux store updates
+    // isAuthenticated (preventing a premature redirect away from the
+    // phone-permission step).
+    setSuccess(true);
     try {
       const result = await dispatch(registerUser({
         email,
@@ -158,10 +163,10 @@ const RegistrationPage: React.FC = () => {
       })).unwrap();
 
       console.log("Registration successful:", result);
-      setSuccess(true);
     } catch (err: any) {
       // err may be a plain string from rejectWithValue, or an Error object
       const msg = typeof err === 'string' ? err : (err?.message || 'Registration failed. Please try again.');
+      setSuccess(false);
       setError(msg);
     } finally {
       setIsLoading(false);
