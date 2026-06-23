@@ -830,22 +830,61 @@ router.post("/telegram-login", async (req, res) => {
       return res.status(400).json({ message: "Telegram data is required" });
     }
 
-    // Find or create user
+    // ── 1) Find existing user by telegram.id ──
     let user = await User.findOne({ "telegram.id": flatUser.id });
 
+    // ── 2) Fallback: try Telegram username ──
     if (!user && flatUser.username) {
-      // Fallback: check by Telegram username (e.g. for accounts registered
-      // before the telegram.id field was stored).
       user = await User.findOne({ "telegram.username": flatUser.username });
       if (user) {
-        // Link the telegram.id to this existing user
+        console.log(`[TelegramLogin] Linked by username ${flatUser.username} → user ${user._id}`);
         user.telegram.id = flatUser.id;
         await user.save();
       }
     }
 
+    // ── 3) Fallback: fetch phone from Telegram API & match by phone ──
     if (!user) {
-      // Create new user
+      try {
+        const chatRes = await axios.get(
+          `https://api.telegram.org/bot${botToken}/getChat?chat_id=${flatUser.id}`,
+          { timeout: 5000 }
+        );
+        const tgPhoneRaw = chatRes.data?.ok ? chatRes.data.result?.phone_number : null;
+        console.log("[TelegramLogin] getChat phone_number:", tgPhoneRaw || "(none)");
+
+        if (tgPhoneRaw) {
+          const tgPhone = normalizePhone(tgPhoneRaw);
+          console.log("[TelegramLogin] normalized phone:", tgPhone);
+
+          // Safe: normalizePhone strips all \D, so only digits remain — no injection risk.
+          const phoneUsers = await User.find({
+            $where: `this.profile.phone && (this.profile.phone.endsWith("${tgPhone}") || "${tgPhone}".endsWith(this.profile.phone))`
+          }).limit(2);
+
+          if (phoneUsers.length > 0) {
+            user = phoneUsers[0];
+            console.log(`[TelegramLogin] Found existing user ${user._id} by phone`);
+            // Link the Telegram identity to the existing account
+            user.telegram = {
+              id: flatUser.id,
+              username: flatUser.username || '',
+              firstName: flatUser.first_name || '',
+              lastName: flatUser.last_name || '',
+              photoUrl: flatUser.photo_url || '',
+            };
+            await user.save();
+          } else {
+            console.log("[TelegramLogin] No user found for that phone — will create new");
+          }
+        }
+      } catch (chatErr) {
+        console.error("[TelegramLogin] getChat failed:", chatErr?.response?.data || chatErr.message);
+      }
+    }
+
+    // ── 4) Still nothing?  Create a brand-new user ──
+    if (!user) {
       user = new User({
         telegram: {
           id: flatUser.id,
@@ -863,11 +902,11 @@ router.post("/telegram-login", async (req, res) => {
         },
       });
 
-      // Generate a random password for security (even though we don't use it for login)
       const randomPassword = crypto.randomBytes(32).toString("hex");
       user.password = randomPassword;
 
       await user.save();
+      console.log(`[TelegramLogin] Created new user ${user._id} for telegram.id ${flatUser.id}`);
     }
 
     // Generate token
