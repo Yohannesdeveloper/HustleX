@@ -756,70 +756,90 @@ router.post("/freelancer-profile", async (req, res) => {
 // @access  Public
 router.post("/telegram-login", async (req, res) => {
   try {
-    const { telegramData } = req.body;
+    const { telegramData, initData } = req.body;
 
-    if (!telegramData) {
-      return res.status(400).json({ message: "Telegram data is required" });
-    }
-
-    // Verify Telegram data
+    // Accept either `telegramData` (flat object, Login Widget) or
+    // `initData` (raw query string, Mini App).
     const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
       return res.status(500).json({ message: "Telegram bot token not configured" });
     }
 
-    // Create a copy to avoid modifying the original object
-    const dataToCheck = { ...telegramData };
-    const hash = dataToCheck.hash;
-    delete dataToCheck.hash;
+    let flatUser;       // user info extracted from the verified data
+    let queryHash;      // the hash from the data
 
-    // Sort the keys alphabetically
-    const sortedKeys = Object.keys(dataToCheck).sort();
+    if (initData && typeof initData === 'string') {
+      // ── Mini App format: raw query string ──
+      const params = new URLSearchParams(initData);
+      queryHash = params.get('hash') || '';
+      params.delete('hash');
 
-    // Create the data check string
-    const dataCheckString = sortedKeys
-      .map((key) => `${key}=${dataToCheck[key]}`)
-      .join("\n");
+      // Re-create the data-check string exactly as Telegram signed it:
+      // all params sorted alphabetically, joined by \n
+      const sorted = [...params.entries()].sort(([a], [b]) => a.localeCompare(b));
+      const dataCheckString = sorted.map(([k, v]) => `${k}=${v}`).join('\n');
 
-    // Create secret key from bot token using SHA256
-    const secretKey = crypto.createHash("sha256").update(botToken).digest();
+      const secretKey = crypto.createHash("sha256").update(botToken).digest();
+      const hmac = crypto.createHmac("sha256", secretKey);
+      hmac.update(dataCheckString);
+      if (hmac.digest("hex") !== queryHash) {
+        return res.status(400).json({ message: "Invalid Telegram data" });
+      }
 
-    // Calculate HMAC-SHA256
-    const hmac = crypto.createHmac("sha256", secretKey);
-    hmac.update(dataCheckString);
-    const calculatedHash = hmac.digest("hex");
+      const authDate = parseInt(params.get('auth_date') || '0');
+      if (Date.now() - authDate * 1000 > 24 * 60 * 60 * 1000) {
+        return res.status(400).json({ message: "Telegram data expired" });
+      }
 
-    // Check if hash matches
-    if (calculatedHash !== hash) {
-      return res.status(400).json({ message: "Invalid Telegram data" });
-    }
+      // Extract user from the JSON-encoded `user` param
+      const userStr = params.get('user');
+      if (!userStr) return res.status(400).json({ message: "User data missing" });
+      flatUser = JSON.parse(decodeURIComponent(userStr));
+    } else if (telegramData) {
+      // ── Login Widget format: flat object ──
+      const dataToCheck = { ...telegramData };
+      queryHash = dataToCheck.hash;
+      delete dataToCheck.hash;
 
-    // Check auth date to prevent replay attacks (within 24 hours)
-    const authDate = parseInt(telegramData.auth_date);
-    const twentyFourHours = 24 * 60 * 60 * 1000;
-    if (Date.now() - authDate * 1000 > twentyFourHours) {
-      return res.status(400).json({ message: "Telegram data expired" });
+      const sortedKeys = Object.keys(dataToCheck).sort();
+      const dataCheckString = sortedKeys.map((k) => `${k}=${dataToCheck[k]}`).join("\n");
+
+      const secretKey = crypto.createHash("sha256").update(botToken).digest();
+      const hmac = crypto.createHmac("sha256", secretKey);
+      hmac.update(dataCheckString);
+      if (hmac.digest("hex") !== queryHash) {
+        return res.status(400).json({ message: "Invalid Telegram data" });
+      }
+
+      const authDate = parseInt(telegramData.auth_date);
+      if (Date.now() - authDate * 1000 > 24 * 60 * 60 * 1000) {
+        return res.status(400).json({ message: "Telegram data expired" });
+      }
+
+      flatUser = telegramData;
+    } else {
+      return res.status(400).json({ message: "Telegram data is required" });
     }
 
     // Find or create user
-    let user = await User.findOne({ "telegram.id": telegramData.id });
+    let user = await User.findOne({ "telegram.id": flatUser.id });
 
     if (!user) {
       // Create new user
       user = new User({
         telegram: {
-          id: telegramData.id,
-          username: telegramData.username,
-          firstName: telegramData.first_name,
-          lastName: telegramData.last_name,
-          photoUrl: telegramData.photo_url,
+          id: flatUser.id,
+          username: flatUser.username,
+          firstName: flatUser.first_name,
+          lastName: flatUser.last_name,
+          photoUrl: flatUser.photo_url,
         },
         roles: ["freelancer"],
         currentRole: "freelancer",
         profile: {
-          firstName: telegramData.first_name || "",
-          lastName: telegramData.last_name || "",
-          avatar: telegramData.photo_url || "",
+          firstName: flatUser.first_name || "",
+          lastName: flatUser.last_name || "",
+          avatar: flatUser.photo_url || "",
         },
       });
 
@@ -837,7 +857,7 @@ router.post("/telegram-login", async (req, res) => {
     // ── Create pending login request & send Telegram confirmation ──
     const loginRequestId = crypto.randomBytes(16).toString("hex");
     await setPendingEntry(loginRequestId, {
-      telegramUserId: telegramData.id,
+      telegramUserId: flatUser.id,
       userId: user._id,
       token,
       user: toAuthUserPayload(user),
@@ -849,7 +869,7 @@ router.post("/telegram-login", async (req, res) => {
     const confirmMessage = [
       "🔐 <b>HustleX Login Request</b>",
       "",
-      `Hi <b>${telegramData.first_name || "there"}</b>!`,
+      `Hi <b>${flatUser.first_name || "there"}</b>!`,
       "Someone is trying to log in to your HustleX account.",
       "",
       "👇 Tap below to confirm or decline.",
@@ -872,7 +892,7 @@ router.post("/telegram-login", async (req, res) => {
       await axios.post(
         `https://api.telegram.org/bot${botToken}/sendMessage`,
         {
-          chat_id: telegramData.id,
+          chat_id: flatUser.id,
           text: confirmMessage,
           parse_mode: "HTML",
           disable_web_page_preview: true,

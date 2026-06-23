@@ -131,11 +131,14 @@ class ApiService {
     });
   }
 
-  async telegramLogin(telegramData: any): Promise<{ token: string; user: any } | { loginRequestId: string; status: string }> {
+  async telegramLogin(data: any): Promise<{ token: string; user: any } | { loginRequestId: string; status: string }> {
     return this.withPortRetry(async (base) => {
-      const response = await axios.post(`${base}/auth/telegram-login`, {
-        telegramData,
-      });
+      // If the caller passed a raw initData string, send it as a top-level
+      // field; otherwise wrap in `telegramData` for backward compatibility.
+      const payload = typeof data?.initData === 'string'
+        ? { initData: data.initData }
+        : { telegramData: data };
+      const response = await axios.post(`${base}/auth/telegram-login`, payload);
       const data = response.data as { token: string; user: any; loginRequestId?: string; status?: string };
       if (data.token) this.setToken(data.token);
       return data;
