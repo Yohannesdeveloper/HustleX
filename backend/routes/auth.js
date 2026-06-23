@@ -780,7 +780,9 @@ router.post("/telegram-login", async (req, res) => {
       pairs.sort((a, b) => a.localeCompare(b));
       const dataCheckString = pairs.join('\n');
 
-      const secretKey = crypto.createHash("sha256").update(botToken).digest();
+      // secretKey = HMAC-SHA256("WebAppData", botToken) — THIS is the Mini App
+      // key derivation.  (SHA256(botToken) is only used by Login Widget.)
+      const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
       const hmac = crypto.createHmac("sha256", secretKey);
       hmac.update(dataCheckString);
       if (hmac.digest("hex") !== queryHash) {
