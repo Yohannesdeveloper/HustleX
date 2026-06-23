@@ -68,6 +68,7 @@ const RegistrationPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPhonePermission, setShowPhonePermission] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
 
@@ -187,51 +188,68 @@ const RegistrationPage: React.FC = () => {
               Allow us to access your phone number for better communication with clients.
             </p>
 
-            <div className="flex flex-col gap-3">
+            {phoneLoading ? (
+              <div className="flex items-center justify-center gap-2 py-3 text-gray-400">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Fetching phone number...
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
               <button
                 onClick={async () => {
+                  setPhoneLoading(true);
+                  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                   const tg = window.Telegram?.WebApp;
-                  if (tg?.requestPhoneNumber) {
-                    tg.requestPhoneNumber(
-                      async (result) => {
-                        if (result?.status === 'sent' && result?.phone_number) {
-                          try {
-                            await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/save-phone`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${localStorage.getItem('token')}`
-                              },
-                              body: JSON.stringify({ phone: result.phone_number })
-                            });
-                          } catch (e) {
-                            console.error("Failed to save phone:", e);
-                          }
-                        }
-                        const url = redirectParam
-                          ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                          : DEFAULT_REDIRECT;
-                        navigate(url, { replace: true });
-                      },
-                      () => {
-                        const url = redirectParam
-                          ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                          : DEFAULT_REDIRECT;
-                        navigate(url, { replace: true });
-                      }
-                    );
-                    return;
-                  }
 
                   try {
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/me`, {
-                      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                    });
-                    const userData = await response.json();
-                    if (userData.user && userData.user.profile?.phone) {
-                      const checkResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/applications/check-phone/${userData.user.profile.phone}`);
-                      const checkData = await checkResponse.json();
-                      if (checkData.isRegistered && checkData.isProfileComplete) {
+                    let phone = '';
+
+                    // 1) Try Telegram native requestPhoneNumber API
+                    if (tg?.requestPhoneNumber) {
+                      const result = await new Promise<any>((resolve) => {
+                        tg!.requestPhoneNumber!(
+                          (r) => resolve(r),
+                          () => resolve(null)
+                        );
+                      });
+                      if (result?.status === 'sent' && result?.phone_number) {
+                        phone = result.phone_number;
+                      }
+                    }
+
+                    // 2) Fallback: try initDataUnsafe.user.phone_number
+                    if (!phone && tg?.initDataUnsafe?.user?.phone_number) {
+                      phone = tg.initDataUnsafe.user.phone_number;
+                    }
+
+                    if (!phone) {
+                      // 3) Last resort: fetch from backend profile
+                      const meRes = await fetch(`${API}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                      });
+                      const meData = await meRes.json();
+                      phone = meData?.user?.profile?.phone || '';
+                    }
+
+                    // Save phone to backend if we got one
+                    if (phone) {
+                      const saveRes = await fetch(`${API}/auth/save-phone`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ phone })
+                      });
+                      const saveData = await saveRes.json();
+
+                      // Check profile completeness from response
+                      const profileComplete = saveData?.user?.profile?.isProfileComplete || false;
+
+                      if (profileComplete) {
                         sessionStorage.removeItem('pendingJobRedirect');
                         if (redirectParam) {
                           navigate(`${redirectParam}?autoApply=true`, { replace: true });
@@ -241,17 +259,17 @@ const RegistrationPage: React.FC = () => {
                         return;
                       }
                     }
-                    const url = redirectParam
-                      ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                      : DEFAULT_REDIRECT;
-                    navigate(url, { replace: true });
-                  } catch (error) {
-                    console.error("Error checking phone number:", error);
-                    const url = redirectParam
-                      ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                      : DEFAULT_REDIRECT;
-                    navigate(url, { replace: true });
+                  } catch (e) {
+                    console.error("Phone fetch/save error:", e);
+                  } finally {
+                    setPhoneLoading(false);
                   }
+
+                  // Default: redirect to profile setup
+                  const url = redirectParam
+                    ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
+                    : DEFAULT_REDIRECT;
+                  navigate(url, { replace: true });
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
               >
