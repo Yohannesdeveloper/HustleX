@@ -1,14 +1,12 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import apiService from "../services/api";
 
 const ApplyRedirect: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<'loading' | 'confirming' | 'error'>('loading');
 
   const redirectParam = searchParams.get('redirect');
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -19,14 +17,13 @@ const ApplyRedirect: React.FC = () => {
       document.body.style.backgroundColor = '#17212b';
     }
 
-    const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
-
-    // Persist redirect URL for later use
     if (redirectParam) {
       sessionStorage.setItem('pendingJobRedirect', redirectParam);
     }
 
-    // If there's already a token, just redirect
+    const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
+
+    // If there's already a token, go directly
     const existingToken = localStorage.getItem('token');
     if (existingToken) {
       const dest = effectiveRedirect
@@ -36,92 +33,67 @@ const ApplyRedirect: React.FC = () => {
       return;
     }
 
-    // Try Telegram login via raw initData string (the backend needs the
-    // exact signed query-string format for HMAC verification).
+    // Try Telegram login via raw initData
     if (tg?.initData) {
-      setStatus('confirming');
-
-      // Pass the raw initData — the backend will parse & verify it.
       apiService.telegramLogin({ initData: tg.initData }).then((result: any) => {
         if (result.token) {
-          // Immediate token (user hasn't started the bot — auto-login fallback)
           const dest = effectiveRedirect
             ? `${effectiveRedirect}?autoApply=true`
             : '/dashboard/freelancer';
           navigate(dest, { replace: true });
           return;
         }
-
         if (result.loginRequestId) {
-          // Poll for confirmation
-          pollingRef.current = setInterval(async () => {
+          // Poll for user confirmation in Telegram bot
+          const interval = setInterval(async () => {
             try {
-              const pollResult: any = await apiService.telegramLoginStatus(result.loginRequestId);
-              if (pollResult.status === 'confirmed' && pollResult.token) {
-                clearInterval(pollingRef.current!);
+              const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
+              if (poll.status === 'confirmed' && poll.token) {
+                clearInterval(interval);
                 const dest = effectiveRedirect
                   ? `${effectiveRedirect}?autoApply=true`
                   : '/dashboard/freelancer';
                 navigate(dest, { replace: true });
-              } else if (pollResult.status === 'declined' || pollResult.status === 'expired') {
-                clearInterval(pollingRef.current!);
-                fallbackToRegister(effectiveRedirect);
+              } else if (poll.status === 'declined' || poll.status === 'expired') {
+                clearInterval(interval);
+                goToRegister(effectiveRedirect, navigate);
               }
             } catch {
-              clearInterval(pollingRef.current!);
-              fallbackToRegister(effectiveRedirect);
+              clearInterval(interval);
+              goToRegister(effectiveRedirect, navigate);
             }
           }, 2000);
         } else {
-          // Unexpected response
-          fallbackToRegister(effectiveRedirect);
+          goToRegister(effectiveRedirect, navigate);
         }
       }).catch(() => {
-        fallbackToRegister(effectiveRedirect);
+        goToRegister(effectiveRedirect, navigate);
       });
     } else {
-      // No Telegram data available
-      fallbackToRegister(effectiveRedirect);
+      // No initData — pass initData via sessionStorage so Registration.tsx
+      // can retry the Telegram login when it loads.
+      if (tg?.initDataUnsafe?.user?.id) {
+        sessionStorage.setItem('pendingTelegramLogin', '1');
+      }
+      goToRegister(effectiveRedirect, navigate);
     }
-
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
   }, [redirectParam, navigate]);
-
-  function fallbackToRegister(effectiveRedirect: string | null) {
-    setStatus('error');
-    const registerUrl = effectiveRedirect
-      ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
-      : "/Register";
-    setTimeout(() => navigate(registerUrl, { replace: true }), 1500);
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#17212b' }}>
       <div className="text-center px-6">
-        {status === 'loading' && (
-          <>
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-white text-base">Checking your account...</p>
-          </>
-        )}
-        {status === 'confirming' && (
-          <>
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-white text-base">Confirm login in Telegram...</p>
-            <p className="text-gray-400 text-sm mt-2">Check your Telegram chat with HustleX bot</p>
-          </>
-        )}
-        {status === 'error' && (
-          <>
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
-            <p className="text-white text-base">Redirecting to registration...</p>
-          </>
-        )}
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
+        <p className="text-white text-base">Loading...</p>
       </div>
     </div>
   );
 };
+
+function goToRegister(effectiveRedirect: string | null, navigate: any) {
+  const registerUrl = effectiveRedirect
+    ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
+    : "/Register";
+  navigate(registerUrl, { replace: true });
+}
 
 export default ApplyRedirect;

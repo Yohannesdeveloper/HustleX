@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck, FaPhone } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
 import { register as registerUser } from "../store/authSlice";
 import { useAuth } from "../store/hooks";
+import apiService from "../services/api";
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
@@ -69,6 +70,8 @@ const RegistrationPage: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPhonePermission, setShowPhonePermission] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const telegramLoginAttempted = useRef(false);
+  const telegramLoginPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
 
@@ -103,6 +106,47 @@ const RegistrationPage: React.FC = () => {
       navigate(isProfileComplete ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
   }, [isAuthenticated, user, authLoading, success, redirectParam, navigate]);
+
+  // Retry Telegram login when not authenticated but initData is available
+  useEffect(() => {
+    if (authLoading) return;
+    if (isAuthenticated) return;
+    if (telegramLoginAttempted.current) return;
+
+    const tg = window.Telegram?.WebApp;
+    if (!tg?.initData) return;
+
+    telegramLoginAttempted.current = true;
+
+    apiService.telegramLogin({ initData: tg.initData }).then((result: any) => {
+      if (result.token) {
+        window.location.reload();
+      } else if (result.loginRequestId) {
+        telegramLoginPollRef.current = setInterval(async () => {
+          try {
+            const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
+            if (poll.status === 'confirmed' && poll.token) {
+              if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+              window.location.reload();
+            } else if (poll.status === 'declined' || poll.status === 'expired') {
+              if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+            }
+          } catch {
+            if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+          }
+        }, 2000);
+      }
+    }).catch(() => {
+      // initData login failed, user fills registration form as normal
+    });
+  }, [authLoading, isAuthenticated]);
+
+  // Cleanup poll interval on unmount
+  useEffect(() => {
+    return () => {
+      if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
+    };
+  }, []);
 
   // Auto-advance to phone permission step after registration success
   useEffect(() => {
