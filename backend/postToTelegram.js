@@ -177,5 +177,6 @@ async function postJobToTelegram(job) {
       throw new Error(errors.map((e) => JSON.stringify(e.detail)).join("; "));
     }
   }
+}
 
 module.exports = postJobToTelegram;
