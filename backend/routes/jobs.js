@@ -6,8 +6,6 @@ const { checkSubscriptionForJobPosting, getUserJobPostingStatus } = require("../
 const { cacheMiddleware, invalidatePattern, setCache, getCache } = require("../middleware/cache");
 const User = require("../models/User");
 const { sendMail, sendMailAsync } = require("../services/mail");
-const { postJobToTelegramQueue } = require("../services/queue-helpers");
-const { isQueueEnabled } = require("../lib/redis-config");
 const postJobToTelegram = require("../postToTelegram");
 
 const router = express.Router();
@@ -265,24 +263,24 @@ router.put("/:id/approve", adminAuth, async (req, res) => {
       });
     }
 
+    // Post to Telegram — include result in response so admins see failures
+    let telegramResult;
     console.log("📤 Sending job to Telegram...");
-    if (isQueueEnabled()) {
-      console.log("🔄 Using queue to send job to Telegram...");
-      postJobToTelegramQueue(job._id.toString()).catch((err) =>
-        console.error(`Telegram queue failed for job ${job._id}:`, err.message)
-      );
-    } else {
-      console.log("🔄 Sending job to Telegram directly...");
-      postJobToTelegram(job).catch((err) =>
-        console.error(`Telegram: Background posting failed for job ${job._id}:`, err.message)
-      );
+    try {
+      await postJobToTelegram(job);
+      telegramResult = { ok: true };
+      console.log("✅ Telegram post succeeded for job", job._id);
+    } catch (err) {
+      const detail = err?.response?.data || err?.message || err;
+      console.error("❌ Telegram post failed for job", job._id, ":", detail);
+      telegramResult = { ok: false, error: String(detail) };
     }
 
     // Invalidate cache after approval
     await invalidatePattern("cache:/api/jobs*");
     console.log("🗑️  Invalidated job listing cache after job approval");
 
-    res.json({ message: "Job approved", job });
+    res.json({ message: "Job approved", job, telegram: telegramResult });
   } catch (error) {
     console.error("Approve job error:", error);
     res.status(500).json({ message: "Server error" });

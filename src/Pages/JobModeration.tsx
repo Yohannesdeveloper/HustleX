@@ -40,11 +40,16 @@ const JobModeration: React.FC = () => {
 
   const approve = async (id: string) => {
     try {
-      await api.approveJob(id);
+      const res = await api.approveJob(id);
       // Optimistically remove from list
       setJobs((prev) => prev.filter((j) => j._id !== id));
       setReason((r) => { const { [id]: _, ...rest } = r; return rest; });
-      showSuccess("Job approved successfully");
+      const tele = res?.telegram;
+      if (tele?.ok === false) {
+        showSuccess(`Job approved but Telegram post failed: ${tele.error}`);
+      } else {
+        showSuccess("Job approved successfully");
+      }
     } catch (e: any) {
       const status = e?.response?.status;
       if (status === 401) setError("Unauthorized. Please log in as an admin user.");

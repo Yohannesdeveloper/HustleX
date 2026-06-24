@@ -219,8 +219,10 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
   store: createRateLimitStore('auth'),
   skip: (req) => {
-    // Don't rate-limit the Telegram login status polling endpoint
-    return req.path.startsWith('/telegram-login-status/');
+    // Don't rate-limit mailbox checking or Telegram polling
+    return req.path.startsWith('/telegram-login-status/') ||
+           req.path === '/check-user' ||
+           req.path === '/check-user-by-phone';
   },
 });
 
