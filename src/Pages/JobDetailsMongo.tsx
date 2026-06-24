@@ -1112,9 +1112,9 @@ const JobDetailsMongo: React.FC = () => {
                   <Target className="w-6 h-6" />
                   Job Description
                 </h2>
-                <div className="prose max-w-none">
+                <div className="prose max-w-none overflow-hidden">
                   <p
-                    className={`leading-relaxed text-lg whitespace-pre-line font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
+                    className={`leading-relaxed text-lg whitespace-pre-line break-words font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
                       }`}
                   >
                     {job.description}
