@@ -734,6 +734,33 @@ router.post("/freelancer-profile", async (req, res) => {
       console.log(`Emitted freelancer profile update for user ${user._id}`);
     }
 
+    // Notify user on Telegram when profile is updated via the web
+    if (user.telegram && user.telegram.id) {
+      const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      if (botToken) {
+        const firstName = profileData.firstName || user.profile?.firstName || 'there';
+        const tgMessage = [
+          `✅ <b>Profile Updated Successfully!</b>`,
+          ``,
+          `Hi <b>${firstName}</b>!`,
+          `Your HustleX freelancer profile has been updated via the web platform.`,
+          ``,
+          `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+          ``,
+          `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        ].join("\n");
+
+        axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          chat_id: user.telegram.id,
+          text: tgMessage,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+        }).catch((err) => {
+          console.warn("Failed to send Telegram profile update notification:", err?.response?.data || err.message);
+        });
+      }
+    }
+
     res.json({
       message: "Freelancer profile saved successfully",
       user: {
@@ -1289,6 +1316,46 @@ router.get("/check-user-by-phone", async (req, res) => {
     });
   } catch (error) {
     console.error("Check user by phone error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/auth/telegram-profile
+// @desc    Get user profile by Telegram ID (for bot read-back)
+// @access  Public (used by Telegram bot with shared token secret)
+router.get("/telegram-profile", async (req, res) => {
+  try {
+    const { telegramId } = req.query;
+    if (!telegramId) {
+      return res.status(400).json({ message: "telegramId query param is required" });
+    }
+
+    const tid = parseInt(telegramId, 10);
+    if (isNaN(tid)) {
+      return res.status(400).json({ message: "Invalid Telegram ID" });
+    }
+
+    const user = await User.findOne({ "telegram.id": tid })
+      .select("email profile roles currentRole createdAt telegram slug")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      user: {
+        _id: user._id,
+        email: user.email,
+        roles: user.roles,
+        currentRole: user.currentRole,
+        slug: user.slug,
+        telegram: user.telegram,
+        profile: user.profile,
+      },
+    });
+  } catch (error) {
+    console.error("Get telegram profile error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

@@ -280,4 +280,29 @@ router.get("/:id", auth, async (req, res) => {
   }
 });
 
+// GET /api/users/by-telegram/:telegramId
+// @desc    Get user by Telegram ID (for bot-to-web sync)
+// @access  Public (used by Telegram bot with server-side auth)
+router.get("/by-telegram/:telegramId", async (req, res) => {
+  try {
+    const telegramId = parseInt(req.params.telegramId, 10);
+    if (isNaN(telegramId)) {
+      return res.status(400).json({ message: "Invalid Telegram ID" });
+    }
+
+    const user = await User.findOne({ "telegram.id": telegramId })
+      .select("email profile roles currentRole createdAt telegram slug")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found for this Telegram ID" });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error("Error fetching user by Telegram ID:", error);
+    res.status(500).json({ message: "Failed to fetch user", error: error.message });
+  }
+});
+
 module.exports = router;
