@@ -1474,10 +1474,10 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         onSubmit();
       }
 
-      // Redirect to job details if redirectParam exists (with auto-apply flag)
+      // Redirect to job details if redirectParam exists
       if (redirectParam) {
         sessionStorage.removeItem('pendingJobRedirect');
-        navigate(`${redirectParam}?autoApply=true`, { replace: true });
+        navigate(redirectParam, { replace: true });
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);

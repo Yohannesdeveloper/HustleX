@@ -42,7 +42,7 @@ const ApplyRedirect: React.FC = () => {
     if (result.token) {
       console.log("[ApplyRedirect] login success, token received, redirecting to job");
       const dest = effectiveRedirect
-        ? `${effectiveRedirect}?autoApply=true`
+        ? effectiveRedirect
         : '/dashboard/freelancer';
       navigate(dest, { replace: true });
       return true;
@@ -73,7 +73,7 @@ const ApplyRedirect: React.FC = () => {
             clearTimeout(pollTimeout);
             console.log("[ApplyRedirect] confirmed, redirecting");
             const dest = effectiveRedirect
-              ? `${effectiveRedirect}?autoApply=true`
+              ? effectiveRedirect
               : '/dashboard/freelancer';
             navigate(dest, { replace: true });
           } else if (poll.status === 'declined' || poll.status === 'expired') {
@@ -100,7 +100,7 @@ const ApplyRedirect: React.FC = () => {
 
     if (existingToken) {
       const dest = effectiveRedirect
-        ? `${effectiveRedirect}?autoApply=true`
+        ? effectiveRedirect
         : '/dashboard/freelancer';
       navigate(dest, { replace: true });
       return;

@@ -99,7 +99,7 @@ const RegistrationPage: React.FC = () => {
     if (redirectParam) {
       if (isProfileComplete) {
         sessionStorage.removeItem('pendingJobRedirect');
-        navigate(`${redirectParam}?autoApply=true`, { replace: true });
+        navigate(redirectParam, { replace: true });
       } else {
         navigate(`/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`, { replace: true });
       }
@@ -353,7 +353,7 @@ const RegistrationPage: React.FC = () => {
                       if (profileComplete) {
                         sessionStorage.removeItem('pendingJobRedirect');
                         if (redirectParam) {
-                          navigate(`${redirectParam}?autoApply=true`, { replace: true });
+                          navigate(redirectParam, { replace: true });
                         } else {
                           navigate("/job-listings", { replace: true });
                         }

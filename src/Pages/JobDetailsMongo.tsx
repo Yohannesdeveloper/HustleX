@@ -165,7 +165,6 @@ const JobDetailsMongo: React.FC = () => {
   const formRef = useRef<HTMLDivElement | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  const hasAutoApplied = useRef(false);
   const [isTelegramMiniApp, setIsTelegramMiniApp] = useState(false);
 
   useEffect(() => {
@@ -260,50 +259,6 @@ const JobDetailsMongo: React.FC = () => {
     };
     checkApplication();
   }, [currentUser, job]);
-
-  // Auto-apply when arriving from Telegram registration flow
-  useEffect(() => {
-    const autoApply = async () => {
-      if (hasAutoApplied.current) return;
-      if (!currentUser || !job) return;
-      if (applied) return; // already applied
-
-      const params = new URLSearchParams(location.search);
-      if (params.get('autoApply') !== 'true') return;
-
-      hasAutoApplied.current = true;
-      setApplying(true);
-      try {
-        const payload: any = {
-          jobId: job._id,
-          coverLetter: "Applied via HustleX Telegram",
-        };
-
-        // Include portfolio URL from profile if available
-        if (currentUser.profile?.portfolioUrl || currentUser.profile?.portfolio) {
-          payload.portfolioUrl = currentUser.profile.portfolioUrl || currentUser.profile.portfolio;
-        }
-
-        // Include CV URL from profile if available
-        if (currentUser.profile?.cvUrl) {
-          payload.cvUrl = currentUser.profile.cvUrl;
-        }
-
-        await apiService.submitApplication(payload);
-        setApplied(true);
-        setShowSuccessAnimation(true);
-      } catch (error: any) {
-        console.error("Auto-apply error:", error);
-        // If already applied (race condition), just mark as applied
-        if (error?.response?.data?.message?.includes("already applied")) {
-          setApplied(true);
-        }
-      } finally {
-        setApplying(false);
-      }
-    };
-    autoApply();
-  }, [currentUser, job, applied, location.search]);
 
   // Listen for real-time application submission events
   useEffect(() => {
