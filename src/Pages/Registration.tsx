@@ -97,12 +97,8 @@ const RegistrationPage: React.FC = () => {
 
     const isProfileComplete = user?.profile?.isProfileComplete || false;
     if (redirectParam) {
-      if (isProfileComplete) {
-        sessionStorage.removeItem('pendingJobRedirect');
-        navigate(redirectParam, { replace: true });
-      } else {
-        navigate(`/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`, { replace: true });
-      }
+      sessionStorage.removeItem('pendingJobRedirect');
+      navigate(redirectParam, { replace: true });
     } else {
       navigate(isProfileComplete ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
