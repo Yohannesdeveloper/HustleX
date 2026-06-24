@@ -99,22 +99,9 @@ async function postJobToTelegram(job) {
     return;
   }
 
-  // Use production URL for Telegram messages, fallback to localhost for development
-  // Telegram doesn't accept localhost URLs in inline keyboards, so we use a production domain
-  let baseUrl;
-  if (process.env.NODE_ENV === 'production' || process.env.TELEGRAM_USE_PRODUCTION_URL === 'true') {
-    baseUrl = process.env.CLIENT_URL || process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com";
-  } else {
-    // For development, if using localhost, provide a production-like URL for Telegram
-    const envClientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
-    if (envClientUrl && !envClientUrl.includes('localhost') && !envClientUrl.includes('127.0.0.1')) {
-      baseUrl = envClientUrl;
-    } else {
-      // Use production URL for Telegram even in development
-      baseUrl = process.env.CLIENT_URL || process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com";
-    }
-  }
-  baseUrl = baseUrl.replace(/\/$/, "");
+  // Telegram web_app inline buttons require HTTPS — always prefer a production URL
+  // Even when running locally, Telegram won't accept HTTP URLs in web_app buttons
+  const baseUrl = (process.env.CLIENT_URL || process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL_PRODUCTION || "https://www.hustlex.com").replace(/\/$/, "");
   const jobId = job?._id ? String(job._id) : "";
   const jobLink = jobId ? `${baseUrl}/job-details/${jobId}` : "";
   console.log("Job details:");
@@ -161,40 +148,34 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Create inline keyboard with Apply button.
-  // Use web_app type to open inside Telegram as a Mini App instead of external browser.
-  const applyRedirectUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent(`/job-details/${jobId}`)}`;
-  const inlineKeyboard = [[
-    {
-      text: "🚀 Apply for this job",
-      web_app: { url: applyRedirectUrl }
-    }
-  ]];
-
-  try {
-    const results = await Promise.allSettled(
-      chatIds.map((chatId) => sendTelegramMessage({ botToken, chatId, message, inlineKeyboard }))
-    );
-
-    const okCount = results.filter((r) => r.status === "fulfilled").length;
-    const failCount = results.length - okCount;
-
-    if (okCount > 0) {
-      console.log(`Telegram: successfully posted job ${jobId} to ${okCount} chat(s).`);
-    }
-    if (failCount > 0) {
-      const failedResults = results.filter((r) => r.status === "rejected");
-      failedResults.forEach((r, idx) => {
-        const err = r.reason;
-        console.error(
-          `Telegram: failed to post job ${jobId} to chat ${chatIds[idx]}.`,
-          err?.response?.data || err?.message || err
-        );
-      });
-    }
-  } catch (error) {
-    console.error("Telegram: fatal error in postJobToTelegram:", error.message);
+  // Inline keyboard — use web_app only when HTTPS is available (required by Telegram)
+  const applyUrl = `${baseUrl}/job-details/${jobId}`;
+  let inlineKeyboard;
+  if (baseUrl.startsWith("https://")) {
+    inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent(`/job-details/${jobId}`)}` } }]];
+  } else {
+    inlineKeyboard = [[{ text: "🚀 Apply for this job", url: applyUrl }]];
   }
-}
+
+  // Send to all configured chats
+  const results = await Promise.allSettled(
+    chatIds.map((chatId) => sendTelegramMessage({ botToken, chatId, message, inlineKeyboard }))
+  );
+
+  const okCount = results.filter((r) => r.status === "fulfilled").length;
+  const failCount = results.length - okCount;
+
+  if (okCount > 0) {
+    console.log(`Telegram: successfully posted job ${jobId} to ${okCount} chat(s).`);
+  }
+  if (failCount > 0) {
+    const errors = results
+      .filter((r) => r.status === "rejected")
+      .map((r, idx) => ({ chatId: chatIds[idx], detail: r.reason?.response?.data || r.reason?.message || r.reason }));
+    errors.forEach((e) => console.error(`Telegram: failed to post job ${jobId} to chat ${e.chatId}.`, e.detail));
+    if (okCount === 0) {
+      throw new Error(errors.map((e) => JSON.stringify(e.detail)).join("; "));
+    }
+  }
 
 module.exports = postJobToTelegram;
