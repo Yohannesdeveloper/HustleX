@@ -148,13 +148,16 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Inline keyboard — use web_app only when HTTPS is available (required by Telegram)
-  const applyUrl = `${baseUrl}/job-details/${jobId}`;
+  // Inline keyboard — Telegram rejects HTTP URLs in both web_app and url buttons
   let inlineKeyboard;
   if (baseUrl.startsWith("https://")) {
     inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent(`/job-details/${jobId}`)}` } }]];
   } else {
-    inlineKeyboard = [[{ text: "🚀 Apply for this job", url: applyUrl }]];
+    // Fall back to t.me deep link (always HTTPS) when no HTTPS base URL available
+    const tmeLink = buildMiniAppLink(jobId);
+    if (tmeLink) {
+      inlineKeyboard = [[{ text: "🚀 Apply for this job", url: tmeLink }]];
+    }
   }
 
   // Send to all configured chats
