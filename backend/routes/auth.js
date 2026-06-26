@@ -1426,4 +1426,39 @@ router.get("/telegram-profile", async (req, res) => {
   }
 });
 
+// @route   GET /api/auth/test-telegram
+// @desc    Test Telegram bot connectivity — sends a test message to TELEGRAM_CHAT_ID
+// @access  Public
+router.get("/test-telegram", async (req, res) => {
+  const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  const result = {
+    botTokenSet: !!botToken,
+    chatIdSet: !!chatId,
+    chatIdValue: chatId || null,
+    botTokenPrefix: botToken ? botToken.split(":")[0] + ":..." : null,
+    messageSent: false,
+    error: null,
+  };
+
+  if (!botToken || !chatId) {
+    return res.json({ ...result, error: "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set" });
+  }
+
+  try {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text: "🧪 <b>Test message from HustleX backend</b>\n\nIf you see this, the bot can DM you!",
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    });
+    result.messageSent = true;
+  } catch (err) {
+    result.error = err?.response?.data || err.message;
+  }
+
+  res.json(result);
+});
+
 module.exports = router;
