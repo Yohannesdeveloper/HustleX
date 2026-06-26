@@ -769,7 +769,12 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         await refreshUser();
       }
 
-      alert('Company profile submitted successfully! Redirecting to hiring dashboard...');
+      alert('✅ Profile setup completed successfully!');
+
+      if (window.Telegram?.WebApp) {
+        try { window.Telegram.WebApp.close(); } catch (e) {}
+        return;
+      }
       
       // Redirect to hiring dashboard
       navigate('/dashboard/hiring');

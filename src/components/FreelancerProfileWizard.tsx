@@ -1473,25 +1473,26 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       } catch (e) {
         console.log('Telegram Mini App sendData not available:', e);
       }
-      if (window.Telegram?.WebApp) {
-        try { window.Telegram.WebApp.close(); } catch (e) {}
-        return;
-      }
 
       // Refresh user data in auth context to get updated profile information
       if (refreshUser) {
         await refreshUser();
       }
 
-      alert('Profile saved successfully! You can continue editing or navigate to other pages.');
-      if (onSubmit) {
-        onSubmit();
-      }
-
-      // Redirect to job details if redirectParam exists
       if (redirectParam) {
+        // Opened from Telegram Channel job post → redirect to Job Details
         sessionStorage.removeItem('pendingJobRedirect');
         navigate(redirectParam, { replace: true });
+      } else {
+        // Opened from Telegram Bot → show success, close Mini App or redirect to dashboard
+        alert('✅ Profile setup completed successfully!');
+
+        if (window.Telegram?.WebApp) {
+          try { window.Telegram.WebApp.close(); } catch (e) {}
+          return;
+        }
+
+        navigate('/dashboard/freelancer', { replace: true });
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);
