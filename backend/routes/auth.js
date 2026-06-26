@@ -1196,8 +1196,8 @@ router.post("/telegram-webhook", async (req, res) => {
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
           keyboard: [
-            [{ text: "👤 My Profile" }, { text: "ℹ️ About HustleX" }],
-            [{ text: "🆘 Help" }],
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
           resize_keyboard: true,
         },
@@ -1206,17 +1206,13 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /help command
-    if (text.startsWith("/help") || text === "🆘 Help") {
+    if (text.startsWith("/help") || text === "📋 Application") {
       const helpText = [
-        `🆘 <b>HustleX Bot Help</b>`,
+        `📋 <b>Applications</b>`,
         ``,
-        `<b>Commands:</b>`,
-        `/start — Start the bot and see main menu`,
-        `/help — Show this help message`,
-        `/profile — Check your profile status`,
+        `Browse and manage your job applications on HustleX.`,
         ``,
-        `<b>Login Confirmation:</b>`,
-        `When you click "Login with Telegram" on the HustleX website, this bot will send you a confirmation message with <b>Confirm</b> and <b>Decline</b> buttons.`,
+        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">My Applications</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
@@ -1227,7 +1223,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /profile command or button
-    if (text.startsWith("/profile") || text === "👤 My Profile") {
+    if (text.startsWith("/profile") || text === "👤 Profile") {
       const profileText = [
         `👤 <b>Your Profile</b>`,
         ``,
@@ -1246,8 +1242,8 @@ router.post("/telegram-webhook", async (req, res) => {
       return;
     }
 
-    // About HustleX button
-    if (text === "ℹ️ About HustleX") {
+    // About button
+    if (text === "ℹ️ About") {
       const aboutText = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
@@ -1267,6 +1263,23 @@ router.post("/telegram-webhook", async (req, res) => {
       ].join("\n");
 
       await sendMessage(chatId, aboutText, { disable_web_page_preview: true });
+      return;
+    }
+
+    // Setting button
+    if (text === "⚙️ Setting") {
+      const settingText = [
+        `⚙️ <b>Settings</b>`,
+        ``,
+        `Manage your preferences and account settings.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Settings</a>`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━`,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
+
+      await sendMessage(chatId, settingText, { disable_web_page_preview: true });
       return;
     }
 
