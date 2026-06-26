@@ -189,9 +189,27 @@ router.post(
 
       const token = generateToken(user._id);
 
-      // ── Send Telegram notification to the user if they registered via Telegram ──
+      // ── Send Telegram notification ──
+      const safeName = firstName || email;
+      const regMsg = [
+        `🆕 <b>New User Registered!</b>`,
+        ``,
+        `👤 <b>Name:</b> ${safeName} ${lastName || ''}`,
+        `📧 <b>Email:</b> ${email}`,
+        `🌍 <b>Country:</b> ${country || '—'}`,
+        `🏙️ <b>City:</b> ${city || '—'}`,
+        `🎂 <b>DOB:</b> ${dateOfBirth || '—'}`,
+        `⚧️ <b>Gender:</b> ${gender || '—'}`,
+      ].join("\n");
+
+      // Notify admin (TELEGRAM_CHAT_ID = your user ID)
+      if (process.env.TELEGRAM_CHAT_ID) {
+        sendTelegramNotification(process.env.TELEGRAM_CHAT_ID, regMsg);
+      }
+
+      // Welcome the user if they registered via Telegram Mini App
       if (user.telegram && user.telegram.id) {
-        const msg = [
+        const welcomeMsg = [
           `🎉 <b>Welcome to HustleX, ${firstName || 'there'}!</b>`,
           ``,
           `Your account has been created successfully.`,
@@ -202,7 +220,7 @@ router.post(
           `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
         ].join("\n");
 
-        sendTelegramNotification(user.telegram.id, msg);
+        sendTelegramNotification(user.telegram.id, welcomeMsg);
       }
 
       res.status(201).json({
@@ -775,10 +793,27 @@ router.post("/freelancer-profile", async (req, res) => {
       console.log(`Emitted freelancer profile update for user ${user._id}`);
     }
 
+    // Notify the admin (you) about profile completion
+    if (process.env.TELEGRAM_CHAT_ID) {
+      const firstName = profileData.firstName || user.profile?.firstName || 'Unknown';
+      const adminMsg = [
+        `✅ <b>Freelancer Profile Completed!</b>`,
+        ``,
+        `👤 <b>Name:</b> ${firstName} ${profileData.lastName || ''}`,
+        `📧 <b>Email:</b> ${profileData.email}`,
+        `📱 <b>Phone:</b> ${profileData.phone || '—'}`,
+        `📍 <b>Location:</b> ${profileData.location || '—'}`,
+        `💼 <b>Skills:</b> ${Array.isArray(profileData.skills) ? profileData.skills.join(', ') : '—'}`,
+        `⭐ <b>Level:</b> ${profileData.experienceLevel || '—'}`,
+      ].join("\n");
+
+      sendTelegramNotification(process.env.TELEGRAM_CHAT_ID, adminMsg);
+    }
+
     // Notify the user on Telegram about profile completion
     if (user.telegram && user.telegram.id) {
       const firstName = profileData.firstName || user.profile?.firstName || 'there';
-      const msg = [
+      const userMsg = [
         `✅ <b>Freelancer Profile Completed!</b>`,
         ``,
         `Hi <b>${firstName}</b>!`,
@@ -789,7 +824,7 @@ router.post("/freelancer-profile", async (req, res) => {
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      sendTelegramNotification(user.telegram.id, msg);
+      sendTelegramNotification(user.telegram.id, userMsg);
     }
 
     res.json({
