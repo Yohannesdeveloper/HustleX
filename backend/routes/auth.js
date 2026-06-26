@@ -189,28 +189,9 @@ router.post(
 
       const token = generateToken(user._id);
 
-      // ── Send Telegram notifications ──
-      const safeName = firstName || email;
-      const adminMsg = [
-        `🆕 <b>New User Registered!</b>`,
-        ``,
-        `👤 <b>Name:</b> ${safeName} ${lastName || ''}`,
-        `📧 <b>Email:</b> ${email}`,
-        `🌍 <b>Country:</b> ${country || '—'}`,
-        `🏙️ <b>City:</b> ${city || '—'}`,
-        `🎂 <b>DOB:</b> ${dateOfBirth || '—'}`,
-        `⚧️ <b>Gender:</b> ${gender || '—'}`,
-      ].join("\n");
-
-      // Send to admin/group chat
-      const adminChatId = process.env.TELEGRAM_CHAT_ID;
-      if (adminChatId) {
-        sendTelegramNotification(adminChatId, adminMsg);
-      }
-
-      // Send welcome to the user if they registered via Telegram Login
+      // ── Send Telegram notification to the user if they registered via Telegram ──
       if (user.telegram && user.telegram.id) {
-        const welcomeMsg = [
+        const msg = [
           `🎉 <b>Welcome to HustleX, ${firstName || 'there'}!</b>`,
           ``,
           `Your account has been created successfully.`,
@@ -221,7 +202,7 @@ router.post(
           `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
         ].join("\n");
 
-        sendTelegramNotification(user.telegram.id, welcomeMsg);
+        sendTelegramNotification(user.telegram.id, msg);
       }
 
       res.status(201).json({
@@ -794,49 +775,21 @@ router.post("/freelancer-profile", async (req, res) => {
       console.log(`Emitted freelancer profile update for user ${user._id}`);
     }
 
-    // Notify user on Telegram when profile is updated via the web
+    // Notify the user on Telegram about profile completion
     if (user.telegram && user.telegram.id) {
-      const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-      if (botToken) {
-        const firstName = profileData.firstName || user.profile?.firstName || 'there';
-        const tgMessage = [
-          `✅ <b>Profile Updated Successfully!</b>`,
-          ``,
-          `Hi <b>${firstName}</b>!`,
-          `Your HustleX freelancer profile has been updated via the web platform.`,
-          ``,
-          `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
-          ``,
-          `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
-        ].join("\n");
-
-        axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          chat_id: user.telegram.id,
-          text: tgMessage,
-          parse_mode: "HTML",
-          disable_web_page_preview: true,
-        }).catch((err) => {
-          console.warn("Failed to send Telegram profile update notification:", err?.response?.data || err.message);
-        });
-      }
-    }
-
-    // Notify admin/group about profile completion
-    const adminChatId = process.env.TELEGRAM_CHAT_ID;
-    if (adminChatId) {
-      const firstName = profileData.firstName || user.profile?.firstName || 'Unknown';
-      const adminMsg = [
+      const firstName = profileData.firstName || user.profile?.firstName || 'there';
+      const msg = [
         `✅ <b>Freelancer Profile Completed!</b>`,
         ``,
-        `👤 <b>Name:</b> ${firstName} ${profileData.lastName || ''}`,
-        `📧 <b>Email:</b> ${profileData.email}`,
-        `📱 <b>Phone:</b> ${profileData.phone || '—'}`,
-        `📍 <b>Location:</b> ${profileData.location || '—'}`,
-        `💼 <b>Skills:</b> ${Array.isArray(profileData.skills) ? profileData.skills.join(', ') : '—'}`,
-        `⭐ <b>Level:</b> ${profileData.experienceLevel || '—'}`,
+        `Hi <b>${firstName}</b>!`,
+        `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+        ``,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      sendTelegramNotification(adminChatId, adminMsg);
+      sendTelegramNotification(user.telegram.id, msg);
     }
 
     res.json({
