@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema(
       // Basic Information
       firstName: String,
       lastName: String,
+      dateOfBirth: String,
+      gender: String,
+      country: String,
+      city: String,
       phone: {
         type: String,
         unique: true,

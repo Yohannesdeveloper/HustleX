@@ -240,6 +240,10 @@ const RegistrationPage: React.FC = () => {
         role: "freelancer",
         firstName,
         lastName,
+        dateOfBirth,
+        gender,
+        country,
+        city,
         telegram,
       })).unwrap();
 

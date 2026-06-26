@@ -25,11 +25,15 @@ export const useAuth = () => {
   const handleRegister = useCallback(
     async (userData: {
       email: string;
-      password: string;
+      password?: string;
       role: "freelancer" | "client";
       roles?: string[];
       firstName?: string;
       lastName?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      country?: string;
+      city?: string;
     }) => {
       const result = await dispatch(register(userData));
       if (register.fulfilled.match(result)) {

@@ -87,6 +87,25 @@ const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
+/**
+ * Send a Telegram message to a chat via the bot API.
+ * Silently catches errors so it never breaks the request flow.
+ */
+async function sendTelegramNotification(chatId, text) {
+  const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken || !chatId) return;
+  try {
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    });
+  } catch (err) {
+    console.warn("Telegram notification failed:", err?.response?.data || err.message);
+  }
+}
+
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
@@ -97,6 +116,10 @@ router.post(
     body("password").optional().isLength({ min: 8 }).matches(/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/),
     body("firstName").optional().isString().trim(),
     body("lastName").optional().isString().trim(),
+    body("dateOfBirth").optional().isString().trim(),
+    body("gender").optional().isString().trim(),
+    body("country").optional().isString().trim(),
+    body("city").optional().isString().trim(),
     body("role").optional().isIn(["freelancer", "client"]),
     body("roles").optional().isArray(),
     body("roles.*").optional().isIn(["freelancer", "client"]),
@@ -113,7 +136,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, role, roles, firstName, lastName, telegram } = req.body;
+      const { email, password, role, roles, firstName, lastName, dateOfBirth, gender, country, city, telegram } = req.body;
 
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -122,7 +145,6 @@ router.post(
       }
 
       // Support both single role (backward compatibility) and multiple roles
-      // Role is now optional — users can select their role after signup
       let userRoles = [];
       if (roles && Array.isArray(roles) && roles.length > 0) {
         userRoles = roles;
@@ -130,14 +152,17 @@ router.post(
         userRoles = [role];
       }
 
-      // Build user fields — omit roles when none provided so
-      // the Mongoose default (["freelancer"]) applies automatically
+      // Build user fields
       const userFields = {
         email,
         password: password || undefined,
         profile: {
           firstName: firstName || '',
           lastName: lastName || '',
+          dateOfBirth: dateOfBirth || '',
+          gender: gender || '',
+          country: country || '',
+          city: city || '',
         },
       };
 
@@ -163,6 +188,41 @@ router.post(
       await user.save();
 
       const token = generateToken(user._id);
+
+      // ── Send Telegram notifications ──
+      const safeName = firstName || email;
+      const adminMsg = [
+        `🆕 <b>New User Registered!</b>`,
+        ``,
+        `👤 <b>Name:</b> ${safeName} ${lastName || ''}`,
+        `📧 <b>Email:</b> ${email}`,
+        `🌍 <b>Country:</b> ${country || '—'}`,
+        `🏙️ <b>City:</b> ${city || '—'}`,
+        `🎂 <b>DOB:</b> ${dateOfBirth || '—'}`,
+        `⚧️ <b>Gender:</b> ${gender || '—'}`,
+      ].join("\n");
+
+      // Send to admin/group chat
+      const adminChatId = process.env.TELEGRAM_CHAT_ID;
+      if (adminChatId) {
+        sendTelegramNotification(adminChatId, adminMsg);
+      }
+
+      // Send welcome to the user if they registered via Telegram Login
+      if (user.telegram && user.telegram.id) {
+        const welcomeMsg = [
+          `🎉 <b>Welcome to HustleX, ${firstName || 'there'}!</b>`,
+          ``,
+          `Your account has been created successfully.`,
+          `Complete your freelancer profile to start applying for jobs.`,
+          ``,
+          `🌐 <a href="https://hustlexet.vercel.app/freelancer-profile-setup">Complete Profile</a>`,
+          ``,
+          `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        ].join("\n");
+
+        sendTelegramNotification(user.telegram.id, welcomeMsg);
+      }
 
       res.status(201).json({
         token,
@@ -759,6 +819,24 @@ router.post("/freelancer-profile", async (req, res) => {
           console.warn("Failed to send Telegram profile update notification:", err?.response?.data || err.message);
         });
       }
+    }
+
+    // Notify admin/group about profile completion
+    const adminChatId = process.env.TELEGRAM_CHAT_ID;
+    if (adminChatId) {
+      const firstName = profileData.firstName || user.profile?.firstName || 'Unknown';
+      const adminMsg = [
+        `✅ <b>Freelancer Profile Completed!</b>`,
+        ``,
+        `👤 <b>Name:</b> ${firstName} ${profileData.lastName || ''}`,
+        `📧 <b>Email:</b> ${profileData.email}`,
+        `📱 <b>Phone:</b> ${profileData.phone || '—'}`,
+        `📍 <b>Location:</b> ${profileData.location || '—'}`,
+        `💼 <b>Skills:</b> ${Array.isArray(profileData.skills) ? profileData.skills.join(', ') : '—'}`,
+        `⭐ <b>Level:</b> ${profileData.experienceLevel || '—'}`,
+      ].join("\n");
+
+      sendTelegramNotification(adminChatId, adminMsg);
     }
 
     res.json({

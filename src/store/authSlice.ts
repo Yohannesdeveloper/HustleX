@@ -104,6 +104,10 @@ export const register = createAsyncThunk(
       roles?: string[];
       firstName?: string;
       lastName?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      country?: string;
+      city?: string;
       telegram?: {
         id: number;
         username?: string;

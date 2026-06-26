@@ -12,6 +12,10 @@ export interface User {
     // Basic Information
     firstName?: string;
     lastName?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    country?: string;
+    city?: string;
     phone?: string;
     location?: string;
     bio?: string;

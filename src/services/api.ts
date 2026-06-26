@@ -165,6 +165,17 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     role?: "freelancer" | "client";
     firstName?: string;
     lastName?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    country?: string;
+    city?: string;
+    telegram?: {
+      id: number;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+      photoUrl?: string;
+    };
   }): Promise<{ token: string }> {
     return this.withPortRetry(async (base) => {
       const response = await axios.post(
