@@ -1464,8 +1464,9 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       // Clear local and remote storage after successful save to avoid conflicts
       removeFromStorage('freelancerProfileData', isAuthenticated);
 
-      // Notify Telegram Mini App that profile was saved (so it syncs back to bot)
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      // Notify Telegram Mini App that profile was saved (so it syncs back to bot) and close
+      const isTelegram = typeof window !== 'undefined' && window.Telegram?.WebApp;
+      if (isTelegram) {
         try {
           window.Telegram.WebApp.sendData(JSON.stringify({
             action: 'profile_saved',
@@ -1475,6 +1476,8 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         } catch (e) {
           console.log('Telegram Mini App sendData not available:', e);
         }
+        setTimeout(() => { window.Telegram.WebApp.close(); }, 300);
+        return;
       }
 
       // Refresh user data in auth context to get updated profile information
