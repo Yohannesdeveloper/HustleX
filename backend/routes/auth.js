@@ -1179,25 +1179,14 @@ router.post("/telegram-webhook", async (req, res) => {
         ``,
         `Hello <b>${firstName}</b>! 👋`,
         ``,
-        `I'm your HustleX assistant. Here's what I can do:`,
-        ``,
-        `🔐 <b>Login</b> — Confirm login requests from the HustleX website`,
-        `👤 <b>Profile</b> — Manage your freelancer profile`,
-        ``,
-        `<b>Available commands:</b>`,
-        `/start — Show this welcome message`,
-        `/help — Show help information`,
-        `/profile — View your profile status`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
           keyboard: [
-            [{ text: "👤 My Profile" }, { text: "ℹ️ About HustleX" }],
-            [{ text: "🆘 Help" }],
+            [{ text: "About" }, { text: "Applications" }],
+            [{ text: "Settings" }, { text: "Profile" }],
           ],
           resize_keyboard: true,
         },
@@ -1205,75 +1194,68 @@ router.post("/telegram-webhook", async (req, res) => {
       return;
     }
 
-    // /help command
-    if (text.startsWith("/help") || text === "🆘 Help") {
-      const helpText = [
-        `🆘 <b>HustleX Bot Help</b>`,
+    // Applications button
+    if (text === "Applications") {
+      const msg = [
+        `📋 <b>Applications</b>`,
         ``,
-        `<b>Commands:</b>`,
-        `/start — Start the bot and see main menu`,
-        `/help — Show this help message`,
-        `/profile — Check your profile status`,
+        `Browse and manage your job applications.`,
         ``,
-        `<b>Login Confirmation:</b>`,
-        `When you click "Login with Telegram" on the HustleX website, this bot will send you a confirmation message with <b>Confirm</b> and <b>Decline</b> buttons.`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Your Freelance Journey`,
+        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">Open Applications</a>`,
       ].join("\n");
 
-      await sendMessage(chatId, helpText);
+      await sendMessage(chatId, msg);
       return;
     }
 
-    // /profile command or button
-    if (text.startsWith("/profile") || text === "👤 My Profile") {
-      const profileText = [
+    // Profile button
+    if (text === "Profile") {
+      const msg = [
         `👤 <b>Your Profile</b>`,
         ``,
         `<b>Telegram:</b> ${username}`,
         `<b>Name:</b> ${firstName} ${user?.last_name || ""}`.trim(),
         ``,
-        `To complete your HustleX profile, visit the website and sign in with Telegram.`,
-        ``,
         `🌐 <a href="https://hustlexet.vercel.app">HustleX Platform</a>`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, profileText, { disable_web_page_preview: true });
+      await sendMessage(chatId, msg, { disable_web_page_preview: true });
       return;
     }
 
-    // About HustleX button
-    if (text === "ℹ️ About HustleX") {
-      const aboutText = [
+    // Settings button
+    if (text === "Settings") {
+      const msg = [
+        `⚙️ <b>Settings</b>`,
+        ``,
+        `Manage your account preferences.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Settings</a>`,
+      ].join("\n");
+
+      await sendMessage(chatId, msg, { disable_web_page_preview: true });
+      return;
+    }
+
+    // About button
+    if (text === "About") {
+      const msg = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
         `HustleX is Ethiopia's premier freelance platform connecting talented professionals with businesses worldwide.`,
         ``,
-        `🎯 <b>Key Features:</b>`,
-        `• ✅ Verified freelancers and companies`,
-        `• ✅ Project management tools`,
-        `• ✅ Skill-based job matching`,
-        `• ✅ Professional networking`,
-        ``,
         `🌐 <a href="https://hustlexet.vercel.app">Visit HustleX</a>`,
         `📧 support@hustleX.et`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      await sendMessage(chatId, aboutText, { disable_web_page_preview: true });
+      await sendMessage(chatId, msg, { disable_web_page_preview: true });
       return;
     }
 
-    // Default fallback for unrecognized messages
+    // Default fallback
     await sendMessage(
       chatId,
-      `💬 Hi ${firstName}! Use /start to see available options or /help for more info.`
+      `💬 Hi ${firstName}! Use /start to see the main menu.`
     );
 
   } catch (err) {
