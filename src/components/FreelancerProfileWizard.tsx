@@ -67,6 +67,35 @@ const isTelegramWebApp = (): boolean => {
   return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
+const tgCloud = () => (isTelegramWebApp() ? window.Telegram.WebApp.CloudStorage : null);
+
+const cloudSetItem = (key: string, value: string): Promise<void> => {
+  return new Promise((resolve) => {
+    const cs = tgCloud();
+    if (!cs) return resolve();
+    cs.setItem(key, value, () => resolve(), () => resolve());
+    setTimeout(() => resolve(), 3000);
+  });
+};
+
+const cloudGetItem = (key: string): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const cs = tgCloud();
+    if (!cs) return resolve(null);
+    cs.getItem(key, (val: string) => resolve(val ?? null));
+    setTimeout(() => resolve(null), 3000);
+  });
+};
+
+const cloudRemoveItem = (key: string): Promise<void> => {
+  return new Promise((resolve) => {
+    const cs = tgCloud();
+    if (!cs) return resolve();
+    cs.removeItem(key, () => resolve(), () => resolve());
+    setTimeout(() => resolve(), 3000);
+  });
+};
+
 const saveToStorage = async (key: string, value: string, isAuthenticated: boolean): Promise<boolean> => {
   let saved = false;
   try {
@@ -79,9 +108,14 @@ const saveToStorage = async (key: string, value: string, isAuthenticated: boolea
     saved = true;
   } catch (e) {}
 
+  // Persist across Mini App sessions via Telegram CloudStorage
+  try {
+    await cloudSetItem(key, value);
+    saved = true;
+  } catch (e) {}
+
   if (isAuthenticated) {
     try {
-      // Parse the value back to object to save to DB
       const parsed = JSON.parse(value);
       await apiService.saveFreelancerProfileDraft(parsed);
       saved = true;
@@ -119,12 +153,19 @@ const loadFromStorage = async (key: string, isAuthenticated: boolean): Promise<s
     if (sessionVal) return sessionVal;
   } catch (e) {}
 
+  // Last resort: Telegram CloudStorage (persists across Mini App sessions)
+  try {
+    const cloudVal = await cloudGetItem(key);
+    if (cloudVal) return cloudVal;
+  } catch (e) {}
+
   return null;
 };
 
 const removeFromStorage = async (key: string, isAuthenticated: boolean): Promise<void> => {
   try { localStorage.removeItem(key); } catch (e) {}
   try { sessionStorage.removeItem(key); } catch (e) {}
+  try { await cloudRemoveItem(key); } catch (e) {}
   
   if (isAuthenticated) {
     try {
