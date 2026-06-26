@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
+
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 const hpp = require("hpp");
@@ -23,7 +23,7 @@ const connectDB = require("./config/database");
 const { sanitizeInput } = require("./middleware/sanitize");
 const { initializeRedis, cacheMiddleware } = require("./middleware/cache");
 const requestTimeout = require("./middleware/timeout");
-const { createRateLimitStore } = require("./middleware/rate-limit-redis");
+
 const { metricsMiddleware, getPrometheusMetrics, recordSocketMessage, recordSocketError } = require("./middleware/metrics");
 
 // Import routes
@@ -192,68 +192,14 @@ app.use(sanitizeInput);
 // Request timeout handling (30 seconds default)
 app.use(requestTimeout(30000));
 
-// Rate limiting - Global
-// store: shared Redis counter so all pods enforce the same per-IP window
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "development" ? 2000 : 100,
-  message: {
-    message: "Too many requests from this IP, please try again later.",
-    retryAfter: "15 minutes"
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === "test",
-  store: createRateLimitStore('global'),
-});
-app.use(globalLimiter);
-
-// Stricter rate limiting for auth routes
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === "development" ? 100 : 20,
-  message: {
-    message: "Too many authentication attempts, please try again later.",
-    retryAfter: "15 minutes"
-  },
-  skipSuccessfulRequests: true,
-  store: createRateLimitStore('auth'),
-  skip: (req) => {
-    // Don't rate-limit mailbox checking or Telegram polling
-    return req.path.startsWith('/telegram-login-status/') ||
-           req.path === '/check-user' ||
-           req.path === '/check-user-by-phone';
-  },
-});
-
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === "development" ? 200 : 50,
-  message: {
-    message: "Too many file uploads, please try again later.",
-    retryAfter: "1 hour",
-  },
-  store: createRateLimitStore("upload"),
-});
-
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === "development" ? 1000 : 200,
-  message: {
-    message: "Too many API requests, please try again later.",
-    retryAfter: "15 minutes",
-  },
-  store: createRateLimitStore("api"),
-});
-
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Routes - Apply rate limiters
-app.use("/api/auth", authLimiter, authRoutes);
+// Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/upload", uploadLimiter, uploadRoutes);
+app.use("/api/upload", uploadRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/companies", companyRoutes);
 app.use("/api/blogs", blogRoutes);
