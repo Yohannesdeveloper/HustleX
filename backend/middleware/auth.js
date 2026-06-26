@@ -26,6 +26,10 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: "Token is not valid" });
     }
 
+    if (!user.currentRole) {
+      user.currentRole = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : "freelancer";
+    }
+
     console.log(
       "Auth middleware - User authenticated successfully:",
       user.email
@@ -70,6 +74,10 @@ const adminAuth = async (req, res, next) => {
       return res.status(401).json({ message: "Token is not valid" });
     }
 
+    if (!user.currentRole) {
+      user.currentRole = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : "freelancer";
+    }
+
     // Allow if ADMIN_ID matches or user has admin role
     const isEnvAdmin = process.env.ADMIN_ID && user._id.toString() === process.env.ADMIN_ID;
     const isRoleAdmin = Array.isArray(user.roles) && user.roles.includes('admin');
@@ -92,7 +100,12 @@ async function optionalAuth(req, res, next) {
     if (!token) return next();
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select("-password");
-    if (user) req.user = user;
+    if (user) {
+      if (!user.currentRole) {
+        user.currentRole = Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : "freelancer";
+      }
+      req.user = user;
+    }
   } catch (_) {
     // Token invalid/expired — continue as unauthenticated
   }
