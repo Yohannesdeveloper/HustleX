@@ -164,7 +164,7 @@ function AppContent() {
           <Route path="/api" element={<PageLayout><API /></PageLayout>} />
           <Route path="/freelancer-profile-setup" element={<FreelancerProfileWizard />} />
           <Route path="/profile-setup" element={<ProfileSetupRouter />} />
-          <Route path="/company-profile" element={<PageLayout><CompanyProfile /></PageLayout>} />
+          <Route path="/company-profile" element={<CompanyProfile />} />
 
           {/* Public SEO Profile & Landing Page Routes */}
           <Route path="/freelancers/:slug" element={<PageLayout><FreelancerProfilePage /></PageLayout>} />
