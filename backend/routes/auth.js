@@ -912,6 +912,30 @@ router.post("/profile/freelancer", auth, [
     req.user.profile = profile;
     await req.user.save();
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('freelancer_profile_updated', {
+        freelancerId: req.user._id,
+        profile: req.user.profile,
+        updatedAt: new Date()
+      });
+    }
+
+    if (req.user.telegram && req.user.telegram.id) {
+      const firstName = profile.firstName || 'there';
+      const userMsg = [
+        `✅ <b>Freelancer Profile Completed!</b>`,
+        ``,
+        `Hi <b>${firstName}</b>!`,
+        `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+        ``,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
+      sendTelegramNotification(req.user.telegram.id, userMsg);
+    }
+
     res.json({
       message: "Freelancer profile saved successfully",
       user: toAuthUserPayload(req.user),

@@ -249,7 +249,7 @@ const FreelancerProfileWizard: React.FC = () => {
       ...prev,
       firstName: p.firstName ?? prev.firstName,
       lastName: p.lastName ?? prev.lastName,
-      email: (user as any).email ?? prev.email,
+      email: p.email ?? (user as any).email ?? prev.email,
       phone: p.phone ?? prev.phone,
       location: savedLocation || prev.location,
       city: city || prev.city,
