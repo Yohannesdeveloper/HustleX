@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -203,7 +203,6 @@ const FreelancerProfileWizard: React.FC = () => {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [showSaveIndicator, setShowSaveIndicator] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(true);
-  const draftLoaded = useRef(false);
   const [profileData, setProfileData] = useState<FreelancerProfileData>({
     firstName: '',
     lastName: '',
@@ -324,8 +323,6 @@ const FreelancerProfileWizard: React.FC = () => {
           // Silently handle parse errors
         }
       }
-
-      draftLoaded.current = true;
     };
 
     loadSavedData();
@@ -339,8 +336,6 @@ const FreelancerProfileWizard: React.FC = () => {
 
   // Save profile data to storage whenever it changes (for persistence across sessions)
   useEffect(() => {
-    if (!draftLoaded.current) return;
-
     // Show saving indicator
     setIsSavingDraft(true);
     setShowSaveIndicator(true);
