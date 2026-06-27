@@ -181,7 +181,6 @@ const ApplyRedirect: React.FC = () => {
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-radius', '12');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
     script.async = true;
     document.getElementById('telegram-login-container')?.appendChild(script);
   }, [telegramAvailable, handleLoginResult, goToRegister]);

@@ -1107,65 +1107,8 @@ router.post("/telegram-login", async (req, res) => {
     const token = generateToken(user._id);
     await ensureAdminRole(user);
 
-    // Data already verified by server-side HMAC check — auto-login without
-    // pending confirmation (for both Mini App initData and Login Widget).
+    // Data already verified by server-side HMAC check — auto-login
     return res.json({ token, user: toAuthUserPayload(user) });
-
-    // ── Create pending login request & send Telegram confirmation ──
-    const loginRequestId = crypto.randomBytes(16).toString("hex");
-    await setPendingEntry(loginRequestId, {
-      telegramUserId: flatUser.id,
-      userId: user._id,
-      token,
-      user: toAuthUserPayload(user),
-      status: "pending",
-      createdAt: Date.now(),
-    });
-
-    // Send confirmation message with inline buttons to the user
-    const confirmMessage = [
-      "🔐 <b>HustleX Login Request</b>",
-      "",
-      `Hi <b>${flatUser.first_name || "there"}</b>!`,
-      "Someone is trying to log in to your HustleX account.",
-      "",
-      "👇 Tap below to confirm or decline.",
-    ].join("\n");
-
-    const inlineKeyboard = [
-      [
-        {
-          text: "✅ Confirm Login",
-          callback_data: `tglogin_confirm_${loginRequestId}`,
-        },
-        {
-          text: "❌ Decline",
-          callback_data: `tglogin_decline_${loginRequestId}`,
-        },
-      ],
-    ];
-
-    try {
-      await axios.post(
-        `https://api.telegram.org/bot${botToken}/sendMessage`,
-        {
-          chat_id: flatUser.id,
-          text: confirmMessage,
-          parse_mode: "HTML",
-          disable_web_page_preview: true,
-          reply_markup: { inline_keyboard: inlineKeyboard },
-        }
-      );
-    } catch (sendErr) {
-      console.error(
-        "Failed to send Telegram confirmation message:",
-        sendErr?.response?.data || sendErr.message
-      );
-      // If we can't send the message, fall back to immediate login
-      return res.json({ token, user: toAuthUserPayload(user) });
-    }
-
-    res.json({ loginRequestId, status: "pending" });
   } catch (error) {
     console.error("Telegram login error:", error?.response?.data || error.message);
     res.status(500).json({ message: "Server error" });
