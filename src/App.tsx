@@ -174,14 +174,7 @@ function AppContent() {
           <Route path="/jobs/:jobTitle" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
           <Route path="/skills/:skill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
 
-          <Route
-            path="/applications-management"
-            element={
-              <ProtectedRoute requireRole="client" requireProfileComplete={true}>
-                <PageLayout><ApplicationsManagementMongo /></PageLayout>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
           <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
           <Route path="/chat" element={<ChatInterface />} />
         </Routes>
