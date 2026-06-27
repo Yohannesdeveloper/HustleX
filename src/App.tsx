@@ -174,7 +174,7 @@ function AppContent() {
           <Route path="/jobs/:jobTitle" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
           <Route path="/skills/:skill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
 
-          <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
+          <Route path="/applications-management" element={<ApplicationsManagementMongo />} />
           <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
           <Route path="/chat" element={<ChatInterface />} />
         </Routes>
