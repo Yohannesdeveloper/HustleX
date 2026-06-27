@@ -959,6 +959,36 @@ router.get("/profile/freelancer", auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/auth/telegram-login
+// @desc    Handle Telegram Login Widget redirect (query params)
+// @access  Public
+router.get("/telegram-login", async (req, res) => {
+  try {
+    const telegramData = req.query;
+    const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!botToken) {
+      return res.status(500).json({ message: "Bot token missing" });
+    }
+
+    const { hash, ...dataToCheck } = telegramData;
+
+    const sortedKeys = Object.keys(dataToCheck).sort();
+    const dataCheckString = sortedKeys.map(k => `${k}=${dataToCheck[k]}`).join("\n");
+
+    const secretKey = crypto.createHash("sha256").update(botToken).digest();
+    const hmac = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+    if (hmac !== hash) {
+      return res.status(400).json({ message: "Invalid Telegram hash" });
+    }
+
+    return res.status(200).json({ ok: true, user: telegramData });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   POST /api/auth/telegram-login
 // @desc    Initiate Telegram login – sends a confirm/decline notification
 // @access  Public
@@ -1107,9 +1137,8 @@ router.post("/telegram-login", async (req, res) => {
     const token = generateToken(user._id);
     await ensureAdminRole(user);
 
-    // Data already verified by server-side HMAC check — auto-login without
-    // pending confirmation (for both Mini App initData and Login Widget).
-    return res.json({ token, user: toAuthUserPayload(user) });
+    // Send Telegram confirmation message with confirm/decline buttons
+    // (removed early return — now proceeds to create pending entry + send)
 
     // ── Create pending login request & send Telegram confirmation ──
     const loginRequestId = crypto.randomBytes(16).toString("hex");
