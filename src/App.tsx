@@ -106,7 +106,7 @@ function AppContent() {
           <Route path="/" element={<HomeFinal />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/homefinal" element={<Navigate to="/" replace />} />
-          <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
+          <Route path="/post-job" element={<PostJob />} />
           <Route path="/preview-job" element={<PageLayout><PreviewJob /></PageLayout>} />
           <Route
             path="/dashboard/hiring"
