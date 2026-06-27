@@ -878,7 +878,7 @@ router.post("/profile/freelancer", auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { firstName, lastName, email, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
+    const { firstName, lastName, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
 
     const profile = req.user.profile || {};
 
@@ -908,12 +908,6 @@ router.post("/profile/freelancer", auth, [
     profile.isProfileComplete = true;
     profile.profileCompletedAt = new Date();
 
-    if (email) {
-      const existingUser = await User.findOne({ email });
-      if (!existingUser || existingUser._id.toString() === req.user._id.toString()) {
-        req.user.email = email;
-      }
-    }
     req.user.profile = profile;
     await req.user.save();
 
