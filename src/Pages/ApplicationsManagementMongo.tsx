@@ -1220,7 +1220,7 @@ const ApplicationsManagementMongo: React.FC = () => {
             </AnimatePresence>
           </motion.div>
 
-          <div className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-3 mb-6 sm:mb-8 overflow-x-auto scrollbar-hide pb-1 sm:pb-0 -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
             {tabs.map((tab, index) => {
               const Icon = tab.icon;
               const count = tabCounts[index];
@@ -1228,7 +1228,7 @@ const ApplicationsManagementMongo: React.FC = () => {
                 <motion.button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 shadow-md font-inter tracking-tight text-xs sm:text-base ${activeTab === tab.id
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 shadow-md font-inter tracking-tight text-sm sm:text-base ${activeTab === tab.id
                     ? darkMode
                       ? "bg-white/10 text-white border-blue-500"
                       : "bg-black text-white border-blue-600"
@@ -1240,17 +1240,18 @@ const ApplicationsManagementMongo: React.FC = () => {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Icon
-                    className={`w-3.5 h-3.5 sm:w-5 sm:h-5 ${activeTab === tab.id
+                    className={`w-4 h-4 sm:w-5 sm:h-5 ${activeTab === tab.id
                       ? "text-white"
                       : darkMode
                         ? "text-gray-300"
                         : "text-gray-700"
                       }`}
                   />
-                  <span className="whitespace-nowrap">{tab.label}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                   <span
                     className={`${activeTab === tab.id ? "bg-white/20" : "bg-gray-500/20"
-                      } text-xs px-1.5 sm:px-2 py-0.5 rounded-full`}
+                      } text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full`}
                   >
                     {count}
                   </span>

@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Search,
 } from "lucide-react";
+import ApplicationsManagementMongo from "./ApplicationsManagementMongo";
 import FloatingDarkModeToggle from "../components/FloatingDarkModeToggle";
 import FindFreelancersTab from "../components/FindFreelancersTab";
 
@@ -46,6 +47,7 @@ const HiringDashboard: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<
     | "overview"
+    | "applications"
     | "jobs"
     | "freelancers"
     | "profile"
@@ -91,7 +93,7 @@ const HiringDashboard: React.FC = () => {
 
   const tabs = [
     { id: "overview" as const, label: "Overview", icon: BarChart3 },
-    { id: "applications" as const, label: "Applications", icon: Users, navigate: "/applications-management" },
+    { id: "applications" as const, label: "Applications", icon: Users },
     { id: "jobs" as const, label: "My Jobs", icon: Briefcase },
     { id: "freelancers" as const, label: "Find Freelancers", icon: Search },
     { id: "messages" as const, label: "Messages", icon: MessageSquare, navigate: "/chat" },
@@ -101,7 +103,10 @@ const HiringDashboard: React.FC = () => {
   // If redirected with tab state, default to that tab
   React.useEffect(() => {
     const state = location.state as any;
-    if (state?.tab && ["overview", "jobs", "freelancers", "profile"].includes(state.tab)) {
+    if (
+      state?.tab &&
+      ["overview", "applications", "jobs", "freelancers", "profile"].includes(state.tab)
+    ) {
       setActiveTab(state.tab);
     }
   }, [location.state]);
@@ -423,6 +428,8 @@ const HiringDashboard: React.FC = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case "applications":
+        return <ApplicationsManagementMongo />;
       case "freelancers":
         return (
           <div
@@ -619,7 +626,7 @@ const HiringDashboard: React.FC = () => {
 
                             <div className="flex flex-col sm:flex-row gap-2">
                               <button
-                                onClick={() => navigate("/applications-management")}
+                                onClick={() => setActiveTab("applications")}
                                 className={`px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:bg-blue-800 transition-all duration-300 text-sm font-medium`}
                               >
                                 View Applications (
@@ -951,9 +958,9 @@ const HiringDashboard: React.FC = () => {
                    const navPath = (tab as any).navigate as string | undefined;
                    if (navPath) {
                      navigate(navPath);
-                    } else {
-                      setActiveTab(tab.id as "overview" | "jobs" | "freelancers" | "profile");
-                    }
+                   } else {
+                     setActiveTab(tab.id as "overview" | "applications" | "jobs" | "freelancers" | "profile");
+                   }
                  }}
                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-3 sm:py-4 border-b-2 font-medium transition-all duration-300 font-inter tracking-tight text-xs sm:text-base whitespace-nowrap flex-shrink-0 ${
                    activeTab === tab.id

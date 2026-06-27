@@ -959,36 +959,6 @@ router.get("/profile/freelancer", auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/auth/telegram-login
-// @desc    Handle Telegram Login Widget redirect (query params)
-// @access  Public
-router.get("/telegram-login", async (req, res) => {
-  try {
-    const telegramData = req.query;
-    const botToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-
-    if (!botToken) {
-      return res.status(500).json({ message: "Bot token missing" });
-    }
-
-    const { hash, ...dataToCheck } = telegramData;
-
-    const sortedKeys = Object.keys(dataToCheck).sort();
-    const dataCheckString = sortedKeys.map(k => `${k}=${dataToCheck[k]}`).join("\n");
-
-    const secretKey = crypto.createHash("sha256").update(botToken).digest();
-    const hmac = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
-
-    if (hmac !== hash) {
-      return res.status(400).json({ message: "Invalid Telegram hash" });
-    }
-
-    return res.status(200).json({ ok: true, user: telegramData });
-  } catch (err) {
-    return res.status(500).json({ message: "Server error" });
-  }
-});
-
 // @route   POST /api/auth/telegram-login
 // @desc    Initiate Telegram login – sends a confirm/decline notification
 // @access  Public
@@ -1137,8 +1107,9 @@ router.post("/telegram-login", async (req, res) => {
     const token = generateToken(user._id);
     await ensureAdminRole(user);
 
-    // Send Telegram confirmation message with confirm/decline buttons
-    // (removed early return — now proceeds to create pending entry + send)
+    // Data already verified by server-side HMAC check — auto-login without
+    // pending confirmation (for both Mini App initData and Login Widget).
+    return res.json({ token, user: toAuthUserPayload(user) });
 
     // ── Create pending login request & send Telegram confirmation ──
     const loginRequestId = crypto.randomBytes(16).toString("hex");
@@ -1340,8 +1311,8 @@ router.post("/telegram-webhook", async (req, res) => {
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
           keyboard: [
-            [{ text: "👤 My Profile" }, { text: "ℹ️ About HustleX" }],
-            [{ text: "🆘 Help" }],
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
           resize_keyboard: true,
         },
@@ -1350,17 +1321,13 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /help command
-    if (text.startsWith("/help") || text === "🆘 Help") {
+    if (text.startsWith("/help") || text === "📋 Application") {
       const helpText = [
-        `🆘 <b>HustleX Bot Help</b>`,
+        `📋 <b>Applications</b>`,
         ``,
-        `<b>Commands:</b>`,
-        `/start — Start the bot and see main menu`,
-        `/help — Show this help message`,
-        `/profile — Check your profile status`,
+        `Browse and manage your job applications on HustleX.`,
         ``,
-        `<b>Login Confirmation:</b>`,
-        `When you click "Login with Telegram" on the HustleX website, this bot will send you a confirmation message with <b>Confirm</b> and <b>Decline</b> buttons.`,
+        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">My Applications</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
@@ -1371,7 +1338,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /profile command or button
-    if (text.startsWith("/profile") || text === "👤 My Profile") {
+    if (text.startsWith("/profile") || text === "👤 Profile") {
       const profileText = [
         `👤 <b>Your Profile</b>`,
         ``,
@@ -1390,8 +1357,8 @@ router.post("/telegram-webhook", async (req, res) => {
       return;
     }
 
-    // About HustleX button
-    if (text === "ℹ️ About HustleX") {
+    // About button
+    if (text === "ℹ️ About") {
       const aboutText = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
@@ -1411,6 +1378,23 @@ router.post("/telegram-webhook", async (req, res) => {
       ].join("\n");
 
       await sendMessage(chatId, aboutText, { disable_web_page_preview: true });
+      return;
+    }
+
+    // Setting button
+    if (text === "⚙️ Setting") {
+      const settingText = [
+        `⚙️ <b>Settings</b>`,
+        ``,
+        `Manage your preferences and account settings.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Settings</a>`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━`,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
+
+      await sendMessage(chatId, settingText, { disable_web_page_preview: true });
       return;
     }
 

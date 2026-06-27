@@ -106,7 +106,7 @@ function AppContent() {
           <Route path="/" element={<HomeFinal />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/homefinal" element={<Navigate to="/" replace />} />
-          <Route path="/post-job" element={<PostJob />} />
+          <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
           <Route path="/preview-job" element={<PageLayout><PreviewJob /></PageLayout>} />
           <Route
             path="/dashboard/hiring"
@@ -164,7 +164,7 @@ function AppContent() {
           <Route path="/api" element={<PageLayout><API /></PageLayout>} />
           <Route path="/freelancer-profile-setup" element={<FreelancerProfileWizard />} />
           <Route path="/profile-setup" element={<ProfileSetupRouter />} />
-          <Route path="/company-profile" element={<CompanyProfile />} />
+          <Route path="/company-profile" element={<PageLayout><CompanyProfile /></PageLayout>} />
 
           {/* Public SEO Profile & Landing Page Routes */}
           <Route path="/freelancers/:slug" element={<PageLayout><FreelancerProfilePage /></PageLayout>} />
@@ -174,7 +174,7 @@ function AppContent() {
           <Route path="/jobs/:jobTitle" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
           <Route path="/skills/:skill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
 
-          <Route path="/applications-management" element={<ApplicationsManagementMongo />} />
+          <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
           <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
           <Route path="/chat" element={<ChatInterface />} />
         </Routes>

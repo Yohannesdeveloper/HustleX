@@ -1545,13 +1545,13 @@ const PostJob: React.FC = () => {
                 >
                   {t.postJob.compensationAmountLabel}
                 </label>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex gap-2">
                   <input
                     value={compensationAmount}
                     onChange={(e) => setCompensationAmount(e.target.value)}
                     placeholder={t.postJob.addSalaryPlaceholder}
                     type="number"
-                    className={`w-full sm:flex-1 p-4 rounded-xl border ${darkMode
+                    className={`flex-1 p-4 rounded-xl border ${darkMode
                       ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
                       : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
                       } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
@@ -1559,7 +1559,7 @@ const PostJob: React.FC = () => {
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className={`w-full sm:w-28 p-4 rounded-xl border ${darkMode
+                    className={`w-32 p-4 rounded-xl border ${darkMode
                       ? "bg-black/50 border-gray-700/50 text-white"
                       : "bg-white/10 border-gray-300/50 text-black"
                       } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
