@@ -850,7 +850,6 @@ router.post("/freelancer-profile", async (req, res) => {
 router.post("/profile/freelancer", auth, [
   body("firstName").trim().notEmpty().withMessage("First name is required"),
   body("lastName").trim().notEmpty().withMessage("Last name is required"),
-  body("email").optional({ values: "falsy" }).isEmail().normalizeEmail().withMessage("Valid email is required"),
   body("phone").optional({ values: "falsy" }).trim(),
   body("location").optional({ values: "falsy" }).trim(),
   body("bio").optional({ values: "falsy" }).trim(),
@@ -879,7 +878,7 @@ router.post("/profile/freelancer", auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { firstName, lastName, email, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
+    const { firstName, lastName, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
 
     const profile = req.user.profile || {};
 
@@ -909,7 +908,6 @@ router.post("/profile/freelancer", auth, [
     profile.isProfileComplete = true;
     profile.profileCompletedAt = new Date();
 
-    if (email) req.user.email = email;
     req.user.profile = profile;
     await req.user.save();
 
