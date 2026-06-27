@@ -878,13 +878,12 @@ router.post("/profile/freelancer", auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { firstName, lastName, email, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
+    const { firstName, lastName, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
 
     const profile = req.user.profile || {};
 
     profile.firstName = firstName;
     profile.lastName = lastName;
-    if (email) profile.email = email;
     profile.phone = phone || profile.phone;
     profile.location = location || profile.location;
     profile.bio = bio || profile.bio;

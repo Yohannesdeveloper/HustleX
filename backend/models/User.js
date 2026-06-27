@@ -44,7 +44,6 @@ const userSchema = new mongoose.Schema(
       // Basic Information
       firstName: String,
       lastName: String,
-      email: String,
       dateOfBirth: String,
       gender: String,
       country: String,
