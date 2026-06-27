@@ -624,7 +624,7 @@ const Signup: React.FC = () => {
               <div className="flex items-center justify-center gap-2 mb-3">
                 <FaTelegram className="text-2xl text-[#24A1DE] animate-pulse" />
                 <span className={`font-semibold text-sm ${darkMode ? "text-sky-300" : "text-sky-700"}`}>
-                  Secure Telegram Access
+                  Secure Telegram Access (Coming Soon)
                 </span>
               </div>
               <p className={`text-xs mb-4 max-w-xs mx-auto leading-relaxed ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
