@@ -289,12 +289,17 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     cvUrl?: string;
     avatar?: string;
   }): Promise<User> {
-    const response = await axios.post(`${this.baseUrl}/auth/profile/freelancer`, profileData);
+    if (this.token) {
+      const response = await axios.post(`${this.baseUrl}/auth/profile/freelancer`, profileData);
+      return (response.data as { user: User }).user;
+    }
+    const response = await axios.post(`${this.baseUrl}/auth/freelancer-profile`, { profile: profileData });
     return (response.data as { user: User }).user;
   }
 
   /** Fetch the authenticated user's freelancer profile */
   async getFreelancerProfile(): Promise<any> {
+    if (!this.token) return null;
     const response = await axios.get(`${this.baseUrl}/auth/profile/freelancer`);
     return (response.data as { profile: any }).profile;
   }
