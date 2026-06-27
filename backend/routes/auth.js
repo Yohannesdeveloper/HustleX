@@ -844,6 +844,98 @@ router.post("/freelancer-profile", async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/profile/freelancer
+// @desc    Save freelancer profile (authenticated — uses JWT user, not email lookup)
+// @access  Private
+router.post("/profile/freelancer", auth, [
+  body("firstName").trim().notEmpty().withMessage("First name is required"),
+  body("lastName").trim().notEmpty().withMessage("Last name is required"),
+  body("email").optional({ values: "falsy" }).isEmail().normalizeEmail().withMessage("Valid email is required"),
+  body("phone").optional({ values: "falsy" }).trim(),
+  body("location").optional({ values: "falsy" }).trim(),
+  body("bio").optional({ values: "falsy" }).trim(),
+  body("education").optional({ values: "falsy" }).trim(),
+  body("experience").optional({ values: "falsy" }).trim(),
+  body("skills").optional().isArray(),
+  body("primarySkill").optional({ values: "falsy" }).trim(),
+  body("experienceLevel").optional({ values: "falsy" }).trim(),
+  body("yearsOfExperience").optional({ values: "falsy" }).trim(),
+  body("portfolioUrl").optional({ values: "falsy" }).trim(),
+  body("certifications").optional().isArray(),
+  body("availability").optional({ values: "falsy" }).trim(),
+  body("monthlyRate").optional({ values: "falsy" }).trim(),
+  body("currency").optional({ values: "falsy" }).trim(),
+  body("preferredJobTypes").optional().isArray(),
+  body("workLocation").optional({ values: "falsy" }).trim(),
+  body("linkedinUrl").optional({ values: "falsy" }).trim(),
+  body("githubUrl").optional({ values: "falsy" }).trim(),
+  body("websiteUrl").optional({ values: "falsy" }).trim(),
+  body("cvUrl").optional({ values: "falsy" }).trim(),
+  body("avatar").optional({ values: "falsy" }).trim(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { firstName, lastName, email, phone, location, bio, education, experience, skills, primarySkill, experienceLevel, yearsOfExperience, portfolioUrl, certifications, availability, monthlyRate, currency, preferredJobTypes, workLocation, linkedinUrl, githubUrl, websiteUrl, cvUrl, avatar } = req.body;
+
+    const profile = req.user.profile || {};
+
+    profile.firstName = firstName;
+    profile.lastName = lastName;
+    profile.phone = phone || profile.phone;
+    profile.location = location || profile.location;
+    profile.bio = bio || profile.bio;
+    profile.education = education || profile.education;
+    profile.experience = experience || profile.experience;
+    profile.skills = Array.isArray(skills) ? skills : (profile.skills || []);
+    profile.primarySkill = primarySkill || profile.primarySkill;
+    profile.experienceLevel = experienceLevel || profile.experienceLevel;
+    profile.yearsOfExperience = yearsOfExperience || profile.yearsOfExperience;
+    profile.portfolioUrl = portfolioUrl || profile.portfolioUrl;
+    profile.certifications = Array.isArray(certifications) ? certifications : (profile.certifications || []);
+    profile.availability = availability || profile.availability;
+    profile.monthlyRate = monthlyRate || profile.monthlyRate;
+    profile.currency = currency || profile.currency;
+    profile.preferredJobTypes = Array.isArray(preferredJobTypes) ? preferredJobTypes : (profile.preferredJobTypes || []);
+    profile.workLocation = workLocation || profile.workLocation;
+    profile.linkedinUrl = linkedinUrl || profile.linkedinUrl;
+    profile.githubUrl = githubUrl || profile.githubUrl;
+    profile.websiteUrl = websiteUrl || profile.websiteUrl;
+    profile.cvUrl = cvUrl || profile.cvUrl;
+    profile.avatar = avatar || profile.avatar;
+    profile.isProfileComplete = true;
+    profile.profileCompletedAt = new Date();
+
+    if (email) req.user.email = email;
+    req.user.profile = profile;
+    await req.user.save();
+
+    res.json({
+      message: "Freelancer profile saved successfully",
+      user: toAuthUserPayload(req.user),
+    });
+  } catch (error) {
+    console.error("Save freelancer profile (authenticated) error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/auth/profile/freelancer
+// @desc    Get freelancer profile for the authenticated user
+// @access  Private
+router.get("/profile/freelancer", auth, async (req, res) => {
+  try {
+    const profile = req.user.profile || {};
+    res.json({ profile });
+  } catch (error) {
+    console.error("Get freelancer profile error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   POST /api/auth/telegram-login
 // @desc    Initiate Telegram login – sends a confirm/decline notification
 // @access  Public
