@@ -42,6 +42,7 @@ import FreelancerProfileWizard from "./components/FreelancerProfileWizard";
 import ClientProfileWizard from "./components/ClientProfileWizard";
 import ProfileSetupRouter from "./components/ProfileSetupRouter";
 import ProtectedRoute from "./components/ProtectedRoute";
+import apiService from "./services/api";
 import RoleRouteGuard from "./components/RoleRouteGuard";
 import RoleSelection from "./Pages/RoleSelection";
 import AccountSettings from "./Pages/AccountSettings";
@@ -56,6 +57,14 @@ import ApplicationsManagementMongo from "./Pages/ApplicationsManagementMongo";
 import ForgotPasswordOtp from "./components/ForgotPasswordOtp";
 import ChatInterface from "./components/ChatInterface";
 import FloatingChatBot from "./components/FloatingChatBot";
+
+// If the user already has a token, render JobDetailsMongo directly (no
+// ApplyRedirect hop). Otherwise redirect to ApplyRedirect for auth.
+function JobAuthGuard({ children }: { children: React.ReactNode }) {
+  const { jobId } = useParams<{ jobId: string }>();
+  if (apiService.isAuthenticated()) return <>{children}</>;
+  return <Navigate to={`/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`} replace />;
+}
 
 function AppContent() {
   const dispatch = useAppDispatch();
@@ -87,11 +96,11 @@ function AppContent() {
     navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
   }, [navigate]);
 
-  // Only run checkAuth when not navigating via start_param or directly to ApplyRedirect.
-  // ApplyRedirect handles auth itself, so this would be redundant.
+  // Skip checkAuth when ApplyRedirect or JobAuthGuard handle auth themselves.
   useEffect(() => {
     if (skipAuthCheck.current) return;
     if (location.pathname.includes('ApplyRedirect')) return;
+    if (location.pathname.startsWith('/job-details/')) return;
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 
@@ -140,7 +149,7 @@ function AppContent() {
             <Route path="messages" element={null} />
           </Route>
           <Route path="/job-listings" element={<JobListings />} />
-          <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
+          <Route path="/job-details/:jobId" element={<JobAuthGuard><PageLayout><JobDetailsMongo /></PageLayout></JobAuthGuard>} />
           <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
           <Route
             path="/admin/dashboard"
