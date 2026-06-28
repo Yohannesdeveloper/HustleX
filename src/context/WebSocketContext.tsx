@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { getBackendUrlSync, getBackendUrl } from "../utils/portDetector";
 
@@ -28,23 +28,22 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [connected, setConnected] = useState(false);
+  // Use refs instead of state — prevents ANY re-render when socket connects/disconnects
+  const socketRef = useRef<Socket | null>(null);
+  const connectedRef = useRef(false);
   const callbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const messageCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const typingCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const errorCountRef = useRef<number>(0);
 
   useEffect(() => {
-    let activeSocket: Socket | null = null;
     let currentUrl = getBackendUrlSync();
 
     const connect = (url: string) => {
-      if (activeSocket) {
-        activeSocket.close();
+      if (socketRef.current) {
+        socketRef.current.close();
       }
 
-      console.log(`🔌 Connecting to WebSocket at: ${url}`);
       const newSocket = io(url, {
         transports: ["websocket", "polling"],
         reconnection: true,
@@ -60,193 +59,103 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const maxErrorLogs = 3;
 
       newSocket.on("connect", () => {
-        console.log("WebSocket connected");
-        setConnected(true);
+        connectedRef.current = true;
         errorCountRef.current = 0;
       });
 
       newSocket.on("disconnect", () => {
-        console.log("WebSocket disconnected");
-        setConnected(false);
+        connectedRef.current = false;
       });
 
       newSocket.on("connect_error", (error: any) => {
         errorCountRef.current++;
-        setConnected(false);
+        connectedRef.current = false;
 
         if (errorCountRef.current <= maxErrorLogs) {
-          if (error.message?.includes("timeout") ||
-            error.message?.includes("ECONNREFUSED")) {
+          if (error.message?.includes("timeout") || error.message?.includes("ECONNREFUSED")) {
             if (errorCountRef.current === 1) {
               console.warn("WebSocket: Backend server appears to be offline. Connection will retry automatically.");
-              console.warn("WebSocket attempted URL:", currentUrl);
             }
           } else {
             console.error("WebSocket connection error:", error.message || error);
-            console.error("WebSocket attempted URL:", currentUrl);
           }
         }
 
-        // If we detect connection errors that suggest the URL is wrong (stale port cache),
-        // try to run port detection and reconnect to the discovered backend URL.
-        // We only attempt this a limited number of times to avoid loops.
         (async () => {
           try {
-            // Only run for connect errors that look like the server is unreachable
             const msg = (error && error.message) || "";
             if (msg.includes("ECONNREFUSED") || msg.includes("timeout") || msg.includes("NetworkError")) {
               const detectedUrl = await getBackendUrl();
               if (detectedUrl && detectedUrl !== currentUrl) {
-                console.log(`🔄 Detected backend at ${detectedUrl}. Reconnecting WebSocket...`);
                 currentUrl = detectedUrl;
                 connect(detectedUrl);
               }
             }
-          } catch (e) {
-            console.warn("WebSocket port detection reconnect failed:", e);
-          }
+          } catch (e) {}
         })();
       });
 
       newSocket.on("newApplication", (data: any) => {
-        console.log("Received newApplication event:", data);
-        callbacksRef.current.forEach((callback) => {
-          try {
-            callback(data);
-          } catch (error) {
-            console.error("Error in newApplication callback:", error);
-          }
-        });
+        callbacksRef.current.forEach((cb) => { try { cb(data); } catch (e) {} });
       });
 
       newSocket.on("newMessage", (data: any) => {
-        console.log("🔔 WebSocketContext received newMessage event:", data);
-        console.log("🔔 Number of message callbacks:", messageCallbacksRef.current.size);
-        messageCallbacksRef.current.forEach((callback) => {
-          try {
-            callback(data);
-          } catch (error) {
-            console.error("Error in newMessage callback:", error);
-          }
-        });
+        messageCallbacksRef.current.forEach((cb) => { try { cb(data); } catch (e) {} });
       });
 
-      // Listen for message sent confirmation
-      newSocket.on("messageSent", (data: any) => {
-        console.log("📤 Message sent confirmation (ignored - using newMessage instead):", data?._id || data?.id);
-        // Do NOT forward to message callbacks to avoid duplicates
-        // The sender now receives newMessage event just like the receiver
-      });
+      newSocket.on("messageSent", () => {});
 
       newSocket.on("userTyping", (data: any) => {
-        typingCallbacksRef.current.forEach((callback) => {
-          try {
-            callback({ ...data, typing: true });
-          } catch (error) {
-            console.error("Error in typing callback:", error);
-          }
-        });
+        typingCallbacksRef.current.forEach((cb) => { try { cb({ ...data, typing: true }); } catch (e) {} });
       });
 
       newSocket.on("userStoppedTyping", (data: any) => {
-        typingCallbacksRef.current.forEach((callback) => {
-          try {
-            callback({ ...data, typing: false });
-          } catch (error) {
-            console.error("Error in typing callback:", error);
-          }
-        });
+        typingCallbacksRef.current.forEach((cb) => { try { cb({ ...data, typing: false }); } catch (e) {} });
       });
 
-      activeSocket = newSocket;
-      setSocket(newSocket);
+      socketRef.current = newSocket;
     };
 
-    // Initial connection
     const socketUrl = window.location.hostname.includes("devtunnels")
       ? `https://${window.location.hostname}`
       : currentUrl;
 
     connect(socketUrl);
 
-    // Detect port asynchronously and reconnect if needed
     if (!window.location.hostname.includes("devtunnels")) {
       getBackendUrl().then((detectedUrl) => {
         if (detectedUrl !== currentUrl) {
-          console.log(`🔄 WebSocket URL detected as ${detectedUrl} (was ${currentUrl}). Reconnecting...`);
           currentUrl = detectedUrl;
           connect(detectedUrl);
         }
-      }).catch((err) => {
-        console.warn("WebSocket port detection failed:", err);
-      });
+      }).catch(() => {});
     }
 
     return () => {
-      if (activeSocket) {
-        activeSocket.close();
-      }
+      if (socketRef.current) socketRef.current.close();
       callbacksRef.current.clear();
       messageCallbacksRef.current.clear();
       typingCallbacksRef.current.clear();
     };
   }, []);
 
-  const onNewApplication = useCallback((callback: (data: any) => void) => {
-    callbacksRef.current.add(callback);
+  const onNewApplication = useCallback((cb: (data: any) => void) => { callbacksRef.current.add(cb); }, []);
+  const offNewApplication = useCallback((cb: (data: any) => void) => { callbacksRef.current.delete(cb); }, []);
+  const joinUser = useCallback((userId: string) => {
+    if (socketRef.current && connectedRef.current) socketRef.current.emit("join", userId);
   }, []);
-
-  const offNewApplication = useCallback((callback: (data: any) => void) => {
-    callbacksRef.current.delete(callback);
+  const sendMessage = useCallback((data: any) => {
+    if (socketRef.current && connectedRef.current) socketRef.current.emit("sendMessage", data);
   }, []);
+  const onMessage = useCallback((cb: (data: any) => void) => { messageCallbacksRef.current.add(cb); }, []);
+  const offMessage = useCallback((cb: (data: any) => void) => { messageCallbacksRef.current.delete(cb); }, []);
+  const onTyping = useCallback((cb: (data: any) => void) => { typingCallbacksRef.current.add(cb); }, []);
+  const offTyping = useCallback((cb: (data: any) => void) => { typingCallbacksRef.current.delete(cb); }, []);
 
-  const joinUser = useCallback(
-    (userId: string) => {
-      if (socket && connected) {
-        socket.emit("join", userId);
-      }
-    },
-    [socket, connected]
-  );
-
-  const sendMessage = useCallback(
-    (data: {
-      senderId: string;
-      receiverId: string;
-      message: string;
-      conversationId: string;
-      messageType?: string;
-      voiceData?: string | null;
-      voiceDuration?: number;
-      files?: any[];
-      clientMessageId?: string;
-    }) => {
-      if (socket && connected) {
-        socket.emit("sendMessage", data);
-      }
-    },
-    [socket, connected]
-  );
-
-  const onMessage = useCallback((callback: (data: any) => void) => {
-    messageCallbacksRef.current.add(callback);
-  }, []);
-
-  const offMessage = useCallback((callback: (data: any) => void) => {
-    messageCallbacksRef.current.delete(callback);
-  }, []);
-
-  const onTyping = useCallback((callback: (data: any) => void) => {
-    typingCallbacksRef.current.add(callback);
-  }, []);
-
-  const offTyping = useCallback((callback: (data: any) => void) => {
-    typingCallbacksRef.current.delete(callback);
-  }, []);
-
+  // Value never changes reference — no re-renders ever triggered by WebSocket
   const value: WebSocketContextType = {
-    socket,
-    connected,
+    get socket() { return socketRef.current; },
+    get connected() { return connectedRef.current; },
     onNewApplication,
     offNewApplication,
     joinUser,
@@ -266,8 +175,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
 export const useWebSocket = (): WebSocketContextType => {
   const context = useContext(WebSocketContext);
-  if (context === undefined) {
-    throw new Error("useWebSocket must be used within a WebSocketProvider");
-  }
+  if (context === undefined) throw new Error("useWebSocket must be used within a WebSocketProvider");
   return context;
 };
