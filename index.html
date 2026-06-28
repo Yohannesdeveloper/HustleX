@@ -13,12 +13,12 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     try {
-      var tg = window.Telegram?.WebApp;
+      var tg = window.Telegram && window.Telegram.WebApp;
       if (tg) {
-        tg.ready();
+        if (typeof tg.ready === 'function') tg.ready();
         if (typeof tg.expand === 'function') tg.expand();
       }
-    } catch(e) { console.warn('Telegram init error:', e); }
+    } catch(e) { var c = console; c && c.warn && c.warn('Telegram init error:', e); }
   </script>
   
   <!-- Primary Meta Tags -->
