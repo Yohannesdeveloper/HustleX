@@ -246,6 +246,14 @@
     </div>
   </div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // Unregister any stale Service Worker from a previous broken build
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+      });
+    }
+  </script>
 </body>
 
 </html>
