@@ -38,6 +38,22 @@ async function sendTelegramMessage({ botToken, chatId, message, inlineKeyboard =
   return axios.post(url, payload);
 }
 
+function normalizeUsername(value) {
+  if (!value) return "";
+  return String(value).trim().replace(/^@/, "");
+}
+
+/**
+ * Builds a t.me deep link so the Apply button opens the job inside Telegram
+ * as a Mini App (mobile) or in the system browser (Desktop fallback).
+ */
+function buildMiniAppLink(jobId) {
+  const botUsername = normalizeUsername(process.env.TELEGRAM_BOT_USERNAME || "HustleXet_bot");
+  if (!botUsername || !jobId) return "";
+  const startParam = `job_${jobId}`;
+  return `https://t.me/${botUsername}?startapp=${startParam}`;
+}
+
 function escapeHtml(str) {
   if (str == null || str === "") return "";
   return String(str)
@@ -130,15 +146,15 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Primary button: web_app (opens inside Mini App WebView on all platforms).
-  // The domain MUST be configured in BotFather via /setdomain for web_app to work.
-  // Fallback button: url with the direct frontend URL (no t.me redirect).
-  const webAppUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-  const inlineKeyboard = [
-    [{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }],
-    [{ text: "🌐 Open in Browser", url: webAppUrl }],
-  ];
-  console.log("  web_app URL:", webAppUrl);
+  // Use url + t.me deep link so the button opens the Mini App WebView on
+  // mobile (Telegram intercepts t.me links). On Desktop it opens the system
+  // browser (the two-window glitch) — that's a Telegram Desktop limitation.
+  // For Desktop, configure BotFather /setdomain and switch to web_app button.
+  const tmeLink = buildMiniAppLink(jobId);
+  const inlineKeyboard = tmeLink
+    ? [[{ text: "🚀 Apply for this job", url: tmeLink }]]
+    : undefined;
+  console.log("  Inline button URL:", tmeLink || "(none)");
 
   // Send to all configured chats
   const results = await Promise.allSettled(
