@@ -76,33 +76,23 @@ function AppContent() {
     } catch(_) {}
   }, []);
 
-  // Handle start_param from channel Mini App deep link
+  // Handle start_param from channel Mini App deep link (t.me/{bot}/app?startapp=...)
   useEffect(() => {
     try {
       const tg = window.Telegram?.WebApp;
-      console.log('[App] Telegram WebApp available:', !!tg);
-      if (tg) {
-        console.log('[App] initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
-        console.log('[App] initData length:', tg.initData?.length);
-      }
+      console.log('[App] Telegram.WebApp available:', !!tg);
+      if (tg) console.log('[App] initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
       const startParam = tg?.initDataUnsafe?.start_param;
       console.log('[App] start_param:', startParam);
       if (startParam && startParam.startsWith('apply_')) {
         const jobId = startParam.replace('apply_', '');
-        console.log('[App] extracted jobId:', jobId);
         if (jobId) {
-          const redirectUrl = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-          console.log('[App] redirecting to:', redirectUrl);
-          navigate(redirectUrl, { replace: true });
-        } else {
-          console.log('[App] jobId was empty after stripping prefix');
+          const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+          console.log('[App] start_param -> redirecting:', url);
+          navigate(url, { replace: true });
         }
-      } else {
-        console.log('[App] no matching start_param found');
       }
-    } catch (e) {
-      console.error('[App] start_param handler error:', e);
-    }
+    } catch (e) { console.error('[App] start_param error:', e); }
   }, [navigate]);
 
   useEffect(() => {
