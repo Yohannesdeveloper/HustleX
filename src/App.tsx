@@ -61,7 +61,7 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const handledStartParam = useRef(false);
+  const lastStartParam = useRef<string | null>(null);
 
   useEffect(() => {
     dispatch(checkAuth());
@@ -70,20 +70,32 @@ function AppContent() {
   // When opened as a Telegram Mini App via a direct link (e.g. the "Apply for
   // this job" button uses https://t.me/<bot>?startapp=job_<jobId>), route to the
   // corresponding job so the button opens inside Telegram instead of a browser.
+  // We poll start_param to handle subsequent launches/reopens when the app is already running.
   useEffect(() => {
-    if (handledStartParam.current) return;
     const tg = window.Telegram?.WebApp;
     if (!tg) return;
     tg.ready();
     tg.expand?.();
-    const startParam = tg.initDataUnsafe?.start_param;
-    if (!startParam) return;
-    handledStartParam.current = true;
-    const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
-    if (match) {
-      const redirectPath = `/job-details/${match[1]}`;
-      navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
-    }
+
+    const checkStartParam = () => {
+      const startParam = tg.initDataUnsafe?.start_param;
+      if (startParam && startParam !== lastStartParam.current) {
+        lastStartParam.current = startParam;
+        const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
+        if (match) {
+          console.log("[App] Detected Telegram start_param change:", startParam);
+          const redirectPath = `/job-details/${match[1]}`;
+          navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
+        }
+      }
+    };
+
+    // Run check immediately on mount
+    checkStartParam();
+
+    // Poll every 1 second to catch start_param changes when the WebApp is restored/brought to front
+    const interval = setInterval(checkStartParam, 1000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   // Track page views on every route change
