@@ -155,21 +155,12 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Prefer web_app button (opens Mini App directly in Telegram — no browser window).
-  // Telegram requires HTTPS for web_app URLs. When a non-localhost URL is available,
-  // route through ApplyRedirect so the Telegram auth flow runs before the job page.
-  const isHttps = /^https:\/\//i.test(baseUrl);
-  const tmeFallback = buildMiniAppLink(jobId);
-  const applyUrl = jobId
-    ? `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`
-    : "";
-  const inlineKeyboard = applyUrl && isHttps
-    ? [[{ text: "🚀 Apply for this job", web_app: { url: applyUrl } }]]
-    : tmeFallback
-      ? [[{ text: "🚀 Apply for this job", url: tmeFallback }]]
-      : undefined;
-  console.log("  Inline button type:", isHttps ? "web_app" : "url (t.me fallback)");
-  console.log("  Inline button URL:", isHttps ? applyUrl : tmeFallback || "(none)");
+  // Use t.me deep link (always HTTPS) — Telegram rejects HTTP URLs in web_app buttons.
+  const tmeLink = buildMiniAppLink(jobId);
+  const inlineKeyboard = tmeLink
+    ? [[{ text: "🚀 Apply for this job", url: tmeLink }]]
+    : undefined;
+  console.log("  Inline button URL:", tmeLink || "(none)");
 
   // Send to all configured chats
   const results = await Promise.allSettled(
