@@ -129,16 +129,23 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // web_app button — opens in Telegram Mini App WebView on ALL platforms.
-  // Points directly to job-details — ApplyRedirect is a redirect for new users only.
-  // Returning users (with token) render job-details instantly, no intermediate hop.
-  const webAppUrl = `${baseUrl}/job-details/${jobId}`;
-  const inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }]];
-  console.log("  Web App button URL:", webAppUrl);
+  // web_app button opens in Mini App (private chats only).
+  // Channels do NOT support web_app inline buttons, so use a url button instead.
+  const jobUrl = `${baseUrl}/job-details/${jobId}`;
+  console.log("  Job URL:", jobUrl);
 
-  // Send to all configured chats
+  // Send to each chat with the correct button type for that chat
   const results = await Promise.allSettled(
-    chatIds.map((chatId) => sendTelegramMessage({ botToken, chatId, message, inlineKeyboard }))
+    chatIds.map((chatId) => {
+      // Channel chat IDs start with -100 — use URL button (opens browser)
+      const isChannel = String(chatId).startsWith("-100");
+      const button = isChannel
+        ? { text: "🚀 Apply for this job", url: jobUrl }
+        : { text: "🚀 Apply for this job", web_app: { url: jobUrl } };
+      const inlineKeyboard = [[button]];
+      console.log(`  Chat ${chatId} (${isChannel ? "channel" : "private"}): ${isChannel ? "url" : "web_app"} button`);
+      return sendTelegramMessage({ botToken, chatId, message, inlineKeyboard });
+    })
   );
 
   const okCount = results.filter((r) => r.status === "fulfilled").length;
