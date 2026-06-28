@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -58,11 +58,7 @@ import ForgotPasswordOtp from "./components/ForgotPasswordOtp";
 import ChatInterface from "./components/ChatInterface";
 import FloatingChatBot from "./components/FloatingChatBot";
 
-function JobAuthGuard({ children }: { children: React.ReactNode }) {
-  const { jobId } = useParams<{ jobId: string }>();
-  if (apiService.isAuthenticated()) return <>{children}</>;
-  return <Navigate to={`/login?redirect=${encodeURIComponent('/job-details/' + jobId)}`} replace />;
-}
+
 
 function AppContent() {
   const dispatch = useAppDispatch();
@@ -159,7 +155,7 @@ function AppContent() {
             <Route path="messages" element={null} />
           </Route>
           <Route path="/job-listings" element={<JobListings />} />
-          <Route path="/job-details/:jobId" element={<JobAuthGuard><PageLayout><JobDetailsMongo /></PageLayout></JobAuthGuard>} />
+          <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
           <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
           <Route
             path="/admin/dashboard"
