@@ -38,31 +38,6 @@ async function sendTelegramMessage({ botToken, chatId, message, inlineKeyboard =
   return axios.post(url, payload);
 }
 
-function normalizeUsername(value) {
-  if (!value) return "";
-  return String(value).trim().replace(/^@/, "");
-}
-
-/**
- * Builds a Telegram Mini App "direct link" so the Apply button opens the job
- * inside Telegram as a Mini App instead of an external browser tab.
- *
- * Format: https://t.me/<bot>/<appShortName>?startapp=<param>
- *   - <appShortName> is optional; when omitted Telegram opens the bot's Main Mini App.
- * The start parameter is read on the web side via Telegram.WebApp.initDataUnsafe.start_param.
- * Only A-Z, a-z, 0-9, _ and - are allowed in the start parameter, so a Mongo ObjectId is safe.
- */
-function buildMiniAppLink(jobId) {
-  const botUsername = normalizeUsername(process.env.TELEGRAM_BOT_USERNAME || "HustleXet_bot");
-  if (!botUsername || !jobId) return "";
-  const appShortName = normalizeUsername(process.env.TELEGRAM_MINI_APP_SHORTNAME);
-  const startParam = `job_${jobId}`;
-  const base = appShortName
-    ? `https://t.me/${botUsername}/${appShortName}`
-    : `https://t.me/${botUsername}`;
-  return `${base}?startapp=${startParam}`;
-}
-
 function escapeHtml(str) {
   if (str == null || str === "") return "";
   return String(str)
@@ -155,12 +130,13 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Use t.me deep link (always HTTPS) — Telegram rejects HTTP URLs in web_app buttons.
-  const tmeLink = buildMiniAppLink(jobId);
-  const inlineKeyboard = tmeLink
-    ? [[{ text: "🚀 Apply for this job", url: tmeLink }]]
-    : undefined;
-  console.log("  Inline button URL:", tmeLink || "(none)");
+  // Use web_app button type so the job opens inside Telegram's Mini App
+  // WebView on ALL platforms (mobile + Desktop) instead of the system browser.
+  // The domain MUST be configured in BotFather via /setdomain for web_app to work.
+  // The URL must be HTTPS — Telegram rejects HTTP URLs in web_app buttons.
+  const webAppUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+  const inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }]];
+  console.log("  web_app URL:", webAppUrl);
 
   // Send to all configured chats
   const results = await Promise.allSettled(

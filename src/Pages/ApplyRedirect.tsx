@@ -234,7 +234,7 @@ const ApplyRedirect: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#17212b' }}>
       <div className="text-center px-6 max-w-md w-full">
-        {showLoginForm && (
+        {showLoginForm ? (
           <>
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
               <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -263,9 +263,7 @@ const ApplyRedirect: React.FC = () => {
                 required
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-cyan-500 focus:outline-none"
               />
-              {loginError && (
-                <p className="text-red-400 text-sm">{loginError}</p>
-              )}
+              {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
               <button
                 type="submit"
                 disabled={loginLoading}
@@ -283,14 +281,12 @@ const ApplyRedirect: React.FC = () => {
               </button>
             </div>
           </>
-        )}
-        {!showLoginForm && telegramAvailable === null && (
+        ) : telegramAvailable === null ? (
           <>
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
             <p className="text-white text-base">{status}</p>
           </>
-        )}
-        {!showLoginForm && telegramAvailable === false && (
+        ) : telegramAvailable === false ? (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -304,8 +300,7 @@ const ApplyRedirect: React.FC = () => {
               Continue to registration instead
             </button>
           </>
-        )}
-        {!showLoginForm && telegramAvailable === true && (
+        ) : (
           <>
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
             <p className="text-white text-base">{status}</p>
