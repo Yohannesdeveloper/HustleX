@@ -140,15 +140,22 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // web_app button works in all chat types including channels — opens in Telegram Mini App WebView.
-  // Channels support web_app inline buttons as of Bot API 6.0+.
-  const middleUrl = `${baseUrl}/job-details/${jobId}`;
-  console.log("  Middle URL:", middleUrl);
-
-  const inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: middleUrl } }]];
+  const botUsername = (process.env.TELEGRAM_BOT_USERNAME || 'HustleXet_bot').replace(/^@/, '');
+  const jobUrl = `${baseUrl}/job-details/${jobId}`;
+  const channelMiniAppUrl = `https://t.me/${botUsername}/app?startapp=apply_${jobId}`;
+  console.log("  Job URL:", jobUrl);
+  console.log("  Channel Mini App URL:", channelMiniAppUrl);
 
   const results = await Promise.allSettled(
-    chatIds.map((chatId) => sendTelegramMessage({ botToken, chatId, message, inlineKeyboard }))
+    chatIds.map((chatId) => {
+      const isChannel = String(chatId).startsWith("-100") || String(chatId).startsWith("@");
+      const button = isChannel
+        ? { text: "🚀 Apply for this job", url: channelMiniAppUrl }
+        : { text: "🚀 Apply for this job", web_app: { url: jobUrl } };
+      const inlineKeyboard = [[button]];
+      console.log(`  Chat ${chatId} (${isChannel ? "channel" : "private"}): ${isChannel ? "t.me(mini-app)" : "web_app"} button`);
+      return sendTelegramMessage({ botToken, chatId, message, inlineKeyboard });
+    })
   );
 
   const okCount = results.filter((r) => r.status === "fulfilled").length;
