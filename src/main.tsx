@@ -27,3 +27,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </HelmetProvider>
 );
+
+// Remove splash screen once React has rendered
+requestAnimationFrame(() => {
+  const splash = document.getElementById("splash");
+  if (splash) splash.remove();
+});
