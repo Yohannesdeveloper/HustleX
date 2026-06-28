@@ -85,7 +85,7 @@ function AppContent() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const tg = window.Telegram?.WebApp;
-    if (!tg) return;
+    if (!tg?.initData) return; // Only act inside real Telegram WebApp context
     try { tg.ready(); } catch(e) {}
     try { if (typeof tg.expand === 'function') tg.expand(); } catch(e) {}
 
@@ -97,16 +97,14 @@ function AppContent() {
 
     const jobId = match[1];
     skipAuthCheck.current = true;
-    console.log("[App] Routing to job from Telegram start_param:", jobId);
     const redirectPath = `/job-details/${jobId}`;
     navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
   }, [navigate]);
 
-  // Skip checkAuth when ApplyRedirect or JobAuthGuard handle auth themselves.
+  // Skip checkAuth when ApplyRedirect handles auth itself.
   useEffect(() => {
     if (skipAuthCheck.current) return;
     if (location.pathname.includes('ApplyRedirect')) return;
-    if (location.pathname.startsWith('/job-details/')) return;
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 
