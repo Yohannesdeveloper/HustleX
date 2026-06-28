@@ -72,14 +72,16 @@ function AppContent() {
   const navigate = useNavigate();
   const skipAuthCheck = useRef(false);
 
-  // Always call tg.ready()/tg.expand() if Telegram is available (fallback
-  // in case the inline script in index.html ran before the SDK loaded).
+  // Fallback: dismiss Navy screen if the inline script in index.html missed it
+  // (e.g., SDK loaded after the inline block ran).
   useEffect(() => {
     try {
-      var _tg2 = window.Telegram && window.Telegram.WebApp;
-      if (_tg2 && typeof _tg2.ready === 'function') _tg2.ready();
-      if (_tg2 && typeof _tg2.expand === 'function') _tg2.expand();
-    } catch(e) {}
+      var _tw = window.Telegram && window.Telegram.WebApp;
+      if (_tw) {
+        if (typeof _tw.ready === 'function') _tw.ready();
+        try { if (typeof _tw.expand === 'function') _tw.expand(); } catch(_) {}
+      }
+    } catch(_) {}
   }, []);
 
   // When opened as a Telegram Mini App via start_param (e.g. clicking
