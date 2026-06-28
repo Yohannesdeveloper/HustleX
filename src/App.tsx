@@ -78,26 +78,23 @@ function AppContent() {
     } catch(_) {}
   }, []);
 
-  // When opened as a Telegram Mini App via start_param (e.g. clicking
-  // "Apply for this job" sends https://t.me/<bot>?startapp=job_<jobId>),
-  // route to ApplyRedirect so the Telegram auth flow runs before the job page.
-  // Skip checkAuth here — ApplyRedirect handles auth itself.
+  // Telegram Mini App: only redirect when running inside a real Telegram WebApp
+  // (initData is a non-empty string populated by Telegram's native client).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const tg = window.Telegram?.WebApp;
-    if (!tg?.initData) return; // Only act inside real Telegram WebApp context
-    try { tg.ready(); } catch(e) {}
-    try { if (typeof tg.expand === 'function') tg.expand(); } catch(e) {}
+    const initData = tg?.initData;
+    // Guard: must be a non-empty string AND contain 'user=' (real Telegram data)
+    if (!initData || typeof initData !== 'string' || !initData.includes('user=')) return;
 
-    const startParam = tg.initDataUnsafe?.start_param;
+    const startParam = tg?.initDataUnsafe?.start_param;
     if (!startParam) return;
 
     const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
     if (!match) return;
 
-    const jobId = match[1];
     skipAuthCheck.current = true;
-    const redirectPath = `/job-details/${jobId}`;
+    const redirectPath = `/job-details/${match[1]}`;
     navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
   }, [navigate]);
 
