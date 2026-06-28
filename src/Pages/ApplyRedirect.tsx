@@ -109,6 +109,7 @@ const ApplyRedirect: React.FC = () => {
     const tg = window.Telegram?.WebApp;
     console.log("[ApplyRedirect] window.Telegram?.WebApp:", !!tg);
     if (tg) {
+      tg.ready?.();
       console.log("[ApplyRedirect] tg.initData:", tg.initData ? tg.initData.substring(0, 80) + '...' : '(empty)');
       console.log("[ApplyRedirect] tg.initDataUnsafe:", tg.initDataUnsafe);
     }
@@ -134,8 +135,16 @@ const ApplyRedirect: React.FC = () => {
 
     if (tg) {
       console.log("[ApplyRedirect] Telegram WebApp exists but initData is empty");
-      setTelegramAvailable(true);
-      setStatus("Telegram context found but no init data");
+      if (retryCount.current < MAX_RETRIES) {
+        retryCount.current++;
+        console.log("[ApplyRedirect] retry (empty initData)", retryCount.current, "of", MAX_RETRIES);
+        setStatus(`Initializing Telegram... (${retryCount.current})`);
+        setTimeout(doLogin, 400);
+        return;
+      }
+      console.log("[ApplyRedirect] Telegram WebApp exists but initData remained empty after retries, showing Login Widget");
+      setTelegramAvailable(false);
+      setStatus("Log in with Telegram to continue");
       return;
     }
 
