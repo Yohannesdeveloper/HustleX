@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -60,9 +60,7 @@ import FloatingChatBot from "./components/FloatingChatBot";
 function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const navigate = useNavigate();
   console.log('[App] render - pathname:', location.pathname);
-
 
   // Fallback: dismiss Navy screen if the inline script in index.html missed it
   // (e.g., SDK loaded after the inline block ran).
@@ -76,15 +74,14 @@ function AppContent() {
     } catch(_) {}
   }, []);
 
-  // Skip checkAuth on auth/job pages — handled by the components themselves.
   useEffect(() => {
-    console.log('[App] checkAuth effect fired - pathname:', location.pathname);
+    console.log('[App] checkAuth effect - pathname:', location.pathname);
     if (location.pathname.includes('ApplyRedirect')) {
-      console.log('[App] SKIP checkAuth — ApplyRedirect page');
+      console.log('[App] SKIP checkAuth — ApplyRedirect');
       return;
     }
     if (location.pathname.startsWith('/job-details/')) {
-      console.log('[App] SKIP checkAuth — job-details page');
+      console.log('[App] SKIP checkAuth — job-details');
       return;
     }
     console.log('[App] DISPATCH checkAuth');
@@ -99,12 +96,12 @@ function AppContent() {
 
   return (
     <WebSocketProvider>
-      {/* job-details OUTSIDE RoleRouteGuard — no redirects, no auth checks */}
       <Routes>
+        {/* Job details: completely public — outside RoleRouteGuard */}
         <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
-      </Routes>
-      <RoleRouteGuard>
-        <Routes>
+        <Route path="*" element={
+          <RoleRouteGuard>
+            <Routes>
           <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Signup />} />
@@ -185,11 +182,10 @@ function AppContent() {
           <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
           <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
           <Route path="/chat" element={<ChatInterface />} />
-        </Routes>
-      </RoleRouteGuard>
-
-      {/* Global Floating Components */}
-      {/* Floating components moved into their relevant parents (e.g. Navbar) */}
+            </Routes>
+          </RoleRouteGuard>
+        } />
+      </Routes>
     </WebSocketProvider>
   );
 }

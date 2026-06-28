@@ -38,7 +38,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // If user has no roles assigned, redirect to role selection
   // (unless already on a setup/auth page to avoid loops)
   if ((!user.roles || user.roles.length === 0) && !isSetupPage) {
-    console.log('[RoleRouteGuard] REDIRECT to /select-role — no roles, path:', currentPath);
+    console.log('[RoleRouteGuard] REDIRECT no roles → /select-role, path:', currentPath);
     return <Navigate to="/select-role" replace state={{ redirectPath: currentPath }} />;
   }
 
@@ -74,10 +74,9 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
       }
 
       if (profileIncomplete) {
-        console.log('[RoleRouteGuard] REDIRECT to /signup — profile incomplete, path:', currentPath);
-        // Log them out and redirect to signup
-        logout();
-        return <Navigate to="/signup" replace />;
+        console.log('[RoleRouteGuard] REDIRECT profile incomplete → setup, path:', currentPath);
+        const setupPath = currentRole === "client" ? "/profile-setup?role=client" : "/profile-setup?role=freelancer";
+        return <Navigate to={setupPath} replace />;
       }
     }
   }
@@ -96,6 +95,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (onHiringDashboard && activeRole !== "client") {
     const target = dashboardPathForRole(activeRole);
     if (target) {
+      console.log('[RoleRouteGuard] REDIRECT dashboard mismatch →', target);
       return <Navigate to={target} replace state={{ roleGuard: true }} />;
     }
   }
@@ -103,6 +103,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (onFreelancerDashboard && activeRole !== "freelancer") {
     const target = dashboardPathForRole(activeRole);
     if (target) {
+      console.log('[RoleRouteGuard] REDIRECT dashboard mismatch →', target);
       return <Navigate to={target} replace state={{ roleGuard: true }} />;
     }
   }
