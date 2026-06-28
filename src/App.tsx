@@ -61,6 +61,8 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  console.log('[App] render - pathname:', location.pathname);
+
 
   // Fallback: dismiss Navy screen if the inline script in index.html missed it
   // (e.g., SDK loaded after the inline block ran).
@@ -76,8 +78,16 @@ function AppContent() {
 
   // Skip checkAuth on auth/job pages — handled by the components themselves.
   useEffect(() => {
-    if (location.pathname.includes('ApplyRedirect')) return;
-    if (location.pathname.startsWith('/job-details/')) return;
+    console.log('[App] checkAuth effect fired - pathname:', location.pathname);
+    if (location.pathname.includes('ApplyRedirect')) {
+      console.log('[App] SKIP checkAuth — ApplyRedirect page');
+      return;
+    }
+    if (location.pathname.startsWith('/job-details/')) {
+      console.log('[App] SKIP checkAuth — job-details page');
+      return;
+    }
+    console.log('[App] DISPATCH checkAuth');
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 

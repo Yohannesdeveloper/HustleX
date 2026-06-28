@@ -162,6 +162,8 @@ const JobDetailsMongo: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  console.log('[JobDetailsMongo] render - jobId:', jobId, 'pathname:', location.pathname);
+
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const { onNewApplication, offNewApplication } = useWebSocket();
   const cachedJob = getCachedJob(jobId);

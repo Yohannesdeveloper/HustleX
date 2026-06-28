@@ -13,6 +13,8 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isAuthenticated, user, loading, logout } = useAuth();
   const location = useLocation();
 
+  console.log('[RoleRouteGuard] render - pathname:', location.pathname, 'isAuthenticated:', isAuthenticated, 'loading:', loading, 'user:', !!user);
+
   if (loading || !isAuthenticated || !user) {
     return <>{children}</>;
   }
@@ -36,6 +38,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
   // If user has no roles assigned, redirect to role selection
   // (unless already on a setup/auth page to avoid loops)
   if ((!user.roles || user.roles.length === 0) && !isSetupPage) {
+    console.log('[RoleRouteGuard] REDIRECT to /select-role — no roles, path:', currentPath);
     return <Navigate to="/select-role" replace state={{ redirectPath: currentPath }} />;
   }
 
@@ -71,6 +74,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
       }
 
       if (profileIncomplete) {
+        console.log('[RoleRouteGuard] REDIRECT to /signup — profile incomplete, path:', currentPath);
         // Log them out and redirect to signup
         logout();
         return <Navigate to="/signup" replace />;
