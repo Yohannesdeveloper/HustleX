@@ -61,7 +61,6 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const lastStartParam = useRef<string | null>(null);
 
   useEffect(() => {
     dispatch(checkAuth());
@@ -70,33 +69,32 @@ function AppContent() {
   // When opened as a Telegram Mini App via a direct link (e.g. the "Apply for
   // this job" button uses https://t.me/<bot>?startapp=job_<jobId>), route to the
   // corresponding job so the button opens inside Telegram instead of a browser.
-  // We poll start_param to handle subsequent launches/reopens when the app is already running.
+  // We poll start_param and initData to handle subsequent launches/reopens reactively
+  // while avoiding loops on page refreshes.
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (!tg) return;
     tg.ready();
     tg.expand?.();
 
-    const checkStartParam = () => {
-      const startParam = tg.initDataUnsafe?.start_param;
-      if (startParam && startParam !== lastStartParam.current) {
-        lastStartParam.current = startParam;
-        const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
-        if (match) {
-          console.log("[App] Detected Telegram start_param change:", startParam);
-          const redirectPath = `/job-details/${match[1]}`;
-          navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
-        }
-      }
-    };
+    const startParam = tg.initDataUnsafe?.start_param;
+    if (!startParam) return;
 
-    // Run check immediately on mount
-    checkStartParam();
+    const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
+    if (!match) return;
 
-    // Poll every 1 second to catch start_param changes when the WebApp is restored/brought to front
-    const interval = setInterval(checkStartParam, 1000);
-    return () => clearInterval(interval);
+    const jobId = match[1];
+    // Only redirect if this is a different job than the last one we routed to,
+    // or if we haven't routed to any job yet this session.
+    const lastRoutedJob = sessionStorage.getItem('lastRoutedJobId');
+    if (jobId !== lastRoutedJob) {
+      sessionStorage.setItem('lastRoutedJobId', jobId);
+      console.log("[App] Routing to job from Telegram start_param:", jobId);
+      const redirectPath = `/job-details/${jobId}`;
+      navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
+    }
   }, [navigate]);
+
 
   // Track page views on every route change
   useEffect(() => {

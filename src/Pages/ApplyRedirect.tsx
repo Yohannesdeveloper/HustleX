@@ -167,9 +167,11 @@ const ApplyRedirect: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      sessionStorage.removeItem('pendingJobRedirect');
+      // Clear lastRoutedJobId so re-clicking the same job in Telegram will work
+      sessionStorage.removeItem('lastRoutedJobId');
     };
   }, []);
+
 
   useEffect(() => {
     if (telegramAvailable !== false) return;
