@@ -19,13 +19,11 @@ if (GA_MEASUREMENT_ID) {
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <HelmetProvider>
-      <BrowserRouter>
-        <Provider store={store}>
-          <App />
-        </Provider>
-      </BrowserRouter>
-    </HelmetProvider>
-  </React.StrictMode>
+  <HelmetProvider>
+    <BrowserRouter>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </BrowserRouter>
+  </HelmetProvider>
 );
