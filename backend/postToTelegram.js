@@ -38,6 +38,22 @@ async function sendTelegramMessage({ botToken, chatId, message, inlineKeyboard =
   return axios.post(url, payload);
 }
 
+function normalizeUsername(value) {
+  if (!value) return "";
+  return String(value).trim().replace(/^@/, "");
+}
+
+/**
+ * Builds a t.me deep link for the job so the button opens the Mini App
+ * on mobile (or the browser on Desktop as fallback).
+ */
+function buildMiniAppLink(jobId) {
+  const botUsername = normalizeUsername(process.env.TELEGRAM_BOT_USERNAME || "HustleXet_bot");
+  if (!botUsername || !jobId) return "";
+  const startParam = `job_${jobId}`;
+  return `https://t.me/${botUsername}?startapp=${startParam}`;
+}
+
 function escapeHtml(str) {
   if (str == null || str === "") return "";
   return String(str)
@@ -130,13 +146,17 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Use web_app button type so the job opens inside Telegram's Mini App
-  // WebView on ALL platforms (mobile + Desktop) instead of the system browser.
+  // Primary button: web_app (opens inside Mini App WebView on all platforms).
   // The domain MUST be configured in BotFather via /setdomain for web_app to work.
-  // The URL must be HTTPS — Telegram rejects HTTP URLs in web_app buttons.
+  // Fallback button: url + t.me deep link (opens Mini App on mobile, browser on Desktop).
   const webAppUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-  const inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }]];
+  const tmeLink = buildMiniAppLink(jobId);
+  const inlineKeyboard = [
+    [{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }],
+    [{ text: "📱 Open in Telegram", url: tmeLink }],
+  ];
   console.log("  web_app URL:", webAppUrl);
+  console.log("  t.me fallback URL:", tmeLink);
 
   // Send to all configured chats
   const results = await Promise.allSettled(
