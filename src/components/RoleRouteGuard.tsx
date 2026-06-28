@@ -71,9 +71,8 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
       }
 
       if (profileIncomplete) {
-        // Log them out and redirect to signup
-        logout();
-        return <Navigate to="/signup" replace />;
+        const setupPath = currentRole === "client" ? "/profile-setup?role=client" : "/profile-setup?role=freelancer";
+        return <Navigate to={setupPath} replace />;
       }
     }
   }

@@ -859,7 +859,7 @@ const FreelancingDashboard: React.FC = () => {
 
                       <div className="flex flex-col sm:flex-row gap-2">
                         <motion.button
-                          onClick={() => { window.location.href = `/job-details/${job._id}`; }}
+                          onClick={() => navigate(`/job-details/${job._id}`)}
                           className={`px-4 py-2 border ${darkMode
                             ? "border-white/20 hover:bg-white/10"
                             : "border-black/20 hover:bg-gray-50"
@@ -870,7 +870,7 @@ const FreelancingDashboard: React.FC = () => {
                           View Details
                         </motion.button>
                         <motion.button
-                          onClick={() => { window.location.href = `/job-details/${job._id}`; }}
+                          onClick={() => navigate(`/job-details/${job._id}`)}
                           className={`px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:bg-blue-800 transition-all duration-300 text-sm font-medium`}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
