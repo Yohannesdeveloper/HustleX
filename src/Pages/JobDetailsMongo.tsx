@@ -333,6 +333,12 @@ const JobDetailsMongo: React.FC = () => {
       alert("Job information not available. Please refresh the page.");
       return;
     }
+
+    if (userRole === "guest" || !currentUser) {
+      navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
+      return;
+    }
+
     if (currentUser && job.postedBy?._id === currentUser.id) {
       alert("You cannot apply to your own job posting.");
       return;
@@ -1378,7 +1384,7 @@ const JobDetailsMongo: React.FC = () => {
                           : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 hover:scale-105 shadow-cyan-500/25 hover:shadow-cyan-400/40"
                       } ${darkMode ? "text-white" : "text-black"}`}
                     >
-                      {applied ? "Application Sent" : "Apply Now"}
+                      {applied ? "Application Sent" : userRole === "guest" ? "Sign in to Apply" : "Apply Now"}
                     </button>
                     <p
                       className={`text-center text-sm font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
