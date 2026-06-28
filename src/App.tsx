@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
@@ -42,7 +42,6 @@ import FreelancerProfileWizard from "./components/FreelancerProfileWizard";
 import ClientProfileWizard from "./components/ClientProfileWizard";
 import ProfileSetupRouter from "./components/ProfileSetupRouter";
 import ProtectedRoute from "./components/ProtectedRoute";
-import apiService from "./services/api";
 import RoleRouteGuard from "./components/RoleRouteGuard";
 import RoleSelection from "./Pages/RoleSelection";
 import AccountSettings from "./Pages/AccountSettings";
@@ -51,6 +50,8 @@ import FreelancerProfilePage from "./Pages/FreelancerProfilePage";
 import ClientProfilePage from "./Pages/ClientProfilePage";
 import ProgrammaticSEOPage from "./Pages/ProgrammaticSEOPage";
 import FreelancerApplicationsManagement from "./Pages/FreelancerApplicationsManagement";
+
+
 import ApplicationsManagementMongo from "./Pages/ApplicationsManagementMongo";
 import ForgotPasswordOtp from "./components/ForgotPasswordOtp";
 import ChatInterface from "./components/ChatInterface";
@@ -60,8 +61,9 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const skipAuthCheck = useRef(false);
 
+  // Fallback: dismiss Navy screen if the inline script in index.html missed it
+  // (e.g., SDK loaded after the inline block ran).
   useEffect(() => {
     try {
       var _tw = window.Telegram && window.Telegram.WebApp;
@@ -72,27 +74,14 @@ function AppContent() {
     } catch(_) {}
   }, []);
 
+  // Skip checkAuth on auth/job pages — handled by the components themselves.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const tg = window.Telegram?.WebApp;
-    const initData = tg?.initData;
-    if (!initData || typeof initData !== 'string' || !initData.includes('user=')) return;
-    const startParam = tg?.initDataUnsafe?.start_param;
-    if (!startParam) return;
-    const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
-    if (!match) return;
-    skipAuthCheck.current = true;
-    const redirectPath = `/job-details/${match[1]}`;
-    navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
-  }, [navigate]);
-
-  useEffect(() => {
-    if (skipAuthCheck.current) return;
     if (location.pathname.includes('ApplyRedirect')) return;
     if (location.pathname.startsWith('/job-details/')) return;
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 
+  // Track page views on every route change
   useEffect(() => {
     const path = location.pathname + location.search;
     ReactGA.send({ hitType: "pageview", page: path });
@@ -100,94 +89,94 @@ function AppContent() {
 
   return (
     <WebSocketProvider>
-      <Routes>
-        {/* Job details: completely isolated — no RoleRouteGuard, no auth wrapper */}
-        <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
+      <RoleRouteGuard>
+        <Routes>
+          <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Signup />} />
+          <Route path="/select-role" element={<RoleSelection />} />
+          <Route path="/register" element={<RegistrationPage />} />
+          <Route path="/Register" element={<RegistrationPage />} />
+          <Route path="/ApplyRedirect" element={<ApplyRedirect />} />
+          <Route path="/" element={<HomeFinal />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="/homefinal" element={<Navigate to="/" replace />} />
+          <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
+          <Route path="/preview-job" element={<PageLayout><PreviewJob /></PageLayout>} />
+          <Route
+            path="/dashboard/hiring"
+            element={
+              <ProtectedRoute requireRole="client" requireProfileComplete={true}>
+                <Hiringdashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/freelancer"
+            element={
+              <ProtectedRoute requireRole="freelancer" requireProfileComplete={true}>
+                <FreelancingDashboard />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={null} />
+            <Route path="browse-jobs" element={null} />
+            <Route path="my-applications" element={null} />
+            <Route path="messages" element={null} />
+          </Route>
+          <Route path="/job-listings" element={<JobListings />} />
+          <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
+          <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute requireRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/admin/blog" element={<PageLayout><BlogAdmin /></PageLayout>} />
+          <Route path="/admin/job" element={<PageLayout><JobAdmin /></PageLayout>} />
+          <Route path="/admin/subscriptions" element={<PageLayout><SubscriptionAdmin /></PageLayout>} />
+          <Route path="/jobs/moderation" element={<PageLayout><JobModeration /></PageLayout>} />
+          <Route path="/blog/post" element={
+            <ProtectedRoute requireRole="admin">
+              <PageLayout><BlogPost /></PageLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/blog" element={<PageLayout><Blog /></PageLayout>} />
+          <Route path="/blog/:id" element={<PageLayout><BlogPostView /></PageLayout>} />
+          <Route path="/blog/edit/:id" element={<PageLayout><EditBlog /></PageLayout>} />
+          <Route path="/HowItWorks" element={<PageLayout><HowItWorks /></PageLayout>} />
+          <Route path="/about-us" element={<PageLayout><AboutUs /></PageLayout>} />
+          <Route path="/contact-us" element={<PageLayout><ContactUs /></PageLayout>} />
+          <Route path="/faq" element={<PageLayout><FAQ /></PageLayout>} />
+          <Route path="/help-center" element={<PageLayout><HelpCenter /></PageLayout>} />
+          <Route path="/pricing" element={<PageLayout><Pricing /></PageLayout>} />
 
-        {/* All other routes go through RoleRouteGuard */}
-        <Route path="*" element={
-          <RoleRouteGuard>
-            <Routes>
-              <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/login" element={<Signup />} />
-              <Route path="/select-role" element={<RoleSelection />} />
-              <Route path="/register" element={<RegistrationPage />} />
-              <Route path="/Register" element={<RegistrationPage />} />
-              <Route path="/ApplyRedirect" element={<ApplyRedirect />} />
-              <Route path="/" element={<HomeFinal />} />
-              <Route path="/home" element={<Navigate to="/" replace />} />
-              <Route path="/homefinal" element={<Navigate to="/" replace />} />
-              <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
-              <Route path="/preview-job" element={<PageLayout><PreviewJob /></PageLayout>} />
-              <Route
-                path="/dashboard/hiring"
-                element={
-                  <ProtectedRoute requireRole="client" requireProfileComplete={true}>
-                    <Hiringdashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard/freelancer"
-                element={
-                  <ProtectedRoute requireRole="freelancer" requireProfileComplete={true}>
-                    <FreelancingDashboard />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="overview" replace />} />
-                <Route path="overview" element={null} />
-                <Route path="browse-jobs" element={null} />
-                <Route path="my-applications" element={null} />
-                <Route path="messages" element={null} />
-              </Route>
-              <Route path="/job-listings" element={<JobListings />} />
-              <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute requireRole="admin">
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/admin/blog" element={<PageLayout><BlogAdmin /></PageLayout>} />
-              <Route path="/admin/job" element={<PageLayout><JobAdmin /></PageLayout>} />
-              <Route path="/admin/subscriptions" element={<PageLayout><SubscriptionAdmin /></PageLayout>} />
-              <Route path="/jobs/moderation" element={<PageLayout><JobModeration /></PageLayout>} />
-              <Route path="/blog/post" element={
-                <ProtectedRoute requireRole="admin">
-                  <PageLayout><BlogPost /></PageLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/blog" element={<PageLayout><Blog /></PageLayout>} />
-              <Route path="/blog/:id" element={<PageLayout><BlogPostView /></PageLayout>} />
-              <Route path="/blog/edit/:id" element={<PageLayout><EditBlog /></PageLayout>} />
-              <Route path="/HowItWorks" element={<PageLayout><HowItWorks /></PageLayout>} />
-              <Route path="/about-us" element={<PageLayout><AboutUs /></PageLayout>} />
-              <Route path="/contact-us" element={<PageLayout><ContactUs /></PageLayout>} />
-              <Route path="/faq" element={<PageLayout><FAQ /></PageLayout>} />
-              <Route path="/help-center" element={<PageLayout><HelpCenter /></PageLayout>} />
-              <Route path="/pricing" element={<PageLayout><Pricing /></PageLayout>} />
-              <Route path="/payment-wizard" element={<PaymentWizard />} />
-              <Route path="/api" element={<PageLayout><API /></PageLayout>} />
-              <Route path="/freelancer-profile-setup" element={<FreelancerProfileWizard />} />
-              <Route path="/profile-setup" element={<ProfileSetupRouter />} />
-              <Route path="/company-profile" element={<PageLayout><CompanyProfile /></PageLayout>} />
-              <Route path="/freelancers/:slug" element={<PageLayout><FreelancerProfilePage /></PageLayout>} />
-              <Route path="/clients/:slug" element={<PageLayout><ClientProfilePage /></PageLayout>} />
-              <Route path="/hire-:skill-developers" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
-              <Route path="/freelancers/:locationOrSkill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
-              <Route path="/jobs/:jobTitle" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
-              <Route path="/skills/:skill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
-              <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
-              <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
-              <Route path="/chat" element={<ChatInterface />} />
-            </Routes>
-          </RoleRouteGuard>
-        } />
-      </Routes>
+          <Route path="/payment-wizard" element={<PaymentWizard />} />
+          <Route path="/api" element={<PageLayout><API /></PageLayout>} />
+          <Route path="/freelancer-profile-setup" element={<FreelancerProfileWizard />} />
+          <Route path="/profile-setup" element={<ProfileSetupRouter />} />
+          <Route path="/company-profile" element={<PageLayout><CompanyProfile /></PageLayout>} />
+
+          {/* Public SEO Profile & Landing Page Routes */}
+          <Route path="/freelancers/:slug" element={<PageLayout><FreelancerProfilePage /></PageLayout>} />
+          <Route path="/clients/:slug" element={<PageLayout><ClientProfilePage /></PageLayout>} />
+          <Route path="/hire-:skill-developers" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
+          <Route path="/freelancers/:locationOrSkill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
+          <Route path="/jobs/:jobTitle" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
+          <Route path="/skills/:skill" element={<PageLayout><ProgrammaticSEOPage /></PageLayout>} />
+
+          <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
+          <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
+          <Route path="/chat" element={<ChatInterface />} />
+        </Routes>
+      </RoleRouteGuard>
+
+      {/* Global Floating Components */}
+      {/* Floating components moved into their relevant parents (e.g. Navbar) */}
     </WebSocketProvider>
   );
 }
