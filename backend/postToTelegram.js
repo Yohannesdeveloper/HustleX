@@ -130,12 +130,12 @@ async function postJobToTelegram(job) {
 
   const message = lines.join("\n");
 
-  // Direct URL — no t.me redirect, no Mini App SDK needed.
-  // Opens directly in the browser (Desktop) or Telegram's in-app browser (mobile).
-  // This is the fastest path — no redirect chain, no start_param detection delay.
-  const directUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-  const inlineKeyboard = [[{ text: "🚀 Apply for this job", url: directUrl }]];
-  console.log("  Direct button URL:", directUrl);
+  // web_app button — opens in Telegram Mini App WebView on ALL platforms.
+  // No system browser, no two-window glitch on Desktop.
+  // Requires BotFather /setdomain to whitelist the domain.
+  const webAppUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+  const inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }]];
+  console.log("  Web App button URL:", webAppUrl);
 
   // Send to all configured chats
   const results = await Promise.allSettled(
