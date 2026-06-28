@@ -89,6 +89,10 @@ function AppContent() {
 
   return (
     <WebSocketProvider>
+      {/* job-details OUTSIDE RoleRouteGuard — no redirects, no auth checks */}
+      <Routes>
+        <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
+      </Routes>
       <RoleRouteGuard>
         <Routes>
           <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
@@ -126,7 +130,6 @@ function AppContent() {
             <Route path="messages" element={null} />
           </Route>
           <Route path="/job-listings" element={<JobListings />} />
-          <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
           <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
           <Route
             path="/admin/dashboard"
