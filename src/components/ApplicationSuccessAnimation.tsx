@@ -14,7 +14,7 @@ const ApplicationSuccessAnimation: React.FC<ApplicationSuccessAnimationProps> = 
     darkMode,
 }) => {
     return (
-        <AnimatePresence onExitComplete={onComplete}>
+        <AnimatePresence>
             {isVisible && (
                 <motion.div
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
@@ -98,6 +98,7 @@ const ApplicationSuccessAnimation: React.FC<ApplicationSuccessAnimationProps> = 
                                 initial={{ width: "0%" }}
                                 animate={{ width: "100%" }}
                                 transition={{ delay: 1.8, duration: 1.5 }}
+                                onAnimationComplete={onComplete}
                             />
                         </div>
                     </motion.div>

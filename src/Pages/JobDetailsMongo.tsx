@@ -448,8 +448,6 @@ const JobDetailsMongo: React.FC = () => {
       setCvFile(null);
       setPortfolioLink("");
       setShowApplicationForm(false);
-
-      // Show animation instead of alert
       setShowSuccessAnimation(true);
     } catch (error: any) {
       console.error("Full error object:", error);
@@ -1863,7 +1861,14 @@ const JobDetailsMongo: React.FC = () => {
       <ApplicationSuccessAnimation
         isVisible={showSuccessAnimation}
         darkMode={darkMode}
-        onComplete={() => setShowSuccessAnimation(false)}
+        onComplete={() => {
+          setShowSuccessAnimation(false);
+          navigate("/dashboard/freelancer", {
+            state: {
+              tab: "myApplications",
+            },
+          });
+        }}
       />
       {!isTelegramMiniApp && <Footer />}
     </div>
