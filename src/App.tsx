@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -60,6 +60,7 @@ import FloatingChatBot from "./components/FloatingChatBot";
 function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   console.log('[App] render - pathname:', location.pathname);
 
   // Fallback: dismiss Navy screen if the inline script in index.html missed it
@@ -73,6 +74,20 @@ function AppContent() {
       }
     } catch(_) {}
   }, []);
+
+  // Handle start_param from channel Mini App deep link
+  useEffect(() => {
+    try {
+      const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+      if (startParam && startParam.startsWith('apply_')) {
+        const jobId = startParam.replace('apply_', '');
+        if (jobId) {
+          console.log('[App] start_param detected, redirecting to job:', jobId);
+          navigate(`/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`, { replace: true });
+        }
+      }
+    } catch (_e) {}
+  }, [navigate]);
 
   useEffect(() => {
     console.log('[App] checkAuth effect - pathname:', location.pathname);
