@@ -9,14 +9,18 @@ function normalizeChatId(chatId) {
 }
 
 function getTargetChatIds() {
-  const primary = normalizeChatId(process.env.TELEGRAM_CHAT_ID);
-  const extraRaw = process.env.TELEGRAM_CHAT_IDS; // comma-separated (optional)
-
-  const extra = (extraRaw ? String(extraRaw).split(",") : [])
+  // Split by comma so users can put multiple IDs in either env var
+  const fromPrimary = (process.env.TELEGRAM_CHAT_ID || "")
+    .split(",")
     .map((s) => normalizeChatId(s))
     .filter(Boolean);
 
-  return Array.from(new Set([primary, ...extra].filter(Boolean)));
+  const fromExtra = (process.env.TELEGRAM_CHAT_IDS || "")
+    .split(",")
+    .map((s) => normalizeChatId(s))
+    .filter(Boolean);
+
+  return Array.from(new Set([...fromPrimary, ...fromExtra]));
 }
 
 async function sendTelegramMessage({ botToken, chatId, message, inlineKeyboard = null }) {
