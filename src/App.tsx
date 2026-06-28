@@ -72,6 +72,16 @@ function AppContent() {
   const navigate = useNavigate();
   const skipAuthCheck = useRef(false);
 
+  // Always call tg.ready()/tg.expand() if Telegram is available (fallback
+  // in case the inline script in index.html ran before the SDK loaded).
+  useEffect(() => {
+    try {
+      var _tg2 = window.Telegram && window.Telegram.WebApp;
+      if (_tg2 && typeof _tg2.ready === 'function') _tg2.ready();
+      if (_tg2 && typeof _tg2.expand === 'function') _tg2.expand();
+    } catch(e) {}
+  }, []);
+
   // When opened as a Telegram Mini App via start_param (e.g. clicking
   // "Apply for this job" sends https://t.me/<bot>?startapp=job_<jobId>),
   // route to ApplyRedirect so the Telegram auth flow runs before the job page.
