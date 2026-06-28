@@ -32,14 +32,21 @@ async function sendTelegramMessage({ botToken, chatId, message, inlineKeyboard =
     disable_web_page_preview: true,
   };
 
-  // Add inline keyboard if provided
   if (inlineKeyboard) {
     payload.reply_markup = {
       inline_keyboard: inlineKeyboard
     };
   }
 
-  return axios.post(url, payload);
+  console.log(`[sendTelegramMessage] SENDING to ${chatId}:`, JSON.stringify({ url, payload }));
+  try {
+    const res = await axios.post(url, payload);
+    console.log(`[sendTelegramMessage] OK ${chatId}:`, JSON.stringify(res.data));
+    return res;
+  } catch (err) {
+    console.error(`[sendTelegramMessage] ERROR ${chatId}:`, err?.response?.data || err?.message);
+    throw err;
+  }
 }
 
 function escapeHtml(str) {

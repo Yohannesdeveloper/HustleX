@@ -61,7 +61,8 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  console.log('[App] render - pathname:', location.pathname);
+  console.log('[App] render - pathname:', location.pathname, 'search:', location.search);
+  console.log('[App] Telegram.WebApp:', !!window.Telegram?.WebApp);
 
   // Fallback: dismiss Navy screen if the inline script in index.html missed it
   // (e.g., SDK loaded after the inline block ran).
@@ -78,15 +79,30 @@ function AppContent() {
   // Handle start_param from channel Mini App deep link
   useEffect(() => {
     try {
-      const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+      const tg = window.Telegram?.WebApp;
+      console.log('[App] Telegram WebApp available:', !!tg);
+      if (tg) {
+        console.log('[App] initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
+        console.log('[App] initData length:', tg.initData?.length);
+      }
+      const startParam = tg?.initDataUnsafe?.start_param;
+      console.log('[App] start_param:', startParam);
       if (startParam && startParam.startsWith('apply_')) {
         const jobId = startParam.replace('apply_', '');
+        console.log('[App] extracted jobId:', jobId);
         if (jobId) {
-          console.log('[App] start_param detected, redirecting to job:', jobId);
-          navigate(`/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`, { replace: true });
+          const redirectUrl = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+          console.log('[App] redirecting to:', redirectUrl);
+          navigate(redirectUrl, { replace: true });
+        } else {
+          console.log('[App] jobId was empty after stripping prefix');
         }
+      } else {
+        console.log('[App] no matching start_param found');
       }
-    } catch (_e) {}
+    } catch (e) {
+      console.error('[App] start_param handler error:', e);
+    }
   }, [navigate]);
 
   useEffect(() => {
