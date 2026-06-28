@@ -12,21 +12,13 @@
   <!-- Telegram Mini App SDK (provides window.Telegram.WebApp incl. start_param) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    // Redirect to ApplyRedirect BEFORE React mounts to prevent a flash of the
-    // wrong page when the Mini App opens with ?startapp=job_<id>.
-    (function() {
+    try {
       var tg = window.Telegram?.WebApp;
-      if (!tg) return;
-      tg.ready();
-      tg.expand();
-      var sp = tg.initDataUnsafe?.start_param;
-      if (!sp) return;
-      var m = /^job_([A-Za-z0-9-]+)$/.exec(sp);
-      if (!m) return;
-      sessionStorage.setItem('lastRoutedJobId', m[1]);
-      var dest = '/ApplyRedirect?redirect=' + encodeURIComponent('/job-details/' + m[1]);
-      window.location.replace(dest);
-    })();
+      if (tg) {
+        tg.ready();
+        if (typeof tg.expand === 'function') tg.expand();
+      }
+    } catch(e) { console.warn('Telegram init error:', e); }
   </script>
   
   <!-- Primary Meta Tags -->

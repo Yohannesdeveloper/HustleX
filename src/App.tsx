@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
@@ -61,34 +61,28 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const isTelegramWebApp = !!window.Telegram?.WebApp;
-  const [telegramInitReady, setTelegramInitReady] = useState(!isTelegramWebApp);
 
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
 
-  // When opened as a Telegram Mini App via a direct link (e.g. the "Apply for
-  // this job" button uses https://t.me/<bot>?startapp=job_<jobId>), route to the
-  // corresponding job so the button opens inside Telegram instead of a browser.
-  // We poll start_param and initData to handle subsequent launches/reopens reactively
-  // while avoiding loops on page refreshes.
+  // When opened as a Telegram Mini App via start_param (e.g. clicking
+  // "Apply for this job" sends https://t.me/<bot>?startapp=job_<jobId>),
+  // route to ApplyRedirect so the Telegram auth flow runs before the job page.
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const tg = window.Telegram?.WebApp;
-    if (!tg) { setTelegramInitReady(true); return; }
-    tg.ready();
-    tg.expand?.();
+    if (!tg) return;
+    try { tg.ready(); } catch(e) {}
+    try { if (typeof tg.expand === 'function') tg.expand(); } catch(e) {}
 
     const startParam = tg.initDataUnsafe?.start_param;
-    // No start_param — init is done, allow rendering
-    if (!startParam) { setTelegramInitReady(true); return; }
+    if (!startParam) return;
 
     const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
-    if (!match) { setTelegramInitReady(true); return; }
+    if (!match) return;
 
     const jobId = match[1];
-    // Only redirect if this is a different job than the last one we routed to,
-    // or if we haven't routed to any job yet this session.
     const lastRoutedJob = sessionStorage.getItem('lastRoutedJobId');
     if (jobId !== lastRoutedJob) {
       sessionStorage.setItem('lastRoutedJobId', jobId);
@@ -96,19 +90,7 @@ function AppContent() {
       const redirectPath = `/job-details/${jobId}`;
       navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
     }
-    // Done — allow rendering (if we navigated away the component unmounts and
-    // this setState is a no-op)
-    setTelegramInitReady(true);
   }, [navigate]);
-
-  if (!telegramInitReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#17212b' }}>
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent"></div>
-      </div>
-    );
-  }
-
 
   // Track page views on every route change
   useEffect(() => {
