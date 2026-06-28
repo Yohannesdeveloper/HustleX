@@ -74,10 +74,8 @@ function AppContent() {
     } catch(_) {}
   }, []);
 
-  // Skip checkAuth on auth/job pages — handled by the components themselves.
   useEffect(() => {
     if (location.pathname.includes('ApplyRedirect')) return;
-    if (location.pathname.startsWith('/job-details/')) return;
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 
@@ -89,12 +87,12 @@ function AppContent() {
 
   return (
     <WebSocketProvider>
-      {/* job-details OUTSIDE RoleRouteGuard — no redirects, no auth checks */}
       <Routes>
+        {/* Job details: completely public — outside RoleRouteGuard */}
         <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
-      </Routes>
-      <RoleRouteGuard>
-        <Routes>
+        <Route path="*" element={
+          <RoleRouteGuard>
+            <Routes>
           <Route path="/forgot-password" element={<PageLayout><ForgotPasswordOtp /></PageLayout>} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Signup />} />
@@ -175,11 +173,10 @@ function AppContent() {
           <Route path="/applications-management" element={<PageLayout><ApplicationsManagementMongo /></PageLayout>} />
           <Route path="/my-applications" element={<FreelancerApplicationsManagement />} />
           <Route path="/chat" element={<ChatInterface />} />
-        </Routes>
-      </RoleRouteGuard>
-
-      {/* Global Floating Components */}
-      {/* Floating components moved into their relevant parents (e.g. Navbar) */}
+            </Routes>
+          </RoleRouteGuard>
+        } />
+      </Routes>
     </WebSocketProvider>
   );
 }
