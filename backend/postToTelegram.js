@@ -131,9 +131,10 @@ async function postJobToTelegram(job) {
   const message = lines.join("\n");
 
   // web_app button — opens in Telegram Mini App WebView on ALL platforms.
-  // Points directly to job-details — ApplyRedirect is a redirect for new users only.
-  // Returning users (with token) render job-details instantly, no intermediate hop.
-  const webAppUrl = `${baseUrl}/job-details/${jobId}`;
+  // Routes through ApplyRedirect which handles Telegram login, registration,
+  // phone share, freelancer profile setup for new users, or direct-to-job-details
+  // for returning users (with token).
+  const webAppUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
   const inlineKeyboard = [[{ text: "🚀 Apply for this job", web_app: { url: webAppUrl } }]];
   console.log("  Web App button URL:", webAppUrl);
 
