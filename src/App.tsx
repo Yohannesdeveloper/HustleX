@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -58,12 +58,10 @@ import ForgotPasswordOtp from "./components/ForgotPasswordOtp";
 import ChatInterface from "./components/ChatInterface";
 import FloatingChatBot from "./components/FloatingChatBot";
 
-// If the user already has a token, render JobDetailsMongo directly (no
-// ApplyRedirect hop). Otherwise redirect to ApplyRedirect for auth.
 function JobAuthGuard({ children }: { children: React.ReactNode }) {
   const { jobId } = useParams<{ jobId: string }>();
   if (apiService.isAuthenticated()) return <>{children}</>;
-  return <Navigate to={`/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`} replace />;
+  return <Navigate to={`/login?redirect=${encodeURIComponent('/job-details/' + jobId)}`} replace />;
 }
 
 function AppContent() {
