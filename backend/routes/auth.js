@@ -1094,9 +1094,29 @@ router.post("/telegram-login", async (req, res) => {
       }
     }
 
-    // ── 4) Still nothing?  Send user to registration page ──
+    // ── 4) Still nothing?  Try email/password login to link existing account ──
     if (!user) {
-      console.log(`[TelegramLogin] No existing user for telegram.id ${flatUser.id} — redirecting to registration`);
+      const { email, password } = req.body;
+      if (email && password) {
+        const emailUser = await User.findOne({ email: email.toLowerCase().trim() });
+        if (emailUser && (await emailUser.comparePassword(password))) {
+          console.log(`[TelegramLogin] Linking telegram.id ${flatUser.id} to existing user ${emailUser._id}`);
+          emailUser.telegram = {
+            id: flatUser.id,
+            username: flatUser.username || '',
+            firstName: flatUser.first_name || '',
+            lastName: flatUser.last_name || '',
+            photoUrl: flatUser.photo_url || '',
+          };
+          await emailUser.save();
+          const token = generateToken(emailUser._id);
+          await ensureAdminRole(emailUser);
+          return res.json({ token, user: toAuthUserPayload(emailUser) });
+        }
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      console.log(`[TelegramLogin] No existing user for telegram.id ${flatUser.id} — needs registration`);
       return res.json({
         needsRegistration: true,
         telegramUser: flatUser,

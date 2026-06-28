@@ -20,6 +20,12 @@ const ApplyRedirect: React.FC = () => {
   const retryCount = useRef(0);
   const [status, setStatus] = useState("Starting...");
   const [telegramAvailable, setTelegramAvailable] = useState<boolean | null>(null);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const initDataRef = useRef<string | null>(null);
 
   const redirectParam = searchParams.get('redirect');
   const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
@@ -48,12 +54,9 @@ const ApplyRedirect: React.FC = () => {
       return true;
     }
     if (result.needsRegistration) {
-      console.log("[ApplyRedirect] user not registered, redirecting to registration");
+      console.log("[ApplyRedirect] Telegram account not linked — showing login form");
       sessionStorage.setItem('telegramUser', JSON.stringify(result.telegramUser));
-      const url = effectiveRedirect
-        ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
-        : "/Register";
-      navigate(url, { replace: true });
+      setShowLoginForm(true);
       return true;
     }
     if (result.loginRequestId) {
@@ -94,6 +97,31 @@ const ApplyRedirect: React.FC = () => {
     return false;
   }, [effectiveRedirect, navigate, goToRegister]);
 
+  const handleEmailLogin = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setLoginLoading(true);
+    try {
+      const initData = initDataRef.current;
+      if (!initData) {
+        setLoginError("Telegram session lost. Please try again.");
+        setLoginLoading(false);
+        return;
+      }
+      const result: any = await apiService.telegramLogin({ initData, email: loginEmail, password: loginPassword });
+      if (result.token) {
+        const dest = effectiveRedirect || '/dashboard/freelancer';
+        navigate(dest, { replace: true });
+      } else {
+        setLoginError("Login failed. Check your email and password.");
+      }
+    } catch (err: any) {
+      setLoginError(err?.response?.data?.message || err.message || "Login failed");
+    } finally {
+      setLoginLoading(false);
+    }
+  }, [loginEmail, loginPassword, effectiveRedirect, navigate]);
+
   const doLogin = useCallback(() => {
     const existingToken = localStorage.getItem('token');
     console.log("[ApplyRedirect] doLogin, existingToken:", !!existingToken);
@@ -116,6 +144,7 @@ const ApplyRedirect: React.FC = () => {
 
     if (tg?.initData) {
       console.log("[ApplyRedirect] found initData, calling telegramLogin API");
+      initDataRef.current = tg.initData;
       setTelegramAvailable(true);
       setStatus("Logging in via Telegram...");
 
@@ -123,12 +152,13 @@ const ApplyRedirect: React.FC = () => {
         console.log("[ApplyRedirect] telegramLogin response:", result);
         if (!handleLoginResult(result)) {
           console.log("[ApplyRedirect] unexpected response format");
-          goToRegister();
+          setStatus("Unexpected response. Try logging in below.");
+          setShowLoginForm(true);
         }
       }).catch((err: any) => {
         console.log("[ApplyRedirect] telegramLogin error:", err?.response?.data || err.message);
         setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-        setTimeout(goToRegister, 1000);
+        setTimeout(() => goToRegister(), 2000);
       });
       return;
     }
@@ -167,7 +197,6 @@ const ApplyRedirect: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      // Clear lastRoutedJobId so re-clicking the same job in Telegram will work
       sessionStorage.removeItem('lastRoutedJobId');
     };
   }, []);
@@ -183,12 +212,12 @@ const ApplyRedirect: React.FC = () => {
       apiService.telegramLogin(user).then((result: any) => {
         console.log("[ApplyRedirect] Login Widget login response:", result);
         if (!handleLoginResult(result)) {
-          goToRegister();
+          setShowLoginForm(true);
         }
       }).catch((err: any) => {
         console.log("[ApplyRedirect] Login Widget error:", err?.response?.data || err.message);
         setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-        setTimeout(goToRegister, 2000);
+        setTimeout(() => goToRegister(), 2000);
       });
     };
 
@@ -205,13 +234,63 @@ const ApplyRedirect: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#17212b' }}>
       <div className="text-center px-6 max-w-md w-full">
-        {telegramAvailable === null && (
+        {showLoginForm && (
+          <>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Link your account</h2>
+            <p className="text-gray-400 mb-6 text-sm">
+              Your Telegram account isn't linked to a HustleX account yet.<br />
+              Log in with your existing credentials to link them.
+            </p>
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <input
+                type="email"
+                placeholder="Email address"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-cyan-500 focus:outline-none"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-cyan-500 focus:outline-none"
+              />
+              {loginError && (
+                <p className="text-red-400 text-sm">{loginError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold disabled:opacity-50"
+              >
+                {loginLoading ? "Linking..." : "Log in & link Telegram"}
+              </button>
+            </form>
+            <div className="mt-6 space-y-2">
+              <button onClick={goToRegister} className="text-gray-500 hover:text-gray-300 text-sm underline block w-full">
+                I don't have an account — Register
+              </button>
+              <button onClick={() => window.location.href = '/forgot-password'} className="text-gray-500 hover:text-gray-300 text-sm underline block w-full">
+                Forgot password?
+              </button>
+            </div>
+          </>
+        )}
+        {!showLoginForm && telegramAvailable === null && (
           <>
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
             <p className="text-white text-base">{status}</p>
           </>
         )}
-        {telegramAvailable === false && (
+        {!showLoginForm && telegramAvailable === false && (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -221,15 +300,12 @@ const ApplyRedirect: React.FC = () => {
             <h2 className="text-2xl font-bold text-white mb-2">Login Required</h2>
             <p className="text-gray-400 mb-6">Click below to log in with your Telegram account</p>
             <div id="telegram-login-container" className="flex justify-center mb-4"></div>
-            <button
-              onClick={goToRegister}
-              className="text-gray-500 hover:text-gray-300 text-sm underline mt-4"
-            >
+            <button onClick={goToRegister} className="text-gray-500 hover:text-gray-300 text-sm underline mt-4">
               Continue to registration instead
             </button>
           </>
         )}
-        {telegramAvailable === true && (
+        {!showLoginForm && telegramAvailable === true && (
           <>
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
             <p className="text-white text-base">{status}</p>
