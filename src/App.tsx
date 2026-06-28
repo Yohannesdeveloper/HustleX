@@ -102,6 +102,7 @@ function AppContent() {
   useEffect(() => {
     if (skipAuthCheck.current) return;
     if (location.pathname.includes('ApplyRedirect')) return;
+    if (location.pathname.startsWith('/job-details/')) return;
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 

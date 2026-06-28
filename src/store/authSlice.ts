@@ -219,9 +219,9 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Check Auth
+      // Check Auth — silent, never sets loading to avoid full-app re-renders
       .addCase(checkAuth.pending, (state) => {
-        state.loading = true;
+        // intentionally left blank — no loading flash
       })
       .addCase(checkAuth.fulfilled, (state, action) => {
         state.user = action.payload;
