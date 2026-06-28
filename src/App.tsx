@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
@@ -61,38 +61,74 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  // Tracks whether we've already handled the start_param in this JS session.
+  // useRef resets on every full page reload (perfect for Telegram relaunches),
+  // but persists across SPA navigations (prevents redirect loops).
+  const handledStartParam = useRef(false);
+
+  // Detect Telegram context SYNCHRONOUSLY before first render to avoid flash.
+  // If there's a start_param, we show a loading screen until routing fires.
+  const tgStartParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param ?? null;
+  const [isTelegramRouting, setIsTelegramRouting] = useState(
+    Boolean(tgStartParam && /^job_([A-Za-z0-9-]+)$/.test(tgStartParam))
+  );
 
   useEffect(() => {
     dispatch(checkAuth());
   }, [dispatch]);
 
-  // When opened as a Telegram Mini App via a direct link (e.g. the "Apply for
-  // this job" button uses https://t.me/<bot>?startapp=job_<jobId>), route to the
-  // corresponding job so the button opens inside Telegram instead of a browser.
-  // We poll start_param and initData to handle subsequent launches/reopens reactively
-  // while avoiding loops on page refreshes.
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (!tg) return;
+    if (!tg) {
+      setIsTelegramRouting(false);
+      return;
+    }
     tg.ready();
     tg.expand?.();
 
-    const startParam = tg.initDataUnsafe?.start_param;
-    if (!startParam) return;
-
-    const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
-    if (!match) return;
-
-    const jobId = match[1];
-    // Only redirect if this is a different job than the last one we routed to,
-    // or if we haven't routed to any job yet this session.
-    const lastRoutedJob = sessionStorage.getItem('lastRoutedJobId');
-    if (jobId !== lastRoutedJob) {
-      sessionStorage.setItem('lastRoutedJobId', jobId);
-      console.log("[App] Routing to job from Telegram start_param:", jobId);
-      const redirectPath = `/job-details/${jobId}`;
+    const doRoute = () => {
+      if (handledStartParam.current) {
+        setIsTelegramRouting(false);
+        return;
+      }
+      const startParam = tg.initDataUnsafe?.start_param;
+      if (!startParam) {
+        setIsTelegramRouting(false);
+        return;
+      }
+      const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
+      if (!match) {
+        setIsTelegramRouting(false);
+        return;
+      }
+      handledStartParam.current = true;
+      console.log("[App] Routing to job from Telegram start_param:", match[1]);
+      const redirectPath = `/job-details/${match[1]}`;
       navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
-    }
+      setIsTelegramRouting(false);
+    };
+
+    // Run immediately on mount
+    doRoute();
+
+    // When Telegram brings the Mini App back to foreground (no full reload),
+    // the page becomes visible again. Re-check in case start_param has changed.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !handledStartParam.current) {
+        doRoute();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    // When ApplyRedirect completes, it fires this event so we can re-route
+    // if the user opens the same job link again.
+    const onRedirectDone = () => { handledStartParam.current = false; };
+    document.addEventListener('tg:redirect-done', onRedirectDone);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      document.removeEventListener('tg:redirect-done', onRedirectDone);
+    };
   }, [navigate]);
 
 
@@ -101,6 +137,17 @@ function AppContent() {
     const path = location.pathname + location.search;
     ReactGA.send({ hitType: "pageview", page: path });
   }, [location]);
+
+  // While we process the Telegram start_param, show a minimal loading screen
+  // to prevent the flash of the home page (glitch) before routing fires.
+  if (isTelegramRouting) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f1117' }}>
+        <div style={{ width: 48, height: 48, border: '3px solid #334155', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <WebSocketProvider>

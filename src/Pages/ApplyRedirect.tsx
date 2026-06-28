@@ -167,8 +167,9 @@ const ApplyRedirect: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      // Clear lastRoutedJobId so re-clicking the same job in Telegram will work
-      sessionStorage.removeItem('lastRoutedJobId');
+      // Signal App.tsx that this redirect has been handled so the same job
+      // can be opened again if the user comes back to Telegram and clicks it.
+      document.dispatchEvent(new CustomEvent('tg:redirect-done'));
     };
   }, []);
 
