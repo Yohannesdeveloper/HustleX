@@ -65,7 +65,7 @@ const ApplyRedirect: React.FC = () => {
       const pollTimeout = setTimeout(() => {
         clearInterval(interval);
         console.log("[ApplyRedirect] poll timed out");
-        goToRegister();
+        setShowLoginForm(true);
       }, 15000);
       const interval = setInterval(async () => {
         try {
@@ -83,13 +83,13 @@ const ApplyRedirect: React.FC = () => {
             clearInterval(interval);
             clearTimeout(pollTimeout);
             console.log("[ApplyRedirect] declined/expired");
-            goToRegister();
+            setShowLoginForm(true);
           }
         } catch (e) {
           clearInterval(interval);
           clearTimeout(pollTimeout);
           console.log("[ApplyRedirect] poll error:", e);
-          goToRegister();
+          setShowLoginForm(true);
         }
       }, 2000);
       return true;
@@ -158,7 +158,7 @@ const ApplyRedirect: React.FC = () => {
       }).catch((err: any) => {
         console.log("[ApplyRedirect] telegramLogin error:", err?.response?.data || err.message);
         setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-        setTimeout(() => goToRegister(), 2000);
+        setShowLoginForm(true);
       });
       return;
     }
@@ -217,7 +217,7 @@ const ApplyRedirect: React.FC = () => {
       }).catch((err: any) => {
         console.log("[ApplyRedirect] Login Widget error:", err?.response?.data || err.message);
         setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-        setTimeout(() => goToRegister(), 2000);
+        setShowLoginForm(true);
       });
     };
 
