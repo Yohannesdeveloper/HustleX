@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
@@ -61,6 +61,8 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  const isTelegramWebApp = !!window.Telegram?.WebApp;
+  const [telegramInitReady, setTelegramInitReady] = useState(!isTelegramWebApp);
 
   useEffect(() => {
     dispatch(checkAuth());
@@ -73,15 +75,16 @@ function AppContent() {
   // while avoiding loops on page refreshes.
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (!tg) return;
+    if (!tg) { setTelegramInitReady(true); return; }
     tg.ready();
     tg.expand?.();
 
     const startParam = tg.initDataUnsafe?.start_param;
-    if (!startParam) return;
+    // No start_param — init is done, allow rendering
+    if (!startParam) { setTelegramInitReady(true); return; }
 
     const match = /^job_([A-Za-z0-9-]+)$/.exec(startParam);
-    if (!match) return;
+    if (!match) { setTelegramInitReady(true); return; }
 
     const jobId = match[1];
     // Only redirect if this is a different job than the last one we routed to,
@@ -93,7 +96,18 @@ function AppContent() {
       const redirectPath = `/job-details/${jobId}`;
       navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
     }
+    // Done — allow rendering (if we navigated away the component unmounts and
+    // this setState is a no-op)
+    setTelegramInitReady(true);
   }, [navigate]);
+
+  if (!telegramInitReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#17212b' }}>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent"></div>
+      </div>
+    );
+  }
 
 
   // Track page views on every route change

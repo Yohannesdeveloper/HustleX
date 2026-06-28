@@ -165,18 +165,11 @@ const JobDetailsMongo: React.FC = () => {
   const formRef = useRef<HTMLDivElement | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
-  const [isTelegramMiniApp, setIsTelegramMiniApp] = useState(false);
   const [checkingApplication, setCheckingApplication] = useState(false);
+  const isTelegramMiniApp = !!window.Telegram?.WebApp;
 
   const authCheckedRef = useRef(false);
   const jobFetchedRef = useRef(false);
-
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      setIsTelegramMiniApp(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (authCheckedRef.current) return;
