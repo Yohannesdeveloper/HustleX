@@ -21,6 +21,8 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   // Pages where incomplete-profile users are allowed to stay
   const isSetupPage =
+    currentPath.startsWith("/job-details") ||
+    currentPath.startsWith("/ApplyRedirect") ||
     currentPath === "/select-role" ||
     currentPath === "/signup" ||
     currentPath === "/login" ||
