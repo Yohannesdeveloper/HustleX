@@ -61,14 +61,12 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    dispatch(checkAuth());
-  }, [dispatch]);
+  const skipAuthCheck = useRef(false);
 
   // When opened as a Telegram Mini App via start_param (e.g. clicking
   // "Apply for this job" sends https://t.me/<bot>?startapp=job_<jobId>),
   // route to ApplyRedirect so the Telegram auth flow runs before the job page.
+  // Skip checkAuth here — ApplyRedirect handles auth itself.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const tg = window.Telegram?.WebApp;
@@ -83,10 +81,17 @@ function AppContent() {
     if (!match) return;
 
     const jobId = match[1];
+    skipAuthCheck.current = true;
     console.log("[App] Routing to job from Telegram start_param:", jobId);
     const redirectPath = `/job-details/${jobId}`;
     navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
   }, [navigate]);
+
+  // Only run checkAuth when not navigating via start_param
+  useEffect(() => {
+    if (skipAuthCheck.current) return;
+    dispatch(checkAuth());
+  }, [dispatch]);
 
   // Track page views on every route change
   useEffect(() => {

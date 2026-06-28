@@ -58,7 +58,7 @@ export const checkAuth = createAsyncThunk(
         apiService.clearUserCache(); // Clear cache to get fresh user
         // Add a timeout to the auth check
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Auth check timeout")), 5000)
+          setTimeout(() => reject(new Error("Auth check timeout")), 2000)
         );
 
         const userPromise = apiService.getCurrentUser();
