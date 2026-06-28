@@ -83,13 +83,9 @@ function AppContent() {
     if (!match) return;
 
     const jobId = match[1];
-    const lastRoutedJob = sessionStorage.getItem('lastRoutedJobId');
-    if (jobId !== lastRoutedJob) {
-      sessionStorage.setItem('lastRoutedJobId', jobId);
-      console.log("[App] Routing to job from Telegram start_param:", jobId);
-      const redirectPath = `/job-details/${jobId}`;
-      navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
-    }
+    console.log("[App] Routing to job from Telegram start_param:", jobId);
+    const redirectPath = `/job-details/${jobId}`;
+    navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
   }, [navigate]);
 
   // Track page views on every route change

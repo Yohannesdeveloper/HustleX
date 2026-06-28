@@ -196,13 +196,6 @@ const ApplyRedirect: React.FC = () => {
   }, [doLogin]);
 
   useEffect(() => {
-    return () => {
-      sessionStorage.removeItem('lastRoutedJobId');
-    };
-  }, []);
-
-
-  useEffect(() => {
     if (telegramAvailable !== false) return;
 
     console.log("[ApplyRedirect] loading Telegram Login Widget");
