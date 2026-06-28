@@ -87,11 +87,13 @@ function AppContent() {
     navigate(`/ApplyRedirect?redirect=${encodeURIComponent(redirectPath)}`, { replace: true });
   }, [navigate]);
 
-  // Only run checkAuth when not navigating via start_param
+  // Only run checkAuth when not navigating via start_param or directly to ApplyRedirect.
+  // ApplyRedirect handles auth itself, so this would be redundant.
   useEffect(() => {
     if (skipAuthCheck.current) return;
+    if (location.pathname.includes('ApplyRedirect')) return;
     dispatch(checkAuth());
-  }, [dispatch]);
+  }, [dispatch, location.pathname]);
 
   // Track page views on every route change
   useEffect(() => {

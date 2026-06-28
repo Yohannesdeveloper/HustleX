@@ -141,14 +141,32 @@ interface UploadResponse {
   fileUrl: string;
 }
 
+function getCachedJob(jobId: string | undefined): JobPost | null {
+  if (!jobId) return null;
+  try {
+    const raw = localStorage.getItem(`jc_${jobId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts > 5 * 60 * 1000) return null;
+    return parsed.data as JobPost;
+  } catch { return null; }
+}
+
+function setCachedJob(jobId: string, data: JobPost): void {
+  try {
+    localStorage.setItem(`jc_${jobId}`, JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
+
 const JobDetailsMongo: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const { onNewApplication, offNewApplication } = useWebSocket();
-  const [job, setJob] = useState<JobPost | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedJob = getCachedJob(jobId);
+  const [job, setJob] = useState<JobPost | null>(cachedJob);
+  const [loading, setLoading] = useState(!cachedJob);
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -228,12 +246,14 @@ const JobDetailsMongo: React.FC = () => {
           setLoading(false);
           return;
         }
-        setJob({
+        const enrichedJob = {
           ...jobData,
           duration: jobData.duration || "Flexible",
           jobType: jobData.jobType || "Contract",
           workLocation: jobData.workLocation || "Remote",
-        });
+        };
+        setJob(enrichedJob);
+        if (jobId) setCachedJob(jobId, enrichedJob);
         setError(null);
       } catch (error: any) {
         if (cancelled) return;
