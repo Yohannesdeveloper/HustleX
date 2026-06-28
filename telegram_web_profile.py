@@ -302,7 +302,8 @@ def step_description_filter(step_name):
     return descriptions.get(step_name, '')
 
 if __name__ == '__main__':
+    port = int(os.environ.get('FLASK_PORT', 8000))
     print("🚀 HustleX Profile Wizard Web Server Starting...")
-    print("🌐 Open your browser to http://localhost:5000")
+    print(f"🌐 Open your browser to http://localhost:{port}")
     print("💼 HustleX - Amazing Profile Creation Experience")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=port)

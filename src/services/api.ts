@@ -16,10 +16,11 @@ class ApiService {
   private token: string | null = null;
   private requestQueue: Map<string, Promise<any>> = new Map();
   private lastRequestTime: number = 0;
-  private minRequestInterval: number = 200; // Minimum 200ms between requests
+  private minRequestInterval: number = 200;
   private requestCache: Map<string, { promise: any; timestamp: number }> = new Map();
-  private cacheTimeout: number = 5000; // Cache requests for 5 seconds
+  private cacheTimeout: number = 30000; // Cache requests for 30 seconds to prevent poll storms
   private portDetectionPromise: Promise<void> | null = null;
+  private inflightRequests: Map<string, Promise<any>> = new Map();
 
   constructor() {
     // Initialize with sync version (uses cache or default)
@@ -196,21 +197,25 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     const cacheKey = 'getCurrentUser';
     const now = Date.now();
 
-    // Check if we have a cached request that's still valid
     const cached = this.requestCache.get(cacheKey);
     if (cached && (now - cached.timestamp) < this.cacheTimeout) {
       return cached.promise;
     }
 
-    // Create new request and cache it
+    const inflight = this.inflightRequests.get(cacheKey);
+    if (inflight) return inflight;
+
     const promise = axios.get(`${this.baseUrl}/auth/me`).then(response => {
       return (response.data as { user: User }).user;
     });
 
-    // Cache the promise
+    this.inflightRequests.set(cacheKey, promise);
     this.requestCache.set(cacheKey, { promise, timestamp: now });
 
-    // Clean up cache after timeout
+    promise.finally(() => {
+      this.inflightRequests.delete(cacheKey);
+    });
+
     setTimeout(() => {
       this.requestCache.delete(cacheKey);
     }, this.cacheTimeout);
@@ -365,11 +370,33 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   }
 
   async getJob(jobId: string): Promise<Job> {
-    // Job details endpoint is public, don't require authentication
-    const response = await axios.get(`${this.baseUrl}/jobs/${jobId}`, {
+    const cacheKey = `getJob_${jobId}`;
+    const now = Date.now();
+
+    const cached = this.requestCache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < this.cacheTimeout) {
+      return cached.promise;
+    }
+
+    const inflight = this.inflightRequests.get(cacheKey);
+    if (inflight) return inflight;
+
+    const promise = axios.get(`${this.baseUrl}/jobs/${jobId}`, {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
+    }).then(response => response.data as Job);
+
+    this.inflightRequests.set(cacheKey, promise);
+    this.requestCache.set(cacheKey, { promise, timestamp: now });
+
+    promise.finally(() => {
+      this.inflightRequests.delete(cacheKey);
     });
-    return response.data as Job;
+
+    setTimeout(() => {
+      this.requestCache.delete(cacheKey);
+    }, this.cacheTimeout);
+
+    return promise;
   }
 
   async getMyJobs(): Promise<Job[]> {
@@ -507,18 +534,41 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   }
 
   async checkApplication(jobId: string): Promise<ApplicationResponse> {
-    // Check application requires authentication
     if (!this.token) {
       return { hasApplied: false };
     }
-    const response = await axios.get(
-      `${this.baseUrl}/applications/check/${jobId}`
-    );
-    const data = response.data as {
-      hasApplied: boolean;
-      application: Application | null;
-    };
-    return { hasApplied: !!data.hasApplied };
+    const cacheKey = `checkApplication_${jobId}`;
+    const now = Date.now();
+
+    const cached = this.requestCache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < this.cacheTimeout) {
+      return cached.promise;
+    }
+
+    const inflight = this.inflightRequests.get(cacheKey);
+    if (inflight) return inflight;
+
+    const promise = axios.get(`${this.baseUrl}/applications/check/${jobId}`)
+      .then(response => {
+        const data = response.data as {
+          hasApplied: boolean;
+          application: Application | null;
+        };
+        return { hasApplied: !!data.hasApplied };
+      });
+
+    this.inflightRequests.set(cacheKey, promise);
+    this.requestCache.set(cacheKey, { promise, timestamp: now });
+
+    promise.finally(() => {
+      this.inflightRequests.delete(cacheKey);
+    });
+
+    setTimeout(() => {
+      this.requestCache.delete(cacheKey);
+    }, this.cacheTimeout);
+
+    return promise;
   }
 
   async sendNotificationEmail(data: EmailData): Promise<void> {

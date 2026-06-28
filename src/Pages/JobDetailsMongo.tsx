@@ -166,6 +166,10 @@ const JobDetailsMongo: React.FC = () => {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [isTelegramMiniApp, setIsTelegramMiniApp] = useState(false);
+  const [checkingApplication, setCheckingApplication] = useState(false);
+
+  const authCheckedRef = useRef(false);
+  const jobFetchedRef = useRef(false);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -175,16 +179,18 @@ const JobDetailsMongo: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (authCheckedRef.current) return;
+    authCheckedRef.current = true;
+    let cancelled = false;
     const checkAuth = async () => {
       if (apiService.isAuthenticated()) {
         try {
           const userFromApi = await apiService.getCurrentUser();
-          console.log('JobDetails - User profile data:', userFromApi.profile); // Debug log
-          console.log('JobDetails - CV URL:', userFromApi.profile?.cvUrl); // Debug log
+          if (cancelled) return;
           const user: AppUser = {
             id: userFromApi._id,
             email: userFromApi.email,
-            role: userFromApi.currentRole, // Use currentRole for backward compatibility
+            role: userFromApi.currentRole,
             profile: userFromApi.profile || {
               firstName: "",
               lastName: "",
@@ -198,27 +204,32 @@ const JobDetailsMongo: React.FC = () => {
           setUserRoles(userFromApi.roles || []);
           setUserRole(userFromApi.currentRole as "freelancer" | "client");
         } catch (error) {
+          if (cancelled) return;
           console.error("Auth check failed:", error);
           apiService.logout();
         }
       } else {
+        if (cancelled) return;
         setUserRole("guest");
       }
     };
     checkAuth();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
+    if (!jobId) {
+      setError("No job ID provided");
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
     const fetchJob = async () => {
-      if (!jobId) {
-        setError("No job ID provided");
-        setLoading(false);
-        return;
-      }
       setError(null);
       setLoading(true);
       try {
         const jobData = (await apiService.getJob(jobId)) as JobPost;
+        if (cancelled) return;
         if (!jobData) {
           setError("Job not found");
           setLoading(false);
@@ -232,32 +243,38 @@ const JobDetailsMongo: React.FC = () => {
         });
         setError(null);
       } catch (error: any) {
-        console.error("Error fetching job:", error);
+        if (cancelled) return;
         const errorMessage = error?.response?.data?.message ||
           error?.message ||
           "Failed to load job details. Please try again.";
         setError(errorMessage);
         setJob(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchJob();
+    return () => { cancelled = true; };
   }, [jobId]);
 
   useEffect(() => {
+    if (!currentUser || !job || checkingApplication) return;
+    let cancelled = false;
     const checkApplication = async () => {
-      if (!currentUser || !job) return;
+      setCheckingApplication(true);
       try {
         const response: ApplicationResponse = await apiService.checkApplication(
           job._id
         );
-        setApplied(response.hasApplied);
+        if (!cancelled) setApplied(response.hasApplied);
       } catch (error) {
-        console.error("Error checking application:", error);
+        if (!cancelled) console.error("Error checking application:", error);
+      } finally {
+        if (!cancelled) setCheckingApplication(false);
       }
     };
     checkApplication();
+    return () => { cancelled = true; };
   }, [currentUser, job]);
 
   // Listen for real-time application submission events
@@ -265,13 +282,9 @@ const JobDetailsMongo: React.FC = () => {
     if (!onNewApplication || !offNewApplication) return;
 
     const handleApplicationSubmitted = (data: any) => {
-      console.log('Application submitted event received:', data);
       if (data.application && data.application.jobId === job?._id) {
-        // Immediately show the green badge
         setApplied(true);
-        // Close the application form if it's open
         setShowApplicationForm(false);
-        // Clear form data
         setCoverLetter("");
         setCvFile(null);
         setPortfolioLink("");
