@@ -9,17 +9,20 @@
 
   <!-- Telegram Mini App Meta Tags -->
   <meta name="telegram-web-app" content="true" />
-  <!-- Telegram Mini App SDK (provides window.Telegram.WebApp incl. start_param) -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Call tg.ready() IMMEDIATELY using the native WebView SDK (available
+       instantly in the Mini App WebView). This dismisses the Navy screen
+       before the external script even starts downloading. -->
   <script>
     try {
-      var tg = window.Telegram && window.Telegram.WebApp;
-      if (tg) {
-        if (typeof tg.ready === 'function') tg.ready();
-        if (typeof tg.expand === 'function') tg.expand();
+      var _tg = window.Telegram && window.Telegram.WebApp;
+      if (_tg) {
+        if (typeof _tg.ready === 'function') _tg.ready();
+        if (typeof _tg.expand === 'function') _tg.expand();
       }
-    } catch(e) { var c = console; c && c.warn && c.warn('Telegram init error:', e); }
+    } catch(e) {}
   </script>
+  <!-- SDK script (also loaded for environments without native injection) -->
+  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
   
   <!-- Primary Meta Tags -->
   <title>HustleX — Hire Elite Freelancers Worldwide | Premium Marketplace</title>
