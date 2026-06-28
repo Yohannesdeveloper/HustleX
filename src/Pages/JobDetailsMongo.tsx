@@ -176,9 +176,7 @@ const JobDetailsMongo: React.FC = () => {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [portfolioLink, setPortfolioLink] = useState("");
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
-  const [userRole, setUserRole] = useState<"freelancer" | "client" | "guest">(
-    "guest"
-  );
+  const [userRole, setUserRole] = useState<"freelancer" | "client" | "guest">("guest");
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const formRef = useRef<HTMLDivElement | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
@@ -187,7 +185,6 @@ const JobDetailsMongo: React.FC = () => {
   const isTelegramMiniApp = !!window.Telegram?.WebApp;
 
   const authCheckedRef = useRef(false);
-  const jobFetchedRef = useRef(false);
 
   useEffect(() => {
     if (authCheckedRef.current) return;
@@ -482,31 +479,22 @@ const JobDetailsMongo: React.FC = () => {
   };
 
 
-  if (loading) {
+  if (loading && !job) {
     return (
-      <div
-        className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-black" : "bg-white"
-          } flex items-center justify-center`}
-      >
-
-        <div
-          className={`relative z-10 text-center shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
-            ? "bg-black/40 border-cyan-500/20"
-            : "bg-white/40 border-cyan-500/10"
-            } backdrop-blur-xl border rounded-3xl p-8`}
-        >
-          <div
-            className={`w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin ${darkMode ? "text-white" : "text-black"
-              }`}
-          >
-            <Briefcase className="w-8 h-8" />
+      <div className={`min-h-screen ${darkMode ? "bg-black" : "bg-white"} p-6`}>
+        <div className="max-w-6xl mx-auto">
+          {/* Skeleton header */}
+          <div className={`h-10 w-32 rounded-xl mb-8 animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              <div className={`h-64 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+              <div className={`h-48 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+            </div>
+            <div className="space-y-4">
+              <div className={`h-40 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+              <div className={`h-56 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+            </div>
           </div>
-          <p
-            className={`text-xl animate-pulse font-semibold font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
-              }`}
-          >
-            Loading job details...
-          </p>
         </div>
       </div>
     );
