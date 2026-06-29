@@ -61,7 +61,10 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  console.log('[App] render - pathname:', location.pathname, 'search:', location.search);
+  console.log('╔══════════════════════════════════════════╗');
+  console.log('║      HUSTLEX MINI APP LAUNCHED           ║');
+  console.log('╚══════════════════════════════════════════╝');
+  console.log('[App] pathname:', location.pathname, 'search:', location.search);
   console.log('[App] Telegram.WebApp:', !!window.Telegram?.WebApp);
 
   // Fallback: dismiss Navy screen if the inline script in index.html missed it
