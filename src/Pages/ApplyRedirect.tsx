@@ -92,27 +92,7 @@ const ApplyRedirect: React.FC = () => {
     return false;
   }, [effectiveRedirect, navigate, goToRegister]);
 
-  const doLogin = useCallback(() => {
-    const existingToken = localStorage.getItem('token');
-    console.log("[ApplyRedirect] doLogin, existingToken:", !!existingToken);
-
-    if (existingToken) {
-      apiService.getCurrentUser().then(() => {
-        const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
-        navigate(dest, { replace: true });
-      }).catch(() => {
-        localStorage.removeItem('token');
-        setStatus("Session expired. Please log in again.");
-        proceedWithTelegramLogin();
-      });
-      return;
-    }
-
-    proceedWithTelegramLogin();
-  }, [effectiveRedirect, navigate, goToRegister, handleLoginResult]);
-
   const proceedWithTelegramLogin = useCallback(() => {
-
     const tg = window.Telegram?.WebApp;
     console.log("[ApplyRedirect] window.Telegram?.WebApp:", !!tg);
     if (tg) {
@@ -167,6 +147,17 @@ const ApplyRedirect: React.FC = () => {
     setTelegramAvailable(false);
     setStatus("Log in with Telegram to continue");
   }, [effectiveRedirect, navigate, goToRegister, handleLoginResult]);
+
+  const doLogin = useCallback(() => {
+    const existingToken = localStorage.getItem('token');
+    console.log("[ApplyRedirect] doLogin, existingToken:", !!existingToken);
+    if (existingToken) {
+      const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
+      navigate(dest, { replace: true });
+      return;
+    }
+    proceedWithTelegramLogin();
+  }, [effectiveRedirect, navigate, proceedWithTelegramLogin]);
 
   useEffect(() => {
     doLogin();
