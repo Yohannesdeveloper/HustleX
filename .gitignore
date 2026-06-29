@@ -32,3 +32,6 @@ backend/.env.*.local
 *.njsproj
 *.sln
 *.sw?
+
+# AI Code Review temporary files
+.ai-code-review/
