@@ -142,17 +142,13 @@ async function postJobToTelegram(job) {
 
   const botUsername = (process.env.TELEGRAM_BOT_USERNAME || 'HustleXet_bot').replace(/^@/, '');
   const jobUrl = `${baseUrl}/job-details/${jobId}`;
-  const channelMiniAppUrl = `https://t.me/${botUsername}/app?startapp=apply_${jobId}`;
+  const channelMiniAppUrl = `https://t.me/${botUsername}?startapp=apply_${jobId}`;
   console.log("  ╔═══════════════════════════════════════════════════╗");
   console.log("  ║             CHANNEL BUTTON DEBUG                  ║");
   console.log("  ╠═══════════════════════════════════════════════════╣");
   console.log(`  ║  Bot:       t.me/${botUsername}                      `);
   console.log(`  ║  Mini App:  ${channelMiniAppUrl}`);
   console.log(`  ║  Job ID:    ${jobId}`);
-  console.log("  ║                                                   ║");
-  console.log("  ║  If you see 'sorry this application doesnt exist' ║");
-  console.log("  ║  when clicking the button, you need to run:       ║");
-  console.log("  ║  /setdomain in @BotFather                         ║");
   console.log("  ╚═══════════════════════════════════════════════════╝");
 
   const results = await Promise.allSettled(
