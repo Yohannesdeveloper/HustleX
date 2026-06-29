@@ -90,9 +90,15 @@ function AppContent() {
       if (startParam && startParam.startsWith('apply_')) {
         const jobId = startParam.replace('apply_', '');
         if (jobId) {
-          const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-          console.log('[App] start_param -> redirecting to ApplyRedirect:', url);
-          navigate(url, { replace: true });
+          const existingToken = localStorage.getItem('token');
+          if (existingToken) {
+            console.log('[App] start_param -> token found, go to job-details');
+            navigate('/job-details/' + jobId, { replace: true });
+          } else {
+            const url = `/Register?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+            console.log('[App] start_param -> no token, go to Register');
+            navigate(url, { replace: true });
+          }
         }
       }
     } catch (e) { console.error('[App] start_param error:', e); }
