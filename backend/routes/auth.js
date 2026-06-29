@@ -190,38 +190,40 @@ router.post(
       const token = generateToken(user._id);
 
       // ── Send Telegram notification ──
-      const safeName = firstName || email;
-      const regMsg = [
-        `🆕 <b>New User Registered!</b>`,
-        ``,
-        `👤 <b>Name:</b> ${safeName} ${lastName || ''}`,
-        `📧 <b>Email:</b> ${email}`,
-        `🌍 <b>Country:</b> ${country || '—'}`,
-        `🏙️ <b>City:</b> ${city || '—'}`,
-        `🎂 <b>DOB:</b> ${dateOfBirth || '—'}`,
-        `⚧️ <b>Gender:</b> ${gender || '—'}`,
-      ].join("\n");
+      // Disabled admin channel notifications
+      // const safeName = firstName || email;
+      // const regMsg = [
+      //   `🆕 <b>New User Registered!</b>`,
+      //   ``,
+      //   `👤 <b>Name:</b> ${safeName} ${lastName || ''}`,
+      //   `📧 <b>Email:</b> ${email}`,
+      //   `🌍 <b>Country:</b> ${country || '—'}`,
+      //   `🏙️ <b>City:</b> ${city || '—'}`,
+      //   `🎂 <b>DOB:</b> ${dateOfBirth || '—'}`,
+      //   `⚧️ <b>Gender:</b> ${gender || '—'}`,
+      // ].join("\n");
 
       // Notify admin (TELEGRAM_CHAT_ID = your user ID)
-      if (process.env.TELEGRAM_CHAT_ID) {
-        sendTelegramNotification(process.env.TELEGRAM_CHAT_ID, regMsg);
-      }
+      // if (process.env.TELEGRAM_CHAT_ID) {
+      //   sendTelegramNotification(process.env.TELEGRAM_CHAT_ID, regMsg);
+      // }
 
       // Welcome the user if they registered via Telegram Mini App
-      if (user.telegram && user.telegram.id) {
-        const welcomeMsg = [
-          `🎉 <b>Welcome to HustleX, ${firstName || 'there'}!</b>`,
-          ``,
-          `Your account has been created successfully.`,
-          `Complete your freelancer profile to start applying for jobs.`,
-          ``,
-          `🌐 <a href="https://hustlexet.vercel.app/freelancer-profile-setup">Complete Profile</a>`,
-          ``,
-          `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
-        ].join("\n");
+      // Disabled welcome message
+      // if (user.telegram && user.telegram.id) {
+      //   const welcomeMsg = [
+      //     `🎉 <b>Welcome to HustleX, ${firstName || 'there'}!</b>`,
+      //     ``,
+      //     `Your account has been created successfully.`,
+      //     `Complete your freelancer profile to start applying for jobs.`,
+      //     ``,
+      //     `🌐 <a href="https://hustlexet.vercel.app/freelancer-profile-setup">Complete Profile</a>`,
+      //     ``,
+      //     `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      //   ].join("\n");
 
-        sendTelegramNotification(user.telegram.id, welcomeMsg);
-      }
+      //   sendTelegramNotification(user.telegram.id, welcomeMsg);
+      // }
 
       res.status(201).json({
         token,
@@ -794,38 +796,40 @@ router.post("/freelancer-profile", async (req, res) => {
     }
 
     // Notify the admin (you) about profile completion
-    if (process.env.TELEGRAM_CHAT_ID) {
-      const firstName = profileData.firstName || user.profile?.firstName || 'Unknown';
-      const adminMsg = [
-        `✅ <b>Freelancer Profile Completed!</b>`,
-        ``,
-        `👤 <b>Name:</b> ${firstName} ${profileData.lastName || ''}`,
-        `📧 <b>Email:</b> ${profileData.email}`,
-        `📱 <b>Phone:</b> ${profileData.phone || '—'}`,
-        `📍 <b>Location:</b> ${profileData.location || '—'}`,
-        `💼 <b>Skills:</b> ${Array.isArray(profileData.skills) ? profileData.skills.join(', ') : '—'}`,
-        `⭐ <b>Level:</b> ${profileData.experienceLevel || '—'}`,
-      ].join("\n");
+    // Disabled admin channel notifications
+    // if (process.env.TELEGRAM_CHAT_ID) {
+    //   const firstName = profileData.firstName || user.profile?.firstName || 'Unknown';
+    //   const adminMsg = [
+    //     `✅ <b>Freelancer Profile Completed!</b>`,
+    //     ``,
+    //     `👤 <b>Name:</b> ${firstName} ${profileData.lastName || ''}`,
+    //     `📧 <b>Email:</b> ${profileData.email}`,
+    //     `📱 <b>Phone:</b> ${profileData.phone || '—'}`,
+    //     `📍 <b>Location:</b> ${profileData.location || '—'}`,
+    //     `💼 <b>Skills:</b> ${Array.isArray(profileData.skills) ? profileData.skills.join(', ') : '—'}`,
+    //     `⭐ <b>Level:</b> ${profileData.experienceLevel || '—'}`,
+    //   ].join("\n");
 
-      sendTelegramNotification(process.env.TELEGRAM_CHAT_ID, adminMsg);
-    }
+    //   sendTelegramNotification(process.env.TELEGRAM_CHAT_ID, adminMsg);
+    // }
 
     // Notify the user on Telegram about profile completion
-    if (user.telegram && user.telegram.id) {
-      const firstName = profileData.firstName || user.profile?.firstName || 'there';
-      const userMsg = [
-        `✅ <b>Freelancer Profile Completed!</b>`,
-        ``,
-        `Hi <b>${firstName}</b>!`,
-        `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
-        ``,
-        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
-        ``,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
-      ].join("\n");
+    // Disabled user notifications
+    // if (user.telegram && user.telegram.id) {
+    //   const firstName = profileData.firstName || user.profile?.firstName || 'there';
+    //   const userMsg = [
+    //     `✅ <b>Freelancer Profile Completed!</b>`,
+    //     ``,
+    //     `Hi <b>${firstName}</b>!`,
+    //     `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
+    //     ``,
+    //     `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+    //     ``,
+    //     `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+    //   ].join("\n");
 
-      sendTelegramNotification(user.telegram.id, userMsg);
-    }
+    //   sendTelegramNotification(user.telegram.id, userMsg);
+    // }
 
     res.json({
       message: "Freelancer profile saved successfully",
@@ -921,20 +925,21 @@ router.post("/profile/freelancer", auth, [
       });
     }
 
-    if (req.user.telegram && req.user.telegram.id) {
-      const firstName = profile.firstName || 'there';
-      const userMsg = [
-        `✅ <b>Freelancer Profile Completed!</b>`,
-        ``,
-        `Hi <b>${firstName}</b>!`,
-        `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
-        ``,
-        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
-        ``,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
-      ].join("\n");
-      sendTelegramNotification(req.user.telegram.id, userMsg);
-    }
+    // Disabled user notifications for profile completion
+    // if (req.user.telegram && req.user.telegram.id) {
+    //   const firstName = profile.firstName || 'there';
+    //   const userMsg = [
+    //     `✅ <b>Freelancer Profile Completed!</b>`,
+    //     ``,
+    //     `Hi <b>${firstName}</b>!`,
+    //     `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
+    //     ``,
+    //     `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+    //     ``,
+    //     `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+    //   ].join("\n");
+    //   sendTelegramNotification(req.user.telegram.id, userMsg);
+    // }
 
     res.json({
       message: "Freelancer profile saved successfully",
