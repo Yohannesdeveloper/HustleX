@@ -1505,16 +1505,6 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       // Clear local and remote storage after successful save to avoid conflicts
       removeFromStorage('freelancerProfileData', isAuthenticated);
 
-      try {
-        window.Telegram?.WebApp?.sendData(JSON.stringify({
-          action: 'profile_complete',
-          status: 'success',
-          timestamp: Date.now()
-        }));
-      } catch (e) {
-        console.log('Telegram Mini App sendData not available:', e);
-      }
-
       // Refresh user data in auth context to get updated profile information
       if (refreshUser) {
         await refreshUser();
@@ -1527,6 +1517,16 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       } else {
         // Opened from Telegram Bot → show success, close Mini App or redirect to dashboard
         alert('✅ Profile setup completed successfully!');
+
+        try {
+          window.Telegram?.WebApp?.sendData(JSON.stringify({
+            action: 'profile_complete',
+            status: 'success',
+            timestamp: Date.now()
+          }));
+        } catch (e) {
+          console.log('Telegram Mini App sendData not available:', e);
+        }
 
         if (window.Telegram?.WebApp) {
           try { window.Telegram.WebApp.close(); } catch (e) {}
