@@ -4,7 +4,6 @@ import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
 import { checkAuth } from "./store/authSlice";
-import apiService from "./services/api";
 import HomeFinal from "./Pages/HomeFinal";
 import PageLayout from "./components/PageLayout";
 
@@ -91,23 +90,9 @@ function AppContent() {
       if (startParam && startParam.startsWith('apply_')) {
         const jobId = startParam.replace('apply_', '');
         if (jobId) {
-          const token = localStorage.getItem('token');
-          if (token) {
-            apiService.getCurrentUser().then(() => {
-              const url = `/job-details/${jobId}`;
-              console.log('[App] start_param -> valid token, redirecting to job details:', url);
-              navigate(url, { replace: true });
-            }).catch(() => {
-              localStorage.removeItem('token');
-              const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-              console.log('[App] start_param -> stale token, redirecting to ApplyRedirect:', url);
-              navigate(url, { replace: true });
-            });
-          } else {
-            const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-            console.log('[App] start_param -> no token, redirecting to ApplyRedirect:', url);
-            navigate(url, { replace: true });
-          }
+          const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+          console.log('[App] start_param -> redirecting to ApplyRedirect:', url);
+          navigate(url, { replace: true });
         }
       }
     } catch (e) { console.error('[App] start_param error:', e); }

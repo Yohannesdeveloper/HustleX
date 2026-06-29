@@ -127,12 +127,21 @@ const ApplyRedirect: React.FC = () => {
     console.log("[ApplyRedirect] doLogin, existingToken:", !!existingToken);
 
     if (existingToken) {
-      const dest = effectiveRedirect
-        ? effectiveRedirect
-        : '/dashboard/freelancer';
-      navigate(dest, { replace: true });
+      apiService.getCurrentUser().then(() => {
+        const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
+        navigate(dest, { replace: true });
+      }).catch(() => {
+        localStorage.removeItem('token');
+        setStatus("Session expired. Please log in again.");
+        proceedWithTelegramLogin();
+      });
       return;
     }
+
+    proceedWithTelegramLogin();
+  }, [effectiveRedirect, navigate, goToRegister, handleLoginResult]);
+
+  const proceedWithTelegramLogin = useCallback(() => {
 
     const tg = window.Telegram?.WebApp;
     console.log("[ApplyRedirect] window.Telegram?.WebApp:", !!tg);
@@ -169,7 +178,7 @@ const ApplyRedirect: React.FC = () => {
         retryCount.current++;
         console.log("[ApplyRedirect] retry (empty initData)", retryCount.current, "of", MAX_RETRIES);
         setStatus(`Initializing Telegram... (${retryCount.current})`);
-        setTimeout(doLogin, 400);
+        setTimeout(proceedWithTelegramLogin, 400);
         return;
       }
       console.log("[ApplyRedirect] Telegram WebApp exists but initData remained empty after retries, showing Login Widget");
@@ -182,7 +191,7 @@ const ApplyRedirect: React.FC = () => {
       retryCount.current++;
       console.log("[ApplyRedirect] retry", retryCount.current, "of", MAX_RETRIES);
       setStatus(`Waiting for Telegram... (${retryCount.current})`);
-      setTimeout(doLogin, 400);
+      setTimeout(proceedWithTelegramLogin, 400);
       return;
     }
 
