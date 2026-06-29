@@ -358,10 +358,8 @@ const RegistrationPage: React.FC = () => {
                   }
 
                   // Always go to profile setup after phone sharing
-                  const url = redirectParam
-                    ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
-                    : DEFAULT_REDIRECT;
-                  navigate(url, { replace: true });
+                  sessionStorage.setItem('pendingJobRedirect', redirectParam || '');
+                  navigate(DEFAULT_REDIRECT, { replace: true });
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
               >
