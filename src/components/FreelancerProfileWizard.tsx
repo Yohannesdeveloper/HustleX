@@ -1510,8 +1510,6 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         await refreshUser();
       }
 
-      localStorage.removeItem('needsProfileSetup');
-
       if (redirectParam) {
         // Opened from Telegram Channel job post → redirect to Job Details
         sessionStorage.removeItem('pendingJobRedirect');
