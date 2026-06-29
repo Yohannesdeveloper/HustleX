@@ -90,19 +90,9 @@ function AppContent() {
       if (startParam && startParam.startsWith('apply_')) {
         const jobId = startParam.replace('apply_', '');
         if (jobId) {
-          // Check if user is already authenticated
-          const token = localStorage.getItem('token');
-          if (token) {
-            // Registered user: go directly to job details
-            const url = `/job-details/${jobId}`;
-            console.log('[App] start_param -> user registered, redirecting to job details:', url);
-            navigate(url, { replace: true });
-          } else {
-            // Unregistered user: go through registration flow
-            const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-            console.log('[App] start_param -> user not registered, redirecting to registration flow:', url);
-            navigate(url, { replace: true });
-          }
+          const url = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+          console.log('[App] start_param -> redirecting to ApplyRedirect:', url);
+          navigate(url, { replace: true });
         }
       }
     } catch (e) { console.error('[App] start_param error:', e); }
