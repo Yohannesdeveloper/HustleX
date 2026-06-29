@@ -97,8 +97,13 @@ const RegistrationPage: React.FC = () => {
 
     const isProfileComplete = user?.profile?.isProfileComplete || false;
     if (redirectParam) {
-      sessionStorage.removeItem('pendingJobRedirect');
-      navigate(redirectParam, { replace: true });
+      if (isProfileComplete) {
+        sessionStorage.removeItem('pendingJobRedirect');
+        navigate(redirectParam, { replace: true });
+      } else {
+        const url = `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`;
+        navigate(url, { replace: true });
+      }
     } else {
       navigate(isProfileComplete ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
@@ -337,7 +342,7 @@ const RegistrationPage: React.FC = () => {
                     // Save phone to backend if we got one
                     phone = normalize(phone);
                     if (phone) {
-                      const saveRes = await fetch(`${API}/auth/save-phone`, {
+                      await fetch(`${API}/auth/save-phone`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -345,20 +350,6 @@ const RegistrationPage: React.FC = () => {
                         },
                         body: JSON.stringify({ phone })
                       });
-                      const saveData = await saveRes.json();
-
-                      // Check profile completeness from response
-                      const profileComplete = saveData?.user?.profile?.isProfileComplete || false;
-
-                      if (profileComplete) {
-                        sessionStorage.removeItem('pendingJobRedirect');
-                        if (redirectParam) {
-                          navigate(redirectParam, { replace: true });
-                        } else {
-                          navigate("/job-listings", { replace: true });
-                        }
-                        return;
-                      }
                     }
                   } catch (e) {
                     console.error("Phone fetch/save error:", e);
@@ -366,7 +357,7 @@ const RegistrationPage: React.FC = () => {
                     setPhoneLoading(false);
                   }
 
-                  // Default: redirect to profile setup
+                  // Always go to profile setup after phone sharing
                   const url = redirectParam
                     ? `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`
                     : DEFAULT_REDIRECT;
