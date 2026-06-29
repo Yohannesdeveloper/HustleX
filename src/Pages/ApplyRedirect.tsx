@@ -20,11 +20,6 @@ const ApplyRedirect: React.FC = () => {
   const retryCount = useRef(0);
   const [status, setStatus] = useState("Starting...");
   const [telegramAvailable, setTelegramAvailable] = useState<boolean | null>(null);
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
   const initDataRef = useRef<string | null>(null);
 
   const redirectParam = searchParams.get('redirect');
@@ -54,19 +49,19 @@ const ApplyRedirect: React.FC = () => {
       return true;
     }
     if (result.needsRegistration) {
-      console.log("[ApplyRedirect] Telegram account not linked — showing login form");
+      console.log("[ApplyRedirect] Telegram account not linked — redirecting to registration");
       sessionStorage.setItem('telegramUser', JSON.stringify(result.telegramUser));
-      setShowLoginForm(true);
+      goToRegister();
       return true;
     }
     if (result.loginRequestId) {
-      console.log("[ApplyRedirect] pending confirmation, requestId:", result.loginRequestId);
-      setStatus("Waiting for Telegram confirmation...");
-      const pollTimeout = setTimeout(() => {
-        clearInterval(interval);
-        console.log("[ApplyRedirect] poll timed out");
-        setShowLoginForm(true);
-      }, 15000);
+        console.log("[ApplyRedirect] pending confirmation, requestId:", result.loginRequestId);
+        setStatus("Waiting for Telegram confirmation...");
+        const pollTimeout = setTimeout(() => {
+          clearInterval(interval);
+          console.log("[ApplyRedirect] poll timed out");
+          goToRegister();
+        }, 15000);
       const interval = setInterval(async () => {
         try {
           const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
@@ -83,44 +78,19 @@ const ApplyRedirect: React.FC = () => {
             clearInterval(interval);
             clearTimeout(pollTimeout);
             console.log("[ApplyRedirect] declined/expired");
-            setShowLoginForm(true);
+            goToRegister();
           }
         } catch (e) {
           clearInterval(interval);
           clearTimeout(pollTimeout);
           console.log("[ApplyRedirect] poll error:", e);
-          setShowLoginForm(true);
+          goToRegister();
         }
       }, 2000);
       return true;
     }
     return false;
   }, [effectiveRedirect, navigate, goToRegister]);
-
-  const handleEmailLogin = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    setLoginLoading(true);
-    try {
-      const initData = initDataRef.current;
-      if (!initData) {
-        setLoginError("Telegram session lost. Please try again.");
-        setLoginLoading(false);
-        return;
-      }
-      const result: any = await apiService.telegramLogin({ initData, email: loginEmail, password: loginPassword });
-      if (result.token) {
-        const dest = effectiveRedirect || '/dashboard/freelancer';
-        navigate(dest, { replace: true });
-      } else {
-        setLoginError("Login failed. Check your email and password.");
-      }
-    } catch (err: any) {
-      setLoginError(err?.response?.data?.message || err.message || "Login failed");
-    } finally {
-      setLoginLoading(false);
-    }
-  }, [loginEmail, loginPassword, effectiveRedirect, navigate]);
 
   const doLogin = useCallback(() => {
     const existingToken = localStorage.getItem('token');
@@ -161,13 +131,11 @@ const ApplyRedirect: React.FC = () => {
         console.log("[ApplyRedirect] telegramLogin response:", result);
         if (!handleLoginResult(result)) {
           console.log("[ApplyRedirect] unexpected response format");
-          setStatus("Unexpected response. Try logging in below.");
-          setShowLoginForm(true);
+          goToRegister();
         }
       }).catch((err: any) => {
         console.log("[ApplyRedirect] telegramLogin error:", err?.response?.data || err.message);
-        setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-        setShowLoginForm(true);
+        goToRegister();
       });
       return;
     }
@@ -214,12 +182,11 @@ const ApplyRedirect: React.FC = () => {
       apiService.telegramLogin(user).then((result: any) => {
         console.log("[ApplyRedirect] Login Widget login response:", result);
         if (!handleLoginResult(result)) {
-          setShowLoginForm(true);
+          goToRegister();
         }
       }).catch((err: any) => {
         console.log("[ApplyRedirect] Login Widget error:", err?.response?.data || err.message);
-        setStatus(`Login failed: ${err?.response?.data?.message || err.message}`);
-        setShowLoginForm(true);
+        goToRegister();
       });
     };
 
@@ -236,54 +203,7 @@ const ApplyRedirect: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#17212b' }}>
       <div className="text-center px-6 max-w-md w-full">
-        {showLoginForm ? (
-          <>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Link your account</h2>
-            <p className="text-gray-400 mb-6 text-sm">
-              Your Telegram account isn't linked to a HustleX account yet.<br />
-              Log in with your existing credentials to link them.
-            </p>
-            <form onSubmit={handleEmailLogin} className="space-y-4">
-              <input
-                type="email"
-                placeholder="Email address"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-cyan-500 focus:outline-none"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-cyan-500 focus:outline-none"
-              />
-              {loginError && <p className="text-red-400 text-sm">{loginError}</p>}
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="w-full py-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold disabled:opacity-50"
-              >
-                {loginLoading ? "Linking..." : "Log in & link Telegram"}
-              </button>
-            </form>
-            <div className="mt-6 space-y-2">
-              <button onClick={goToRegister} className="text-gray-500 hover:text-gray-300 text-sm underline block w-full">
-                I don't have an account — Register
-              </button>
-              <button onClick={() => window.location.href = '/forgot-password'} className="text-gray-500 hover:text-gray-300 text-sm underline block w-full">
-                Forgot password?
-              </button>
-            </div>
-          </>
-        ) : telegramAvailable === null ? (
+        {telegramAvailable === null ? (
           <>
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-cyan-400 border-t-transparent mx-auto mb-4"></div>
             <p className="text-white text-base">{status}</p>
