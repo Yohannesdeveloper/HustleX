@@ -566,7 +566,10 @@ const FreelancerProfileWizard: React.FC = () => {
       case 2:
         return <ProfessionalDetailsStep {...stepProps} />;
       case 3:
-        const redirectParam = searchParams.get('redirect') || sessionStorage.getItem('pendingJobRedirect');
+        const jobId = searchParams.get('job_id');
+        const redirectParam = jobId
+          ? `/job-details/${jobId}`
+          : searchParams.get('redirect') || sessionStorage.getItem('pendingJobRedirect');
         return <ReviewStep {...stepProps} onSubmit={() => {}} navigate={navigate} refreshUser={refreshUser} redirectParam={redirectParam} />;
       default:
         return <BasicInfoStep {...stepProps} />;
@@ -1511,12 +1514,20 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       }
 
       if (redirectParam) {
-        // Opened from Telegram Channel job post → redirect to Job Details
+        // Opened from Telegram Channel job post → navigate directly to job details (stay in Mini App)
         sessionStorage.removeItem('pendingJobRedirect');
         navigate(redirectParam, { replace: true });
       } else {
-        // Opened from Telegram Bot → show success, close Mini App or redirect to dashboard
-        alert('✅ Profile setup completed successfully!');
+        // Opened from bot menu (no redirect) → send data to bot then close
+        try {
+          window.Telegram?.WebApp?.sendData(JSON.stringify({
+            action: 'profile_complete',
+            status: 'success',
+            timestamp: Date.now()
+          }));
+        } catch (e) {
+          console.log('Telegram Mini App sendData not available:', e);
+        }
 
         try {
           window.Telegram?.WebApp?.sendData(JSON.stringify({
