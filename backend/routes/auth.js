@@ -814,22 +814,21 @@ router.post("/freelancer-profile", async (req, res) => {
     // }
 
     // Notify the user on Telegram about profile completion
-    // Disabled user notifications
-    // if (user.telegram && user.telegram.id) {
-    //   const firstName = profileData.firstName || user.profile?.firstName || 'there';
-    //   const userMsg = [
-    //     `✅ <b>Freelancer Profile Completed!</b>`,
-    //     ``,
-    //     `Hi <b>${firstName}</b>!`,
-    //     `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
-    //     ``,
-    //     `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
-    //     ``,
-    //     `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
-    //   ].join("\n");
+    if (user.telegram && user.telegram.id) {
+      const firstName = profileData.firstName || user.profile?.firstName || 'there';
+      const userMsg = [
+        `✅ <b>Freelancer Profile Completed!</b>`,
+        ``,
+        `Hi <b>${firstName}</b>!`,
+        `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+        ``,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
 
-    //   sendTelegramNotification(user.telegram.id, userMsg);
-    // }
+      sendTelegramNotification(user.telegram.id, userMsg);
+    }
 
     res.json({
       message: "Freelancer profile saved successfully",
@@ -925,21 +924,21 @@ router.post("/profile/freelancer", auth, [
       });
     }
 
-    // Disabled user notifications for profile completion
-    // if (req.user.telegram && req.user.telegram.id) {
-    //   const firstName = profile.firstName || 'there';
-    //   const userMsg = [
-    //     `✅ <b>Freelancer Profile Completed!</b>`,
-    //     ``,
-    //     `Hi <b>${firstName}</b>!`,
-    //     `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
-    //     ``,
-    //     `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
-    //     ``,
-    //     `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
-    //   ].join("\n");
-    //   sendTelegramNotification(req.user.telegram.id, userMsg);
-    // }
+    // Notify user about profile completion
+    if (req.user.telegram && req.user.telegram.id) {
+      const firstName = profile.firstName || 'there';
+      const userMsg = [
+        `✅ <b>Freelancer Profile Completed!</b>`,
+        ``,
+        `Hi <b>${firstName}</b>!`,
+        `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
+        ``,
+        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+      ].join("\n");
+      sendTelegramNotification(req.user.telegram.id, userMsg);
+    }
 
     res.json({
       message: "Freelancer profile saved successfully",
