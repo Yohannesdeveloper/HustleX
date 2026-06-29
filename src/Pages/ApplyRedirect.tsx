@@ -1,9 +1,8 @@
-import React, { useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import React from "react";
+import { useSearchParams, Navigate } from "react-router-dom";
 
 const ApplyRedirect: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const redirectParam = searchParams.get('redirect');
   const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
@@ -12,20 +11,17 @@ const ApplyRedirect: React.FC = () => {
     sessionStorage.setItem('pendingJobRedirect', redirectParam);
   }
 
-  useEffect(() => {
-    const existingToken = localStorage.getItem('token');
-    if (existingToken) {
-      const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
-      navigate(dest, { replace: true });
-    } else {
-      const url = effectiveRedirect
-        ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
-        : "/Register";
-      navigate(url, { replace: true });
-    }
-  }, [effectiveRedirect, navigate]);
+  const existingToken = localStorage.getItem('token');
 
-  return null;
+  if (existingToken) {
+    const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
+    return <Navigate to={dest} replace />;
+  }
+
+  const url = effectiveRedirect
+    ? `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`
+    : "/Register";
+  return <Navigate to={url} replace />;
 };
 
 export default ApplyRedirect;
