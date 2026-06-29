@@ -358,6 +358,7 @@ const RegistrationPage: React.FC = () => {
                   }
 
                   // Always go to profile setup after phone sharing
+                  localStorage.setItem('needsProfileSetup', 'true');
                   sessionStorage.setItem('pendingJobRedirect', redirectParam || '');
                   navigate(DEFAULT_REDIRECT, { replace: true });
                 }}

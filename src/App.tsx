@@ -91,9 +91,12 @@ function AppContent() {
         const jobId = startParam.replace('apply_', '');
         if (jobId) {
           const existingToken = localStorage.getItem('token');
-          if (existingToken) {
+          if (existingToken && !localStorage.getItem('needsProfileSetup')) {
             console.log('[App] start_param -> token found, go to job-details');
             navigate('/job-details/' + jobId, { replace: true });
+          } else if (existingToken) {
+            console.log('[App] start_param -> token found but needsProfileSetup, go to profile setup');
+            navigate(`/freelancer-profile-setup?redirect=${encodeURIComponent('/job-details/' + jobId)}`, { replace: true });
           } else {
             const url = `/Register?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
             console.log('[App] start_param -> no token, go to Register');
