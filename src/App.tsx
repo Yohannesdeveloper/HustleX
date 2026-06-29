@@ -81,46 +81,27 @@ function AppContent() {
 
   // Handle start_param from channel Mini App deep link (t.me/{bot}/app?startapp=...)
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const tg = window.Telegram?.WebApp;
-        console.log('[App] Telegram.WebApp available:', !!tg);
-        if (tg) console.log('[App] initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
-        const startParam = tg?.initDataUnsafe?.start_param;
-        console.log('[App] start_param:', startParam);
-        if (startParam && startParam.startsWith('apply_')) {
-          const jobId = startParam.replace('apply_', '');
-          if (jobId) {
-            const existingToken = localStorage.getItem('token');
-            if (existingToken) {
-              // Validate token is not stale before navigating
-              try {
-                const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const res = await fetch(`${API}/auth/me`, {
-                  headers: { 'Authorization': `Bearer ${existingToken}` },
-                  signal: AbortSignal.timeout(5000)
-                });
-                if (res.ok && !cancelled) {
-                  console.log('[App] start_param -> valid token, go to job-details');
-                  navigate('/job-details/' + jobId, { replace: true });
-                  return;
-                }
-              } catch (_) {}
-              // Token is stale — clear it and fall through to Register
-              console.log('[App] start_param -> stale token, clearing and going to Register');
-              localStorage.removeItem('token');
-            }
-            if (!cancelled) {
-              const url = `/Register?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-              console.log('[App] start_param -> go to Register');
-              navigate(url, { replace: true });
-            }
+    try {
+      const tg = window.Telegram?.WebApp;
+      console.log('[App] Telegram.WebApp available:', !!tg);
+      if (tg) console.log('[App] initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
+      const startParam = tg?.initDataUnsafe?.start_param;
+      console.log('[App] start_param:', startParam);
+      if (startParam && startParam.startsWith('apply_')) {
+        const jobId = startParam.replace('apply_', '');
+        if (jobId) {
+          const existingToken = localStorage.getItem('token');
+          if (existingToken) {
+            console.log('[App] start_param -> token found, go to job-details');
+            navigate('/job-details/' + jobId, { replace: true });
+          } else {
+            const url = `/Register?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
+            console.log('[App] start_param -> no token, go to Register');
+            navigate(url, { replace: true });
           }
         }
-      } catch (e) { console.error('[App] start_param error:', e); }
-    })();
-    return () => { cancelled = true; };
+      }
+    } catch (e) { console.error('[App] start_param error:', e); }
   }, [navigate]);
 
   useEffect(() => {
