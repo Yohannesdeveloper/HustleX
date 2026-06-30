@@ -75,7 +75,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
       if (profileIncomplete) {
         console.log('[RoleRouteGuard] REDIRECT profile incomplete → setup, path:', currentPath);
-        const setupPath = currentRole === "client" ? "/profile-setup?role=client" : "/profile-setup?role=freelancer";
+        const setupPath = currentRole === "client" ? "/profile-setup?role=client" : "/freelancer-profile-setup";
         return <Navigate to={setupPath} replace />;
       }
     }

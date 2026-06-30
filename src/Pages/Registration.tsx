@@ -359,7 +359,11 @@ const RegistrationPage: React.FC = () => {
 
                   // Always go to profile setup after phone sharing
                   sessionStorage.setItem('pendingJobRedirect', redirectParam || '');
-                  navigate(DEFAULT_REDIRECT, { replace: true });
+                  // Pass redirect parameter to profile setup page
+                  const profileSetupUrl = redirectParam
+                    ? `${DEFAULT_REDIRECT}?redirect=${encodeURIComponent(redirectParam)}`
+                    : DEFAULT_REDIRECT;
+                  navigate(profileSetupUrl, { replace: true });
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all shadow-lg shadow-cyan-500/20"
               >
