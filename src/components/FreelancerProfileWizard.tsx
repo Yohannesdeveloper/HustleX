@@ -1545,7 +1545,6 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           return;
         }
 
-        alert('Freelancer profile saved successfully!');
         window.location.href = '/dashboard/freelancer';
       }
     } catch (error: any) {
