@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../store/hooks";
-import { getActiveRole, dashboardPathForRole } from "../utils/activeRole";
+import { getActiveRole, dashboardPathForRole, isFreelancerProfileComplete } from "../utils/activeRole";
 
 /**
  * Keeps users on the dashboard that matches their active role.
@@ -51,10 +51,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
     const hasClientRole = user.roles.includes("client");
     const isAdmin = user.roles.includes("admin");
 
-    const hasFreelancerProfile =
-      user.profile?.freelancerProfileCompleted ||
-      user.profile?.isProfileComplete ||
-      (user.profile?.skills && user.profile.skills.length > 0);
+    const hasFreelancerProfile = isFreelancerProfileComplete(user);
 
     const hasClientProfile = user.hasCompanyProfile;
 

@@ -53,3 +53,9 @@ export function dashboardPathForRole(role: ActiveRole): string {
   if (role === "admin") return "/admin/dashboard";
   return role === "client" ? "/dashboard/hiring" : "/dashboard/freelancer";
 }
+
+export function isFreelancerProfileComplete(user: { profile?: any } | null | undefined): boolean {
+  if (!user?.profile) return false;
+  return user.profile.isProfileComplete || 
+    (user.profile.skills && Array.isArray(user.profile.skills) && user.profile.skills.length > 0);
+}

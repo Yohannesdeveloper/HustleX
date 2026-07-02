@@ -4,6 +4,7 @@ import { useAppSelector } from '../store/hooks';
 import { useAuth } from '../store/hooks';
 import FreelancerProfileWizard from './FreelancerProfileWizard';
 import ClientProfileWizard from './ClientProfileWizard';
+import { isFreelancerProfileComplete } from '../utils/activeRole';
 
 const ProfileSetupRouter: React.FC = () => {
   const navigate = useNavigate();
@@ -28,9 +29,7 @@ const ProfileSetupRouter: React.FC = () => {
       const hasClientRole = user.roles?.includes('client');
 
       // Check if user has completed freelancer profile (check multiple fields)
-      const hasFreelancerProfile = user.profile?.freelancerProfileCompleted ||
-        user.profile?.isProfileComplete ||
-        (user.profile?.skills && user.profile?.skills.length > 0);
+      const hasFreelancerProfile = isFreelancerProfileComplete(user);
       const hasClientProfile = user.hasCompanyProfile;
 
       // If user has both roles and both profiles are complete, go to the active role's dashboard
@@ -93,9 +92,7 @@ const ProfileSetupRouter: React.FC = () => {
 
 
   // Determine which wizard to show based on role and profile completion
-  const hasFreelancerProfile = user?.profile?.freelancerProfileCompleted ||
-    user?.profile?.isProfileComplete ||
-    (user?.profile?.skills && user?.profile?.skills.length > 0);
+  const hasFreelancerProfile = isFreelancerProfileComplete(user);
   const hasClientProfile = user?.hasCompanyProfile;
 
   const hasFreelancerRole = user?.roles?.includes('freelancer');

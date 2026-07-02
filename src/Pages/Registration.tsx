@@ -5,6 +5,7 @@ import { useAppDispatch } from "../store/hooks";
 import { register as registerUser, setUser } from "../store/authSlice";
 import { useAuth } from "../store/hooks";
 import apiService from "../services/api";
+import { isFreelancerProfileComplete } from "../utils/activeRole";
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
@@ -95,9 +96,8 @@ const RegistrationPage: React.FC = () => {
     if (!isAuthenticated || !user) return;
     if (success) return;
 
-    const isProfileComplete = user?.profile?.isProfileComplete || false;
     if (redirectParam) {
-      if (isProfileComplete) {
+      if (isFreelancerProfileComplete(user)) {
         sessionStorage.removeItem('pendingJobRedirect');
         navigate(redirectParam, { replace: true });
       } else {
@@ -105,7 +105,7 @@ const RegistrationPage: React.FC = () => {
         navigate(url, { replace: true });
       }
     } else {
-      navigate(isProfileComplete ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
+      navigate(isFreelancerProfileComplete(user) ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
   }, [isAuthenticated, user, authLoading, success, redirectParam, navigate]);
 

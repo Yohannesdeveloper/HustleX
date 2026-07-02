@@ -1,8 +1,11 @@
 import React from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
+import { useAuth } from "../store/hooks";
+import { isFreelancerProfileComplete } from "../utils/activeRole";
 
 const ApplyRedirect: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { user, isAuthenticated } = useAuth();
 
   const redirectParam = searchParams.get('redirect');
   const effectiveRedirect = redirectParam || sessionStorage.getItem('pendingJobRedirect');
@@ -11,11 +14,16 @@ const ApplyRedirect: React.FC = () => {
     sessionStorage.setItem('pendingJobRedirect', redirectParam);
   }
 
-  const existingToken = localStorage.getItem('token');
-
-  if (existingToken) {
-    const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
-    return <Navigate to={dest} replace />;
+  if (isAuthenticated && user) {
+    if (isFreelancerProfileComplete(user)) {
+      const dest = effectiveRedirect ? effectiveRedirect : '/dashboard/freelancer';
+      return <Navigate to={dest} replace />;
+    } else {
+      const profileSetupUrl = effectiveRedirect
+        ? `/freelancer-profile-setup?redirect=${encodeURIComponent(effectiveRedirect)}`
+        : '/freelancer-profile-setup';
+      return <Navigate to={profileSetupUrl} replace />;
+    }
   }
 
   const url = effectiveRedirect
