@@ -51,7 +51,6 @@ const userSchema = new mongoose.Schema(
       city: String,
       phone: {
         type: String,
-        unique: true,
         sparse: true,
         trim: true
       },
