@@ -11,6 +11,22 @@ import { COUNTRIES } from '../constants/countries';
 import { formatLocation, parseLocation } from '../utils/location';
 import { isFreelancerProfileComplete, getPendingJobRedirect, setPendingJobRedirect, clearPendingJobRedirect } from '../utils/activeRole';
 
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        sendData: (data: string) => void;
+        close: () => void;
+        CloudStorage: {
+          setItem: (key: string, value: string, onSuccess?: () => void, onError?: () => void) => void;
+          getItem: (key: string, onSuccess: (value: string) => void) => void;
+          removeItem: (key: string, onSuccess?: () => void, onError?: () => void) => void;
+        };
+      };
+    };
+  }
+}
+
 interface FreelancerProfileData {
   // Basic Information
   firstName: string;
