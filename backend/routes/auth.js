@@ -928,28 +928,104 @@ router.post("/profile/freelancer", auth, [
 
     profile.firstName = firstName;
     profile.lastName = lastName;
-    if (email) profile.email = email;
-    profile.phone = phone ? phone : undefined;
-    profile.location = location ? location : undefined;
-    profile.bio = bio ? bio : undefined;
-    profile.education = education ? education : undefined;
-    profile.experience = experience ? experience : undefined;
+    if (email) {
+      profile.email = email;
+    } else {
+      delete profile.email;
+    }
+    if (phone) {
+      profile.phone = phone;
+    } else {
+      delete profile.phone;
+    }
+    if (location) {
+      profile.location = location;
+    } else {
+      delete profile.location;
+    }
+    if (bio) {
+      profile.bio = bio;
+    } else {
+      delete profile.bio;
+    }
+    if (education) {
+      profile.education = education;
+    } else {
+      delete profile.education;
+    }
+    if (experience) {
+      profile.experience = experience;
+    } else {
+      delete profile.experience;
+    }
     profile.skills = Array.isArray(skills) ? skills : (profile.skills || []);
-    profile.primarySkill = primarySkill ? primarySkill : undefined;
-    profile.experienceLevel = experienceLevel ? experienceLevel : undefined;
-    profile.yearsOfExperience = yearsOfExperience ? yearsOfExperience : undefined;
-    profile.portfolioUrl = portfolioUrl ? portfolioUrl : undefined;
+    if (primarySkill) {
+      profile.primarySkill = primarySkill;
+    } else {
+      delete profile.primarySkill;
+    }
+    if (experienceLevel) {
+      profile.experienceLevel = experienceLevel;
+    } else {
+      delete profile.experienceLevel;
+    }
+    if (yearsOfExperience) {
+      profile.yearsOfExperience = yearsOfExperience;
+    } else {
+      delete profile.yearsOfExperience;
+    }
+    if (portfolioUrl) {
+      profile.portfolioUrl = portfolioUrl;
+    } else {
+      delete profile.portfolioUrl;
+    }
     profile.certifications = Array.isArray(certifications) ? certifications : (profile.certifications || []);
-    profile.availability = availability ? availability : undefined;
-    profile.monthlyRate = monthlyRate ? monthlyRate : undefined;
-    profile.currency = currency ? currency : undefined;
+    if (availability) {
+      profile.availability = availability;
+    } else {
+      delete profile.availability;
+    }
+    if (monthlyRate) {
+      profile.monthlyRate = monthlyRate;
+    } else {
+      delete profile.monthlyRate;
+    }
+    if (currency) {
+      profile.currency = currency;
+    } else {
+      delete profile.currency;
+    }
     profile.preferredJobTypes = Array.isArray(preferredJobTypes) ? preferredJobTypes : (profile.preferredJobTypes || []);
-    profile.workLocation = workLocation ? workLocation : undefined;
-    profile.linkedinUrl = linkedinUrl ? linkedinUrl : undefined;
-    profile.githubUrl = githubUrl ? githubUrl : undefined;
-    profile.websiteUrl = websiteUrl ? websiteUrl : undefined;
-    profile.cvUrl = cvUrl ? cvUrl : undefined;
-    profile.avatar = avatar ? avatar : undefined;
+    if (workLocation) {
+      profile.workLocation = workLocation;
+    } else {
+      delete profile.workLocation;
+    }
+    if (linkedinUrl) {
+      profile.linkedinUrl = linkedinUrl;
+    } else {
+      delete profile.linkedinUrl;
+    }
+    if (githubUrl) {
+      profile.githubUrl = githubUrl;
+    } else {
+      delete profile.githubUrl;
+    }
+    if (websiteUrl) {
+      profile.websiteUrl = websiteUrl;
+    } else {
+      delete profile.websiteUrl;
+    }
+    if (cvUrl) {
+      profile.cvUrl = cvUrl;
+    } else {
+      delete profile.cvUrl;
+    }
+    if (avatar) {
+      profile.avatar = avatar;
+    } else {
+      delete profile.avatar;
+    }
     profile.isProfileComplete = true;
     profile.profileCompletedAt = new Date();
 
