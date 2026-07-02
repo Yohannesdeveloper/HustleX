@@ -302,13 +302,13 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     websiteUrl?: string;
     cvUrl?: string;
     avatar?: string;
-  }): Promise<User> {
+  }): Promise<{ message: string; user: User }> {
     if (this.token) {
       const response = await axios.post(`${this.baseUrl}/auth/profile/freelancer`, profileData);
-      return (response.data as { user: User }).user;
+      return response.data as { message: string; user: User };
     }
     const response = await axios.post(`${this.baseUrl}/auth/freelancer-profile`, { profile: profileData });
-    return (response.data as { user: User }).user;
+    return response.data as { message: string; user: User };
   }
 
   /** Fetch the authenticated user's freelancer profile */
