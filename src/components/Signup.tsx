@@ -35,6 +35,7 @@ const Signup: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedRoleForLogin, setSelectedRoleForLogin] = useState<string | null>(null);
   const [showLoginForm, setShowLoginForm] = useState(false);
+  const [showSetPasswordForm, setShowSetPasswordForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [telegramConfig, setTelegramConfig] = useState<{ botUsername: string | null; configured: boolean } | null>(null);
@@ -302,13 +303,21 @@ const Signup: React.FC = () => {
 
   const handleAccountSelection = async (selectedRole: string) => {
     setSelectedRoleForLogin(selectedRole);
-    setShowLoginForm(true);
+    if (existingUser.hasPassword) {
+      setShowLoginForm(true);
+    } else {
+      setShowSetPasswordForm(true);
+    }
     setError(null);
   };
 
   const handleAddRole = async (newRole: 'freelancer' | 'client') => {
     setSelectedRoleForLogin(newRole);
-    setShowLoginForm(true);
+    if (existingUser.hasPassword) {
+      setShowLoginForm(true);
+    } else {
+      setShowSetPasswordForm(true);
+    }
     setError(null);
   };
 
@@ -382,6 +391,101 @@ const Signup: React.FC = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       let errorMessage = "Invalid email or password. Please try again.";
+
+      if (err) {
+        if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err?.message) {
+          errorMessage = err.message;
+        } else if (err?.error?.message) {
+          errorMessage = err.error.message;
+        } else if (err?.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err?.toString) {
+          errorMessage = err.toString();
+        }
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError(t.signup.passwordsDoNotMatch);
+      return;
+    }
+
+    // Strong password validation
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError("Password must be at least 8 characters long and contain at least one letter and one number");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Set password first
+      await apiService.setPassword(email, password);
+      
+      // Then login with new password
+      const loggedInUser = await login(email, password);
+
+      // Determine the role to use (selected role or current role)
+      const targetRole = selectedRoleForLogin || loggedInUser?.currentRole || 'freelancer';
+
+      // Admin role is managed server-side — skip add/switch role APIs
+      if (selectedRoleForLogin && selectedRoleForLogin !== 'admin') {
+        if (!existingUser.roles?.includes(selectedRoleForLogin)) {
+          try {
+            await addRole(selectedRoleForLogin as 'freelancer' | 'client');
+          } catch (roleError: any) {
+            console.error('Error adding role:', roleError);
+          }
+        } else if (loggedInUser?.currentRole !== selectedRoleForLogin) {
+          try {
+            await switchRole(selectedRoleForLogin as 'freelancer' | 'client');
+          } catch (switchError: any) {
+            console.error('Error switching role:', switchError);
+          }
+        }
+      }
+
+      // Navigate based on role and profile completion status
+      // Priority 0: If user has no roles, send to role selection
+      if (!loggedInUser?.roles || loggedInUser.roles.length === 0) {
+        navigate('/select-role', { replace: true, state: { redirectPath, pendingJobId } });
+        return;
+      }
+
+      // Priority 1: Admin users always go to admin panel
+      if (isAdminAccount(loggedInUser)) {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+
+      // Priority 2: Use explicit redirect path if provided (e.g. from pricing/payment)
+      if (redirectPath && redirectPath !== "/job-listings") {
+        navigate(redirectPath, { replace: true });
+        return;
+      }
+
+      // Priority 3: Fallback to role-specific dashboard
+      if (targetRole === 'freelancer') {
+        navigate('/dashboard/freelancer', { replace: true });
+      } else if (targetRole === 'client') {
+        navigate('/dashboard/hiring', { replace: true });
+      } else {
+        navigate("/job-listings", { replace: true });
+      }
+    } catch (err: any) {
+      console.error('Set password error:', err);
+      let errorMessage = "Failed to set password. Please try again.";
 
       if (err) {
         if (typeof err === 'string') {
@@ -758,8 +862,101 @@ const Signup: React.FC = () => {
             </div>
           )}
 
+          {/* Set Password Form for Existing Users Without Password */}
+          {existingUser && showSetPasswordForm && (
+            <div className={`p-4 rounded-xl border ${darkMode ? 'bg-gray-800/50 border-gray-600/50' : 'bg-gray-100/50 border-gray-300/50'}`}>
+              <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                Set Password
+              </h3>
+              <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {selectedRoleForLogin && !existingUser.roles?.includes(selectedRoleForLogin)
+                  ? `Set a password to add the ${selectedRoleForLogin} role to your account`
+                  : "Set a password to continue to your account"}
+              </p>
+
+              <form onSubmit={handleSetPassword} className="space-y-4">
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    name="password"
+                    required
+                    className={`w-full px-4 py-3 border rounded-xl transition-all focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 ${darkMode
+                      ? "bg-gray-800/50 border-gray-600/50 text-white placeholder-gray-400"
+                      : "bg-white/50 border-gray-300/50 text-gray-900 placeholder-gray-500"
+                      }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    name="confirmPassword"
+                    required
+                    className={`w-full px-4 py-3 border rounded-xl transition-all focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 ${darkMode
+                      ? "bg-gray-800/50 border-gray-600/50 text-white placeholder-gray-400"
+                      : "bg-white/50 border-gray-300/50 text-gray-900 placeholder-gray-500"
+                      }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`}
+                  >
+                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+
+                {error && (
+                  <p className="text-red-400 text-sm font-semibold bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${darkMode
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-400 hover:to-blue-400"
+                    : "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-400 hover:to-blue-400"
+                    }`}
+                >
+                  {isLoading ? "Setting Password..." : "Set Password & Continue"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSetPasswordForm(false);
+                    setSelectedRoleForLogin(null);
+                    setPassword("");
+                    setConfirmPassword("");
+                    setError(null);
+                  }}
+                  className={`w-full text-sm ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-700'}`}
+                >
+                  {t.signup.backToAccountSelection}
+                </button>
+              </form>
+            </div>
+          )}
+
           {/* Existing Accounts Selection */}
-          {existingUser && !showLoginForm && (
+          {existingUser && !showLoginForm && !showSetPasswordForm && (
             <div className={`p-4 rounded-xl border mb-4 ${darkMode ? 'bg-gray-800/50 border-gray-600/50' : 'bg-gray-100/50 border-gray-300/50'}`}>
               <h3 className={`text-lg font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                 Account Found

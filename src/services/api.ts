@@ -132,6 +132,15 @@ class ApiService {
     });
   }
 
+  async setPassword(email: string, password: string): Promise<void> {
+    return this.withPortRetry(async (base) => {
+      await axios.post(`${base}/auth/set-password`, {
+        email,
+        password,
+      });
+    });
+  }
+
   async telegramLogin(telegramData: any): Promise<{ token: string; user: any } | { loginRequestId: string; status: string }> {
     return this.withPortRetry(async (base) => {
       const payload = typeof telegramData?.initData === 'string'

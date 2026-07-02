@@ -308,7 +308,7 @@ router.post(
 
       // Check if user has a password set
       if (!user.password) {
-        return res.status(400).json({ message: "This account doesn't have a password set. Please login via Telegram or use the forgot password feature to set one." });
+        return res.status(400).json({ message: "This account doesn't have a password set. Please login via Telegram or set a password." });
       }
 
       // Check password
@@ -472,6 +472,41 @@ router.post(
     } catch (error) {
       console.error("Reset password error:", error);
       return res.status(500).json({ message: "Failed to reset password" });
+    }
+  }
+);
+
+// @route   POST /api/auth/set-password
+// @desc    Set password for existing user who doesn't have one
+// @access  Public
+router.post(
+  "/set-password",
+  [
+    body("email").isEmail().normalizeEmail(),
+    body("password").isLength({ min: 8 }).matches(/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, password } = req.body;
+      const user = await User.findOne({ email: email.toLowerCase() });
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Set password
+      user.password = password;
+      await user.save();
+
+      return res.json({ message: "Password set successfully" });
+    } catch (error) {
+      console.error("Set password error:", error);
+      return res.status(500).json({ message: "Server error" });
     }
   }
 );
@@ -692,6 +727,7 @@ router.get("/check-user", async (req, res) => {
         currentRole: user.currentRole,
         role: user.currentRole, // For backward compatibility
         profile: user.profile,
+        hasPassword: !!user.password,
       },
     });
   } catch (error) {
