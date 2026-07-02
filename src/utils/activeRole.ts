@@ -102,3 +102,24 @@ export function needsFreelancerProfileSetup(user: User | null | undefined): bool
   if (!user?.roles?.includes("freelancer")) return false;
   return !isFreelancerProfileComplete(user);
 }
+
+/** Single destination resolver for Telegram job-apply deep links */
+export function resolveApplyFlowPath(
+  isAuthenticated: boolean,
+  user: User | null | undefined,
+  redirect: string | null | undefined
+): string {
+  const effectiveRedirect = redirect || null;
+
+  if (isAuthenticated && user) {
+    if (isFreelancerProfileComplete(user)) {
+      return effectiveRedirect || "/dashboard/freelancer";
+    }
+    return freelancerProfileSetupPath(effectiveRedirect);
+  }
+
+  if (effectiveRedirect) {
+    return `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`;
+  }
+  return "/Register";
+}

@@ -16,12 +16,14 @@ export interface AuthState {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  authInitialized: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
   loading: false,
   isAuthenticated: false,
+  authInitialized: false,
 };
 
 // Helper to check and sync persisted role
@@ -227,6 +229,7 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = !!action.payload;
         state.loading = false;
+        state.authInitialized = true;
         if (action.payload?.roles?.includes("admin")) {
           persistActiveRole("admin");
         } else if (action.payload?.currentRole) {
@@ -237,6 +240,7 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
+        state.authInitialized = true;
       })
       // Login
       .addCase(login.pending, (state) => {

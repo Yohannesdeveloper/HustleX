@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FaUser, FaCalendarAlt, FaGlobe, FaCity, FaVenusMars, FaCheck, FaPhone } from "react-icons/fa";
 import { useAppDispatch } from "../store/hooks";
-import { register as registerUser, setUser } from "../store/authSlice";
+import { register as registerUser, checkAuth } from "../store/authSlice";
 import { useAuth } from "../store/hooks";
 import apiService from "../services/api";
-import { isFreelancerProfileComplete } from "../utils/activeRole";
+import { isFreelancerProfileComplete, setPendingJobRedirect } from "../utils/activeRole";
+import { initTelegramMiniApp, MINI_APP_BG, storeTelegramUserFromInitData } from "../utils/telegramMiniApp";
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
@@ -56,7 +57,7 @@ const RegistrationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const dispatch = useAppDispatch();
-  const { isAuthenticated, user, loading: authLoading, checkAuth } = useAuth();
+  const { isAuthenticated, user, authInitialized } = useAuth();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -71,50 +72,22 @@ const RegistrationPage: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPhonePermission, setShowPhonePermission] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const [telegramLoginStatus, setTelegramLoginStatus] = useState<'idle' | 'checking' | 'logging-in' | 'failed' | 'done'>('idle');
-  const telegramLoginAttempted = useRef(false);
-  const telegramLoginPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
-  const PAGE_BG = "#111827";
 
-  // Get redirect parameter from URL, fallback to sessionStorage
   const urlRedirect = searchParams.get('redirect');
   const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
   const DEFAULT_REDIRECT = "/freelancer-profile-setup";
 
-  // Reset Telegram navy screen and set consistent page background
   useEffect(() => {
-    document.body.style.backgroundColor = PAGE_BG;
-    document.documentElement.style.backgroundColor = PAGE_BG;
-    const tg = window.Telegram?.WebApp as any;
-    if (tg) {
-      tg.ready?.();
-      tg.expand?.();
-      try {
-        tg.setHeaderColor?.(PAGE_BG);
-        tg.setBackgroundColor?.(PAGE_BG);
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
+    initTelegramMiniApp();
+    if (urlRedirect) setPendingJobRedirect(urlRedirect);
+    storeTelegramUserFromInitData();
+    dispatch(checkAuth());
+  }, [dispatch, urlRedirect]);
 
-  // Wait for auth check before deciding to show form or redirect (returning users)
   useEffect(() => {
-    checkAuth().finally(() => setAuthReady(true));
-  }, [checkAuth]);
-
-  if (urlRedirect) {
-    sessionStorage.setItem('pendingJobRedirect', urlRedirect);
-  }
-
-  // If already authenticated (e.g. after a page refresh), skip registration.
-  // Don't redirect if the user just registered (success=true) so they see the
-  // success message and phone permission step.
-  useEffect(() => {
-    if (!authReady) return;
+    if (!authInitialized) return;
     if (!isAuthenticated || !user) return;
     if (success) return;
     if (showPhonePermission) return;
@@ -124,74 +97,14 @@ const RegistrationPage: React.FC = () => {
         sessionStorage.removeItem('pendingJobRedirect');
         navigate(redirectParam, { replace: true });
       } else {
-        const url = `/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`;
-        navigate(url, { replace: true });
+        navigate(`/freelancer-profile-setup?redirect=${encodeURIComponent(redirectParam)}`, { replace: true });
       }
     } else {
       navigate(isFreelancerProfileComplete(user) ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
-  }, [isAuthenticated, user, authReady, success, redirectParam, navigate, showPhonePermission]);
+  }, [isAuthenticated, user, authInitialized, success, redirectParam, navigate, showPhonePermission]);
 
-  // Retry Telegram login when not authenticated but initData is available
-  useEffect(() => {
-    if (!authReady) return;
-    if (isAuthenticated) return;
-    if (telegramLoginAttempted.current) return;
-
-    const tg = window.Telegram?.WebApp;
-    if (!tg?.initData) {
-      setTelegramLoginStatus(tg ? 'failed' : 'idle');
-      return;
-    }
-
-    setTelegramLoginStatus('logging-in');
-    telegramLoginAttempted.current = true;
-
-    apiService.telegramLogin({ initData: tg.initData }).then((result: any) => {
-      if (result.token) {
-        setTelegramLoginStatus('done');
-        if (result.user) dispatch(setUser(result.user as any));
-      } else if (result.loginRequestId) {
-        setTelegramLoginStatus('checking');
-        const pollTimeout = setTimeout(() => {
-          if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
-          setTelegramLoginStatus('failed');
-        }, 15000);
-        telegramLoginPollRef.current = setInterval(async () => {
-          try {
-            const poll: any = await apiService.telegramLoginStatus(result.loginRequestId);
-            if (poll.status === 'confirmed' && poll.token) {
-              if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
-              clearTimeout(pollTimeout);
-              setTelegramLoginStatus('done');
-              if (poll.user) dispatch(setUser(poll.user as any));
-            } else if (poll.status === 'declined' || poll.status === 'expired') {
-              if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
-              clearTimeout(pollTimeout);
-              setTelegramLoginStatus('failed');
-            }
-          } catch {
-            if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
-            clearTimeout(pollTimeout);
-            setTelegramLoginStatus('failed');
-          }
-        }, 2000);
-      } else {
-        setTelegramLoginStatus('failed');
-      }
-    }).catch(() => {
-      setTelegramLoginStatus('failed');
-    });
-  }, [authReady, isAuthenticated]);
-
-  // Cleanup poll interval on unmount
-  useEffect(() => {
-    return () => {
-      if (telegramLoginPollRef.current) clearInterval(telegramLoginPollRef.current);
-    };
-  }, []);
-
-  // Pre-fill form from Telegram user data (set by ApplyRedirect)
+  // Pre-fill form from Telegram user data
   useEffect(() => {
     const stored = sessionStorage.getItem('telegramUser');
     if (!stored) return;
@@ -213,13 +126,13 @@ const RegistrationPage: React.FC = () => {
 
   // ── All hooks are above this line. Early returns below are safe. ──
 
-  // Show loading while checking auth (prevents flash of registration form for returning users)
-  if (authLoading && redirectParam) {
+  // Show loading only for returning users with a job redirect (not new registrations)
+  if (!authInitialized && redirectParam && !success && !showPhonePermission) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#111827' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: MINI_APP_BG }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Checking your account...</p>
+          <p className="text-gray-400">Loading...</p>
         </div>
       </div>
     );
@@ -289,7 +202,7 @@ const RegistrationPage: React.FC = () => {
   if (success) {
     if (showPhonePermission) {
       return (
-        <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#111827' }}>
+        <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: MINI_APP_BG }}>
           <div className="max-w-md w-full bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center shadow-2xl">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <FaPhone className="w-10 h-10 text-white" />
@@ -396,7 +309,7 @@ const RegistrationPage: React.FC = () => {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto" style={{ backgroundColor: '#111827' }}>
+      <div className="min-h-screen flex items-center justify-center px-4 overflow-y-auto" style={{ backgroundColor: MINI_APP_BG }}>
         <div className="max-w-md w-full bg-gray-800 border border-gray-700 rounded-2xl p-8 text-center shadow-2xl">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +337,7 @@ const RegistrationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 overflow-y-auto" style={{ backgroundColor: '#111827' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 overflow-y-auto" style={{ backgroundColor: MINI_APP_BG }}>
       <div className="max-w-lg w-full">
         {/* Card */}
         <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 shadow-2xl">
@@ -435,19 +348,6 @@ const RegistrationPage: React.FC = () => {
             </h1>
             <p className="text-gray-400 mt-2">Fill in your details to get started</p>
           </div>
-
-          {/* Telegram login status */}
-          {telegramLoginStatus === 'logging-in' && (
-            <div className="mb-6 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm text-center">
-              <span className="animate-spin inline-block w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full mr-2 align-middle"></span>
-              Logging in with Telegram...
-            </div>
-          )}
-          {telegramLoginStatus === 'failed' && (
-            <div className="mb-6 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm text-center">
-              Telegram login unavailable — please fill in the form
-            </div>
-          )}
 
           {/* Error */}
           {error && (

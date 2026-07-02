@@ -9,7 +9,7 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 // Auth selectors
 export const useAuth = () => {
   const dispatch = useAppDispatch();
-  const { user, loading, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, loading, isAuthenticated, authInitialized } = useAppSelector((state) => state.auth);
 
   const handleLogin = useCallback(
     async (email: string, password: string) => {
@@ -97,6 +97,7 @@ export const useAuth = () => {
     user,
     loading,
     isAuthenticated,
+    authInitialized,
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,

@@ -1,9 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
 import { checkAuth } from "./store/authSlice";
+import { resolveApplyFlowPath, setPendingJobRedirect } from "./utils/activeRole";
+import { initTelegramMiniApp, storeTelegramUserFromInitData } from "./utils/telegramMiniApp";
 import HomeFinal from "./Pages/HomeFinal";
 import PageLayout from "./components/PageLayout";
 
@@ -61,54 +63,57 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  const startParamHandled = useRef(false);
   console.log('╔══════════════════════════════════════════╗');
   console.log('║      HUSTLEX MINI APP LAUNCHED           ║');
   console.log('╚══════════════════════════════════════════╝');
   console.log('[App] pathname:', location.pathname, 'search:', location.search);
   console.log('[App] Telegram.WebApp:', !!window.Telegram?.WebApp);
 
-  // Fallback: dismiss Navy screen if the inline script in index.html missed it
-  // (e.g., SDK loaded after the inline block ran).
+  // Dismiss Telegram navy screen and set consistent background app-wide
   useEffect(() => {
-    try {
-      var _tw = window.Telegram && window.Telegram.WebApp;
-      if (_tw) {
-        if (typeof _tw.ready === 'function') _tw.ready();
-        try { if (typeof _tw.expand === 'function') _tw.expand(); } catch(_) {}
-      }
-    } catch(_) {}
+    initTelegramMiniApp();
   }, []);
 
-  // Handle start_param from channel Mini App deep link (t.me/{bot}/app?startapp=...)
+  // Handle start_param from channel Mini App deep link — single auth check, one navigation
   useEffect(() => {
+    if (startParamHandled.current) return;
+
     try {
       const tg = window.Telegram?.WebApp;
-      console.log('[App] Telegram.WebApp available:', !!tg);
-      if (tg) console.log('[App] initDataUnsafe:', JSON.stringify(tg.initDataUnsafe));
       const startParam = tg?.initDataUnsafe?.start_param;
-      console.log('[App] start_param:', startParam);
-      if (startParam && startParam.startsWith('apply_')) {
-        const jobId = startParam.replace('apply_', '');
-        if (jobId) {
-          const dest = `/ApplyRedirect?redirect=${encodeURIComponent('/job-details/' + jobId)}`;
-          console.log('[App] start_param -> ApplyRedirect', dest);
-          navigate(dest, { replace: true });
-        }
-      }
-    } catch (e) { console.error('[App] start_param error:', e); }
-  }, [navigate]);
+      if (!startParam?.startsWith("apply_")) return;
+
+      const jobId = startParam.replace("apply_", "");
+      if (!jobId) return;
+
+      startParamHandled.current = true;
+      const redirect = `/job-details/${jobId}`;
+      setPendingJobRedirect(redirect);
+      storeTelegramUserFromInitData();
+
+      let cancelled = false;
+      (async () => {
+        const result = await dispatch(checkAuth());
+        if (cancelled) return;
+
+        const authUser = checkAuth.fulfilled.match(result) ? result.payload : null;
+        const dest = resolveApplyFlowPath(!!authUser, authUser, redirect);
+        navigate(dest, { replace: true });
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    } catch (e) {
+      console.error("[App] start_param error:", e);
+    }
+  }, [dispatch, navigate]);
 
   useEffect(() => {
-    console.log('[App] checkAuth effect - pathname:', location.pathname);
-    if (location.pathname.includes('ApplyRedirect')) {
-      console.log('[App] SKIP checkAuth — ApplyRedirect');
-      return;
-    }
-    if (location.pathname.startsWith('/job-details/')) {
-      console.log('[App] SKIP checkAuth — job-details');
-      return;
-    }
-    console.log('[App] DISPATCH checkAuth');
+    if (location.pathname.includes("ApplyRedirect")) return;
+    if (location.pathname.startsWith("/job-details/")) return;
+    if (location.pathname === "/Register" || location.pathname === "/register") return;
     dispatch(checkAuth());
   }, [dispatch, location.pathname]);
 
