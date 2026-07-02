@@ -655,6 +655,19 @@ const RegistrationPage: React.FC = () => {
             </button>
           </form>
 
+          {/* Clear Auth Button */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+              className="text-sm text-gray-500 hover:text-red-400 transition-colors underline"
+            >
+              Clear saved data & start fresh
+            </button>
+          </div>
 
         </div>
       </div>
