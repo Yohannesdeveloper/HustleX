@@ -883,14 +883,38 @@ router.post("/freelancer-profile", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Save freelancer profile error:", error);
+    console.error("Save freelancer profile error details:", {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      keyPattern: error.keyPattern,
+      keyValue: error.keyValue,
+      errors: error.errors,
+      stack: error.stack
+    });
+    // Handle duplicate key errors (like phone number already exists)
+    if (error.code === 11000) {
+      const keyPattern = error.keyPattern;
+      let message = "A unique constraint was violated";
+      if (keyPattern["profile.phone"]) {
+        message = "This phone number is already associated with another account";
+      } else if (keyPattern.email) {
+        message = "This email is already registered";
+      }
+      return res.status(400).json({ message });
+    }
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
     res.status(500).json({ message: "Server error" });
   }
 });
 
 // @route   POST /api/auth/profile/freelancer
 // @desc    Save freelancer profile (authenticated — uses JWT user, not email lookup)
-// @access  Private
+// @access   Private
 router.post("/profile/freelancer", auth, [
   body("firstName").trim().notEmpty().withMessage("First name is required"),
   body("lastName").trim().notEmpty().withMessage("Last name is required"),
@@ -917,8 +941,10 @@ router.post("/profile/freelancer", auth, [
   body("avatar").optional({ values: "falsy" }).trim(),
 ], async (req, res) => {
   try {
+    console.log("POST /api/auth/profile/freelancer - Request body:", req.body);
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log("POST /api/auth/profile/freelancer - Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -1030,7 +1056,9 @@ router.post("/profile/freelancer", auth, [
     profile.profileCompletedAt = new Date();
 
     req.user.profile = profile;
+    console.log("POST /api/auth/profile/freelancer - User before save:", req.user.toObject());
     await req.user.save();
+    console.log("POST /api/auth/profile/freelancer - User saved successfully");
 
     const io = req.app.get('io');
     if (io) {
@@ -1062,7 +1090,31 @@ router.post("/profile/freelancer", auth, [
       user: toAuthUserPayload(req.user),
     });
   } catch (error) {
-    console.error("Save freelancer profile (authenticated) error:", error);
+    console.error("Save freelancer profile (authenticated) error details:", {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      keyPattern: error.keyPattern,
+      keyValue: error.keyValue,
+      errors: error.errors,
+      stack: error.stack
+    });
+    // Handle duplicate key errors (like phone number already exists)
+    if (error.code === 11000) {
+      const keyPattern = error.keyPattern;
+      let message = "A unique constraint was violated";
+      if (keyPattern["profile.phone"]) {
+        message = "This phone number is already associated with another account";
+      } else if (keyPattern.email) {
+        message = "This email is already registered";
+      }
+      return res.status(400).json({ message });
+    }
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
     res.status(500).json({ message: "Server error" });
   }
 });

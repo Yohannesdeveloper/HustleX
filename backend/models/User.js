@@ -173,8 +173,10 @@ userSchema.pre("save", async function (next) {
   ) {
     try {
       const name = `${this.profile.firstName || ""} ${this.profile.lastName || ""}`.trim();
+      console.log("Generating slug for user:", this._id, "name:", name);
       if (name) {
         this.slug = await generateUniqueSlug(this.constructor, name, "slug", this._id);
+        console.log("Generated slug:", this.slug);
       }
 
       // Establish defaults for SEO fields
@@ -191,7 +193,11 @@ userSchema.pre("save", async function (next) {
         this.seo.canonicalUrl = `https://hustlex.com/freelancers/${this.slug}`;
       }
     } catch (err) {
-      console.warn("⚠️  Slug generation failed (non-critical):", err.message);
+      console.error("⚠️  Slug generation failed:", {
+        message: err.message,
+        stack: err.stack,
+        user: this._id
+      });
       // Don't fail the save because of slug issues
     }
   }
