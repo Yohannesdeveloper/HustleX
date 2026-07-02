@@ -40,6 +40,7 @@ import { useAuth } from "../store/hooks";
 import { useWebSocket } from "../context/WebSocketContext";
 import ApplicationSuccessAnimation from "../components/ApplicationSuccessAnimation";
 import SEO from "../components/SEO";
+import { isFreelancerProfileComplete, setPendingJobRedirect, freelancerProfileSetupPath } from "../utils/activeRole";
 
 // Role Switcher Component
 const RoleSwitcher: React.FC<{
@@ -227,6 +228,18 @@ const JobDetailsMongo: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // Incomplete freelancer profile → finish setup first, then return to this job
+  useEffect(() => {
+    if (!currentUser || userRole === "guest") return;
+    if (userRole === "client" && !userRoles.includes("freelancer")) return;
+
+    if (!isFreelancerProfileComplete({ profile: currentUser.profile })) {
+      const redirect = location.pathname + location.search;
+      setPendingJobRedirect(redirect);
+      navigate(freelancerProfileSetupPath(redirect), { replace: true });
+    }
+  }, [currentUser, userRole, userRoles, location.pathname, location.search, navigate]);
+
   useEffect(() => {
     if (!jobId) {
       setError("No job ID provided");
@@ -338,6 +351,13 @@ const JobDetailsMongo: React.FC = () => {
 
     if (userRole === "guest" || !currentUser) {
       navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
+      return;
+    }
+
+    if (!isFreelancerProfileComplete({ profile: currentUser.profile })) {
+      const redirect = location.pathname + location.search;
+      setPendingJobRedirect(redirect);
+      navigate(freelancerProfileSetupPath(redirect), { replace: true });
       return;
     }
 

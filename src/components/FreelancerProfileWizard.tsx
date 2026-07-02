@@ -9,6 +9,7 @@ import { useAuth } from '../store/hooks';
 import PhoneInput from './PhoneInput';
 import { COUNTRIES } from '../constants/countries';
 import { formatLocation, parseLocation } from '../utils/location';
+import { isFreelancerProfileComplete, getPendingJobRedirect, setPendingJobRedirect, clearPendingJobRedirect } from '../utils/activeRole';
 
 interface FreelancerProfileData {
   // Basic Information
@@ -275,6 +276,26 @@ const FreelancerProfileWizard: React.FC = () => {
       workLocation: p.workLocation ?? prev.workLocation,
     }));
   }, [user?._id, user?.email]); // Run when user loads; avoid re-running on every profile field change
+
+  // If profile is already complete and we have a pending job redirect, push straight to job details
+  useEffect(() => {
+    if (loading) return;
+
+    const urlRedirect = searchParams.get('redirect');
+    const redirectParam = urlRedirect || getPendingJobRedirect();
+    const isEditMode = searchParams.get('edit') === 'true';
+
+    if (redirectParam) {
+      setPendingJobRedirect(redirectParam);
+    }
+
+    if (isEditMode || !user) return;
+
+    if (isFreelancerProfileComplete(user) && redirectParam) {
+      clearPendingJobRedirect();
+      navigate(redirectParam, { replace: true });
+    }
+  }, [loading, user, searchParams, navigate]);
 
   // Load saved data from Telegram WebApp storage or localStorage on mount
   useEffect(() => {
@@ -1515,7 +1536,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
 
       if (redirectParam) {
         // Opened from Telegram Channel job post → navigate directly to job details (stay in Mini App)
-        sessionStorage.removeItem('pendingJobRedirect');
+        clearPendingJobRedirect();
         navigate(redirectParam, { replace: true });
       } else {
         // Opened from bot menu (no redirect) → send data to bot then close

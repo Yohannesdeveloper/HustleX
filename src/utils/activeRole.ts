@@ -59,3 +59,46 @@ export function isFreelancerProfileComplete(user: { profile?: any } | null | und
   return user.profile.isProfileComplete || 
     (user.profile.skills && Array.isArray(user.profile.skills) && user.profile.skills.length > 0);
 }
+
+const PENDING_JOB_KEY = "pendingJobRedirect";
+
+export function getPendingJobRedirect(pathname?: string, search = ""): string | null {
+  try {
+    const stored = sessionStorage.getItem(PENDING_JOB_KEY);
+    if (stored) return stored;
+  } catch {
+    /* ignore */
+  }
+  if (pathname?.startsWith("/job-details/")) {
+    return pathname + search;
+  }
+  return null;
+}
+
+export function setPendingJobRedirect(redirect: string): void {
+  try {
+    sessionStorage.setItem(PENDING_JOB_KEY, redirect);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearPendingJobRedirect(): void {
+  try {
+    sessionStorage.removeItem(PENDING_JOB_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function freelancerProfileSetupPath(redirect?: string | null): string {
+  if (redirect) {
+    return `/freelancer-profile-setup?redirect=${encodeURIComponent(redirect)}`;
+  }
+  return "/freelancer-profile-setup";
+}
+
+export function needsFreelancerProfileSetup(user: User | null | undefined): boolean {
+  if (!user?.roles?.includes("freelancer")) return false;
+  return !isFreelancerProfileComplete(user);
+}

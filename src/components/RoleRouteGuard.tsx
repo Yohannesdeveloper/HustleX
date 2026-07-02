@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../store/hooks";
-import { getActiveRole, dashboardPathForRole, isFreelancerProfileComplete } from "../utils/activeRole";
+import { getActiveRole, dashboardPathForRole, isFreelancerProfileComplete, getPendingJobRedirect, setPendingJobRedirect, freelancerProfileSetupPath, needsFreelancerProfileSetup } from "../utils/activeRole";
 
 /**
  * Keeps users on the dashboard that matches their active role.
@@ -71,8 +71,19 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
       if (profileIncomplete) {
         console.log('[RoleRouteGuard] REDIRECT profile incomplete → setup, path:', currentPath);
-        const setupPath = currentRole === "client" ? "/profile-setup?role=client" : "/freelancer-profile-setup";
-        return <Navigate to={setupPath} replace />;
+        const redirectTarget = getPendingJobRedirect(currentPath, location.search);
+        const mustCompleteFreelancerProfile =
+          needsFreelancerProfileSetup(user) ||
+          (hasFreelancerRole && !hasFreelancerProfile && !!redirectTarget);
+
+        if (mustCompleteFreelancerProfile) {
+          if (redirectTarget) setPendingJobRedirect(redirectTarget);
+          return <Navigate to={freelancerProfileSetupPath(redirectTarget)} replace />;
+        }
+
+        const baseSetup =
+          currentRole === "client" ? "/profile-setup?role=client" : "/freelancer-profile-setup";
+        return <Navigate to={baseSetup} replace />;
       }
     }
   }

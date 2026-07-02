@@ -56,7 +56,7 @@ const RegistrationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const dispatch = useAppDispatch();
-  const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, loading: authLoading, checkAuth } = useAuth();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -71,42 +71,53 @@ const RegistrationPage: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPhonePermission, setShowPhonePermission] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [telegramLoginStatus, setTelegramLoginStatus] = useState<'idle' | 'checking' | 'logging-in' | 'failed' | 'done'>('idle');
   const telegramLoginAttempted = useRef(false);
   const telegramLoginPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const availableCities = CITIES_BY_COUNTRY[country] || [];
+  const PAGE_BG = "#111827";
 
   // Get redirect parameter from URL, fallback to sessionStorage
   const urlRedirect = searchParams.get('redirect');
   const redirectParam = urlRedirect || sessionStorage.getItem('pendingJobRedirect');
   const DEFAULT_REDIRECT = "/freelancer-profile-setup";
 
-  // Reset body background from ApplyRedirect's navy (#17212b) to dark gray
+  // Reset Telegram navy screen and set consistent page background
   useEffect(() => {
-    document.body.style.backgroundColor = '#111827';
-    document.documentElement.style.backgroundColor = '#111827';
-  }, []);
-
-  // Clear stale token if user is on registration page but not authenticated
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        console.log('[Registration] Clearing stale token for unauthenticated user');
-        localStorage.clear();
+    document.body.style.backgroundColor = PAGE_BG;
+    document.documentElement.style.backgroundColor = PAGE_BG;
+    const tg = window.Telegram?.WebApp as any;
+    if (tg) {
+      tg.ready?.();
+      tg.expand?.();
+      try {
+        tg.setHeaderColor?.(PAGE_BG);
+        tg.setBackgroundColor?.(PAGE_BG);
+      } catch {
+        /* ignore */
       }
     }
-  }, [authLoading, isAuthenticated]);
+  }, []);
+
+  // Wait for auth check before deciding to show form or redirect (returning users)
+  useEffect(() => {
+    checkAuth().finally(() => setAuthReady(true));
+  }, [checkAuth]);
+
+  if (urlRedirect) {
+    sessionStorage.setItem('pendingJobRedirect', urlRedirect);
+  }
 
   // If already authenticated (e.g. after a page refresh), skip registration.
   // Don't redirect if the user just registered (success=true) so they see the
   // success message and phone permission step.
   useEffect(() => {
-    if (authLoading) return;
+    if (!authReady) return;
     if (!isAuthenticated || !user) return;
     if (success) return;
-    if (showPhonePermission) return; // Also don't redirect if showing phone step
+    if (showPhonePermission) return;
 
     if (redirectParam) {
       if (isFreelancerProfileComplete(user)) {
@@ -119,11 +130,11 @@ const RegistrationPage: React.FC = () => {
     } else {
       navigate(isFreelancerProfileComplete(user) ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
-  }, [isAuthenticated, user, authLoading, success, redirectParam, navigate, showPhonePermission]);
+  }, [isAuthenticated, user, authReady, success, redirectParam, navigate, showPhonePermission]);
 
   // Retry Telegram login when not authenticated but initData is available
   useEffect(() => {
-    if (authLoading) return;
+    if (!authReady) return;
     if (isAuthenticated) return;
     if (telegramLoginAttempted.current) return;
 
@@ -171,7 +182,7 @@ const RegistrationPage: React.FC = () => {
     }).catch(() => {
       setTelegramLoginStatus('failed');
     });
-  }, [authLoading, isAuthenticated]);
+  }, [authReady, isAuthenticated]);
 
   // Cleanup poll interval on unmount
   useEffect(() => {
