@@ -41,7 +41,7 @@ const deleteSpecificUser = async () => {
     await connectDB();
     
     // Check both possible emails
-    const possibleEmails = ["yohannesfk123@gmail.com", "yohannesfk6677@gmail.com"];
+    const possibleEmails = ["yohannesfk6677@gmail.com"];
     
     console.log(`Looking for users with emails: ${possibleEmails.join(", ")}`);
     
