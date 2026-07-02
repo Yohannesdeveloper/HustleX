@@ -1562,7 +1562,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         if (shouldCloseMiniApp) {
           try { window.Telegram?.WebApp?.close(); } catch (e) {}
         } else {
-          navigate('/dashboard/hiring', { replace: true });
+          navigate('/dashboard/freelancer', { replace: true });
         }
       }
     } catch (error: any) {
