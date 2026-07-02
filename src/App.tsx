@@ -127,8 +127,6 @@ function AppContent() {
   return (
     <WebSocketProvider>
       <Routes>
-        {/* Job details: completely public — outside RoleRouteGuard */}
-        <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
         <Route path="*" element={
           <RoleRouteGuard>
             <Routes>
@@ -144,6 +142,7 @@ function AppContent() {
           <Route path="/homefinal" element={<Navigate to="/" replace />} />
           <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
           <Route path="/preview-job" element={<PageLayout><PreviewJob /></PageLayout>} />
+          <Route path="/job-details/:jobId" element={<PageLayout><JobDetailsMongo /></PageLayout>} />
           <Route
             path="/dashboard/hiring"
             element={
