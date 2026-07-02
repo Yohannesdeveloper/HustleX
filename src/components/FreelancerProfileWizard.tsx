@@ -1524,7 +1524,8 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         avatar: avatarUrl, // Include the uploaded avatar URL
       };
 
-      await apiService.saveFreelancerProfile(payload);
+      const response = await apiService.saveFreelancerProfile(payload);
+      alert(response.message || 'PROFILE SAVED SUCCESSFULLY');
 
       // Clear local and remote storage after successful save to avoid conflicts
       removeFromStorage('freelancerProfileData', isAuthenticated);
