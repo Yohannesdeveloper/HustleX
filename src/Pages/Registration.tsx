@@ -95,6 +95,7 @@ const RegistrationPage: React.FC = () => {
     if (authLoading) return;
     if (!isAuthenticated || !user) return;
     if (success) return;
+    if (showPhonePermission) return; // Also don't redirect if showing phone step
 
     if (redirectParam) {
       if (isFreelancerProfileComplete(user)) {
@@ -107,7 +108,7 @@ const RegistrationPage: React.FC = () => {
     } else {
       navigate(isFreelancerProfileComplete(user) ? "/dashboard/freelancer" : DEFAULT_REDIRECT, { replace: true });
     }
-  }, [isAuthenticated, user, authLoading, success, redirectParam, navigate]);
+  }, [isAuthenticated, user, authLoading, success, redirectParam, navigate, showPhonePermission]);
 
   // Retry Telegram login when not authenticated but initData is available
   useEffect(() => {
@@ -371,12 +372,16 @@ const RegistrationPage: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  sessionStorage.removeItem('pendingJobRedirect');
-                  navigate("/", { replace: true });
+                  // Even if cancel, go to profile setup
+                  sessionStorage.setItem('pendingJobRedirect', redirectParam || '');
+                  const profileSetupUrl = redirectParam
+                    ? `${DEFAULT_REDIRECT}?redirect=${encodeURIComponent(redirectParam)}`
+                    : DEFAULT_REDIRECT;
+                  navigate(profileSetupUrl, { replace: true });
                 }}
                 className="w-full py-3 px-6 rounded-xl bg-white/10 text-gray-300 font-semibold hover:bg-white/20 transition-all border border-white/10"
               >
-                Cancel
+                Skip for Now
               </button>
             </div>
             )}

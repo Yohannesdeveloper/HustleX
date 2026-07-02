@@ -39,7 +39,7 @@ class ApiService {
     }
 
     // Set default timeout for all requests
-    axios.defaults.timeout = 10000; // 10 seconds
+    axios.defaults.timeout = 30000; // 30 seconds
 
     axios.interceptors.request.use((config) => {
       const latestToken = localStorage.getItem("token");
