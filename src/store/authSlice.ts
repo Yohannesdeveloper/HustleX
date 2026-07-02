@@ -155,6 +155,7 @@ export const switchRole = createAsyncThunk(
   async (role: "freelancer" | "client", { rejectWithValue }) => {
     try {
       const updatedUser = await apiService.switchRole(role);
+      persistActiveRole(role);
       return updatedUser;
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to switch role";
