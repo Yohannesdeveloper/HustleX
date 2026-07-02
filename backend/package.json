@@ -9,6 +9,7 @@
     "dev:stable": "node server.js",
     "dev:watch": "nodemon --watch server.js --watch routes --watch models --watch config --watch middleware",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "drop-phone-index": "node scripts/drop-phone-index.js",
     "optimize-indexes": "node scripts/optimize-indexes.js",
     "docker:build": "docker build -t hustlex-api .",
     "docker:run": "docker-compose up -d",
