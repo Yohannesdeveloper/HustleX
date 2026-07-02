@@ -88,6 +88,17 @@ const RegistrationPage: React.FC = () => {
     document.documentElement.style.backgroundColor = '#111827';
   }, []);
 
+  // Clear stale token if user is on registration page but not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        console.log('[Registration] Clearing stale token for unauthenticated user');
+        localStorage.clear();
+      }
+    }
+  }, [authLoading, isAuthenticated]);
+
   // If already authenticated (e.g. after a page refresh), skip registration.
   // Don't redirect if the user just registered (success=true) so they see the
   // success message and phone permission step.
