@@ -68,7 +68,7 @@ const isTelegramWebApp = (): boolean => {
   return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
 };
 
-const tgCloud = () => (isTelegramWebApp() ? window.Telegram.WebApp.CloudStorage : null);
+const tgCloud = () => (isTelegramWebApp() ? window.Telegram!.WebApp!.CloudStorage : null);
 
 const cloudSetItem = (key: string, value: string): Promise<void> => {
   return new Promise((resolve) => {
