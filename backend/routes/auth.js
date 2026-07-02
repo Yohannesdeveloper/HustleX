@@ -1583,14 +1583,6 @@ router.post(
         return res.status(400).json({ message: "Invalid phone number" });
       }
 
-      // Check if phone number already exists (fuzzy match for country-code variants)
-      const existingUser = await User.findOne({
-        $where: `this.profile.phone && (this.profile.phone.endsWith("${normalized}") || "${normalized}".endsWith(this.profile.phone))`
-      });
-      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
-        return res.status(400).json({ message: "This phone number is already in use" });
-      }
-
       // Update user's phone number (store normalized)
       user.profile.phone = normalized;
       await user.save();
