@@ -1544,6 +1544,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           return;
         }
 
+        alert('Profile setup completed successfully!');
         navigate('/dashboard/freelancer', { replace: true });
       }
     } catch (error: any) {
