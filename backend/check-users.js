@@ -1,16 +1,33 @@
 const mongoose = require("mongoose");
+const dns = require("dns");
 const User = require("./models/User");
 require("dotenv").config();
 
+// Set DNS servers like in config/database.js to fix querySrv ECONNREFUSED
+const dnsServers = process.env.DNS_SERVERS
+  ? process.env.DNS_SERVERS.split(",").map((s) => s.trim()).filter(Boolean)
+  : ["8.8.8.8", "8.8.4.4", "1.1.1.1"];
+dns.setServers(dnsServers);
+
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/hustlex",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+    const options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000,
+      family: 4,
+    };
+    
+    let mongoUri = process.env.MONGODB_URI || "mongodb://localhost:27017/hustlex";
+    
+    // Add database name if missing
+    const url = new URL(mongoUri);
+    if (!url.pathname || url.pathname === "/" || url.pathname === "") {
+      url.pathname = "/hustlex";
+      mongoUri = url.toString();
+    }
+    
+    const conn = await mongoose.connect(mongoUri, options);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
@@ -29,13 +46,7 @@ const logToFile = (message) => {
 const checkUsers = async () => {
   try {
     fs.writeFileSync(path.join(__dirname, 'check_users_output.txt'), ''); // Clear file
-    const conn = await mongoose.connect(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/hustlex",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    );
+    const conn = await connectDB();
 
     logToFile(`MongoDB Connected: ${conn.connection.host}`);
     logToFile("Checking existing users...");
