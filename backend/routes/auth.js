@@ -892,13 +892,11 @@ router.post("/freelancer-profile", async (req, res) => {
       errors: error.errors,
       stack: error.stack
     });
-    // Handle duplicate key errors (like phone number already exists)
+    // Handle duplicate key errors
     if (error.code === 11000) {
       const keyPattern = error.keyPattern;
       let message = "A unique constraint was violated";
-      if (keyPattern["profile.phone"]) {
-        message = "This phone number is already associated with another account";
-      } else if (keyPattern.email) {
+      if (keyPattern.email) {
         message = "This email is already registered";
       }
       return res.status(400).json({ message });
@@ -1099,13 +1097,11 @@ router.post("/profile/freelancer", auth, [
       errors: error.errors,
       stack: error.stack
     });
-    // Handle duplicate key errors (like phone number already exists)
+    // Handle duplicate key errors
     if (error.code === 11000) {
       const keyPattern = error.keyPattern;
       let message = "A unique constraint was violated";
-      if (keyPattern["profile.phone"]) {
-        message = "This phone number is already associated with another account";
-      } else if (keyPattern.email) {
+      if (keyPattern.email) {
         message = "This email is already registered";
       }
       return res.status(400).json({ message });
