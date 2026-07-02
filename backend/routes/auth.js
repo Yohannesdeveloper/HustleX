@@ -873,7 +873,7 @@ router.post("/freelancer-profile", async (req, res) => {
     }
 
     res.json({
-      message: "Freelancer profile saved successfully",
+      message: "PROFILE SAVED SUCCESSFULLY",
       user: {
         _id: user._id,
         email: user.email,
