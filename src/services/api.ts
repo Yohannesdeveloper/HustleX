@@ -214,9 +214,9 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     const inflight = this.inflightRequests.get(cacheKey);
     if (inflight) return inflight;
 
-    const promise = axios.get(`${this.baseUrl}/auth/me`).then(response => {
+    const promise = (axios.get(`${this.baseUrl}/auth/me`).then(response => {
       return (response.data as { user: User }).user;
-    });
+    })) as unknown as Promise<User>;
 
     this.inflightRequests.set(cacheKey, promise);
     this.requestCache.set(cacheKey, { promise, timestamp: now });
@@ -390,9 +390,9 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     const inflight = this.inflightRequests.get(cacheKey);
     if (inflight) return inflight;
 
-    const promise = axios.get(`${this.baseUrl}/jobs/${jobId}`, {
+    const promise = (axios.get(`${this.baseUrl}/jobs/${jobId}`, {
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
-    }).then(response => response.data as Job);
+    }).then(response => response.data as Job)) as unknown as Promise<Job>;
 
     this.inflightRequests.set(cacheKey, promise);
     this.requestCache.set(cacheKey, { promise, timestamp: now });
@@ -557,14 +557,14 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     const inflight = this.inflightRequests.get(cacheKey);
     if (inflight) return inflight;
 
-    const promise = axios.get(`${this.baseUrl}/applications/check/${jobId}`)
+    const promise = (axios.get(`${this.baseUrl}/applications/check/${jobId}`)
       .then(response => {
         const data = response.data as {
           hasApplied: boolean;
           application: Application | null;
         };
         return { hasApplied: !!data.hasApplied };
-      });
+      })) as unknown as Promise<{ hasApplied: boolean }>;
 
     this.inflightRequests.set(cacheKey, promise);
     this.requestCache.set(cacheKey, { promise, timestamp: now });
