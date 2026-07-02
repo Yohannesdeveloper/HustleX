@@ -2,6 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const axios = require("axios");
+const mongoose = require("mongoose");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/User");
 const { sendMail } = require("../services/mail");
@@ -1711,6 +1712,32 @@ router.get("/test-telegram", async (req, res) => {
   }
 
   res.json(result);
+});
+
+// @route   GET /api/auth/drop-phone-index
+// @desc    Drop unique index on profile.phone
+// @access  Public (for maintenance)
+router.get("/drop-phone-index", async (req, res) => {
+  try {
+    const collection = mongoose.connection.db.collection('users');
+    const indexes = await collection.indexes();
+    let dropped = [];
+
+    for (const index of indexes) {
+      if (index.key && index.key['profile.phone']) {
+        await collection.dropIndex(index.name);
+        dropped.push(index.name);
+      }
+    }
+
+    res.json({
+      message: "Index drop complete",
+      droppedIndexes: dropped
+    });
+  } catch (err) {
+    console.error("Drop index error:", err);
+    res.status(500).json({ message: "Error dropping index", error: err.message });
+  }
 });
 
 module.exports = router;
