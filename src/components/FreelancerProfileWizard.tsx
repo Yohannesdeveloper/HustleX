@@ -1535,38 +1535,35 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
         await refreshUser();
       }
 
+      console.log('redirectParam:', redirectParam);
+      console.log('isTelegramWebApp:', isTelegramWebApp());
+      console.log('window.Telegram?.WebApp:', window.Telegram?.WebApp);
+
       if (redirectParam) {
         // Opened from Telegram Channel job post → navigate directly to job details (stay in Mini App)
         clearPendingJobRedirect();
         navigate(redirectParam, { replace: true });
       } else {
-        // Opened from bot menu (no redirect) → send data to bot then close
+        // Opened from bot menu (no redirect) → send data to bot then close if in Mini App
+        let shouldCloseMiniApp = false;
         try {
-          window.Telegram?.WebApp?.sendData(JSON.stringify({
-            action: 'profile_complete',
-            status: 'success',
-            timestamp: Date.now()
-          }));
+          if (window.Telegram?.WebApp && isTelegramWebApp()) {
+            window.Telegram.WebApp.sendData(JSON.stringify({
+              action: 'profile_complete',
+              status: 'success',
+              timestamp: Date.now()
+            }));
+            shouldCloseMiniApp = true;
+          }
         } catch (e) {
           console.log('Telegram Mini App sendData not available:', e);
         }
 
-        try {
-          window.Telegram?.WebApp?.sendData(JSON.stringify({
-            action: 'profile_complete',
-            status: 'success',
-            timestamp: Date.now()
-          }));
-        } catch (e) {
-          console.log('Telegram Mini App sendData not available:', e);
+        if (shouldCloseMiniApp) {
+          try { window.Telegram?.WebApp?.close(); } catch (e) {}
+        } else {
+          navigate('/dashboard/hiring', { replace: true });
         }
-
-        if (window.Telegram?.WebApp) {
-          try { window.Telegram.WebApp.close(); } catch (e) {}
-          return;
-        }
-
-        navigate('/dashboard/hiring', { replace: true });
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);
