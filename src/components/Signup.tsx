@@ -436,10 +436,7 @@ const Signup: React.FC = () => {
       // Then login with new password
       const loggedInUser = await login(email, password);
 
-      // Determine the role to use (selected role or current role)
-      const targetRole = selectedRoleForLogin || loggedInUser?.currentRole || 'freelancer';
-
-      // Admin role is managed server-side — skip add/switch role APIs
+      // Handle role addition/switch if needed
       if (selectedRoleForLogin && selectedRoleForLogin !== 'admin') {
         if (!existingUser.roles?.includes(selectedRoleForLogin)) {
           try {
@@ -456,33 +453,7 @@ const Signup: React.FC = () => {
         }
       }
 
-      // Navigate based on role and profile completion status
-      // Priority 0: If user has no roles, send to role selection
-      if (!loggedInUser?.roles || loggedInUser.roles.length === 0) {
-        navigate('/select-role', { replace: true, state: { redirectPath, pendingJobId } });
-        return;
-      }
-
-      // Priority 1: Admin users always go to admin panel
-      if (isAdminAccount(loggedInUser)) {
-        navigate('/admin/dashboard', { replace: true });
-        return;
-      }
-
-      // Priority 2: Use explicit redirect path if provided (e.g. from pricing/payment)
-      if (redirectPath && redirectPath !== "/job-listings") {
-        navigate(redirectPath, { replace: true });
-        return;
-      }
-
-      // Priority 3: Fallback to role-specific dashboard
-      if (targetRole === 'freelancer') {
-        navigate('/dashboard/freelancer', { replace: true });
-      } else if (targetRole === 'client') {
-        navigate('/dashboard/hiring', { replace: true });
-      } else {
-        navigate("/job-listings", { replace: true });
-      }
+      // Let ProfileSetupRouter/RoleRouteGuard handle navigation
     } catch (err: any) {
       console.error('Set password error:', err);
       let errorMessage = "Failed to set password. Please try again.";
