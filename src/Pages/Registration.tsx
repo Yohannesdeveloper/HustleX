@@ -291,7 +291,6 @@ const RegistrationPage: React.FC = () => {
               <button
                 onClick={async () => {
                   setPhoneLoading(true);
-                  const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                   const normalize = (p: string) => p.replace(/\D/g, '');
                   const tg = window.Telegram?.WebApp;
 
@@ -331,26 +330,10 @@ const RegistrationPage: React.FC = () => {
                       }
                     }
 
-                    if (!phone) {
-                      // 4) Last resort: fetch from backend profile
-                      const meRes = await fetch(`${API}/auth/me`, {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                      });
-                      const meData = await meRes.json();
-                      phone = meData?.user?.profile?.phone || '';
-                    }
-
                     // Save phone to backend if we got one
                     phone = normalize(phone);
                     if (phone) {
-                      await fetch(`${API}/auth/save-phone`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify({ phone })
-                      });
+                      await apiService.savePhone(phone);
                     }
                   } catch (e) {
                     console.error("Phone fetch/save error:", e);
