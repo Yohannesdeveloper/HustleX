@@ -306,6 +306,11 @@ router.post(
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
+      // Check if user has a password set
+      if (!user.password) {
+        return res.status(400).json({ message: "This account doesn't have a password set. Please login via Telegram or use the forgot password feature to set one." });
+      }
+
       // Check password
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
