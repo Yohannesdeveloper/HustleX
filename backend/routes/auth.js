@@ -1256,32 +1256,33 @@ router.post("/telegram-webhook", async (req, res) => {
 
     // /start command
     if (text.startsWith("/start")) {
+      const clientUrl = process.env.CLIENT_URL || "https://hustlexet.vercel.app";
       const welcomeText = [
-        `🌟 <b>Welcome to HustleX!</b> 🌟`,
+        `🔥 <b>Welcome to the Arena, Champion!</b> 🔥`,
         ``,
-        `Hello <b>${firstName}</b>! 👋`,
+        `You're now in the HustleX command center — where freelancers become legends and clients find their secret weapons. Every tab is a tool. Every click is a power-up.`,
         ``,
-        `I'm your HustleX assistant. Here's what I can do:`,
+        `⚔️ <b>Your Arsenal:</b>`,
+        `📋 <b>Applications</b> — Track your conquests, seal the deals`,
+        `👤 <b>Profile</b> — Your digital throne, flex your empire`,
+        `⚙️ <b>Settings</b> — Calibrate your battlefield`,
+        `ℹ️ <b>About HustleX</b> — Know the kingdom you're building in`,
         ``,
-        `🔐 <b>Login</b> — Confirm login requests from the HustleX website`,
-        `👤 <b>Profile</b> — Manage your freelancer profile`,
-        ``,
-        `<b>Available commands:</b>`,
-        `/start — Show this welcome message`,
-        `/help — Show help information`,
-        `/profile — View your profile status`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        `Let's make moves. 🚀`,
       ].join("\n");
 
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
-          keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          inline_keyboard: [
+            [
+              { text: "📋 Applications", web_app: { url: `${clientUrl}/dashboard/freelancer` } },
+              { text: "👤 Profile", web_app: { url: `${clientUrl}/freelancer-profile-setup` } },
+            ],
+            [
+              { text: "⚙️ Settings", web_app: { url: `${clientUrl}/settings` } },
+              { text: "ℹ️ About HustleX", web_app: { url: `${clientUrl}/about-us` } },
+            ],
           ],
-          resize_keyboard: true,
         },
       });
       return;
