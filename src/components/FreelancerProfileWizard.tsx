@@ -1566,7 +1566,7 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
           return;
         }
 
-        navigate('/dashboard/freelancer', { replace: true });
+        navigate('/dashboard/hiring', { replace: true });
       }
     } catch (error: any) {
       console.error('Error saving freelancer profile:', error);
