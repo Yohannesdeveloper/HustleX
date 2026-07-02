@@ -1531,8 +1531,9 @@ const ReviewStep: React.FC<StepProps> = ({ data, onPrev, onSubmit, isFirst, isLa
       removeFromStorage('freelancerProfileData', isAuthenticated);
 
       // Refresh user data in auth context to get updated profile information
+      // Don't block the redirect if refresh fails — profile is saved
       if (refreshUser) {
-        await refreshUser();
+        try { await refreshUser(); } catch (e) { console.log('User refresh failed after profile save:', e); }
       }
 
       console.log('redirectParam:', redirectParam);
