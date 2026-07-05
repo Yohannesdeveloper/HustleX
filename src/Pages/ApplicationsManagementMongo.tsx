@@ -783,8 +783,8 @@ const ApplicationsManagementMongo: React.FC = () => {
     return applications.filter((app) => {
       const matchesTab = activeTab === "all" || app.status === activeTab;
       const matchesSearch =
-        app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.applicantEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (app.jobTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (app.applicantEmail || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (app.coverLetter || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesJob = selectedJob === "all" || app.jobTitle === selectedJob;
       return matchesTab && matchesSearch && matchesJob;

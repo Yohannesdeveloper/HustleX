@@ -245,7 +245,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
 
       const profile = freelancer.profile || {};
       const fullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim().toLowerCase();
-      const email = freelancer.email.toLowerCase();
+      const email = (freelancer.email || "").toLowerCase();
       const skills = profile.skills || [];
       const location = profile.location || "";
 

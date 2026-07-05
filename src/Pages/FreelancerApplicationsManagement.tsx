@@ -249,7 +249,7 @@ const FreelancerApplicationsManagement: React.FC = () => {
 
     const filteredApps = useMemo(() => {
         return applications.filter((app) => {
-            const matchesSearch = app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            const matchesSearch = (app.jobTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (app.company || "").toLowerCase().includes(searchTerm.toLowerCase());
             const matchesFilter = activeFilter === "all" || app.status === activeFilter;
             return matchesSearch && matchesFilter;
