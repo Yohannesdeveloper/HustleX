@@ -32,7 +32,20 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
     currentPath === "/Register" ||
     currentPath === "/profile-setup" ||
     currentPath === "/freelancer-profile-setup" ||
-    currentPath === "/company-profile";
+    currentPath === "/company-profile" ||
+    currentPath === "/" ||
+    currentPath === "/home" ||
+    currentPath === "/homefinal" ||
+    currentPath === "/about-us" ||
+    currentPath === "/contact-us" ||
+    currentPath === "/faq" ||
+    currentPath === "/help-center" ||
+    currentPath === "/pricing" ||
+    currentPath === "/HowItWorks" ||
+    currentPath === "/blog" ||
+    currentPath.startsWith("/blog/") ||
+    currentPath === "/job-listings" ||
+    currentPath.startsWith("/job-details/");
 
   // If user has no roles assigned, redirect to role selection
   // (unless already on a setup/auth page to avoid loops)
