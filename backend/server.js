@@ -358,6 +358,9 @@ async function findAvailablePort(desiredPort) {
 
 // Write port to file for frontend to read
 function writePortToFile(port) {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
   const portInfo = {
     port: port,
     url: `http://localhost:${port}`,
