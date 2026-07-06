@@ -1523,18 +1523,18 @@ const PostJob: React.FC = () => {
                 >
                   {t.postJob.compensationAmountLabel}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-3">
                   <input
                     value={compensationAmount}
                     onChange={(e) => setCompensationAmount(e.target.value)}
                     placeholder={t.postJob.addSalaryPlaceholder}
                     type="number"
-                    className={`flex-1 ${getFieldClass(darkMode)}`}
+                    className={`w-full ${getFieldClass(darkMode)}`}
                   />
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className={`w-32 ${getFieldClass(darkMode)}`}
+                    className={`w-full ${getFieldClass(darkMode)}`}
                   >
                     {currencies.map((curr) => (
                       <option
