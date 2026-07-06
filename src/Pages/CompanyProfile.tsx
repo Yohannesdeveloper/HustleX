@@ -458,24 +458,69 @@ const CompanyProfile: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen font-body ${darkMode ? 'bg-black text-white' : 'bg-slate-50 text-gray-900'}`}>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+      <style>{`
+        :root {
+          --cyan: #06f2f2;
+          --cyan-dark: #05b8b8;
+          --glass-bg: rgba(255, 255, 255, 0.03);
+          --glass-border: rgba(6, 242, 242, 0.15);
+        }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+          background: var(--glass-bg);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--glass-border);
+        }
+        .dark .glass-card { background: rgba(0, 0, 0, 0.4); }
+        .cyan-gradient-text {
+          background: linear-gradient(135deg, #06f2f2 0%, #0af 50%, #06f2f2 100%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        .animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+      `}</style>
+
+      {/* Ambient blobs */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-cyan-500/10 blur-[120px] animate-float" />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[150px]" style={{ animationDelay: '-3s' }} />
+      </div>
+
       {/* Header */}
-      <div className={`sticky top-0 z-10 ${darkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'} border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+      <div className={`sticky top-0 z-10 ${darkMode ? 'bg-black/80 backdrop-blur-xl border-cyan-500/20' : 'bg-white/80 backdrop-blur-xl border-slate-200/60'} border-b`}>
         <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <motion.button
               onClick={() => navigate(-1)}
-              className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+              className={`p-2 rounded-xl ${darkMode ? 'hover:bg-white/5 text-cyan-400' : 'hover:bg-slate-100 text-cyan-600'} transition-colors`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <FaArrowLeft className="w-5 h-5" />
             </motion.button>
-            <h1 className="text-2xl font-bold">Company Profile</h1>
+            <h1 className="text-2xl font-bold font-display cyan-gradient-text">Company Profile</h1>
             {isVerified && (
-              <div className="flex items-center space-x-2 text-green-600">
-                <FaCheckCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">Verified Company</span>
+              <div className="flex items-center gap-2 text-emerald-600 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <FaCheckCircle className="w-4 h-4" />
+                <span className="text-xs font-bold">Verified</span>
               </div>
             )}
           </div>
@@ -486,19 +531,19 @@ const CompanyProfile: React.FC = () => {
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="space-y-8">
           {/* Company Logo */}
-          <div className={`rounded-lg border p-6 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <FaCamera className={`w-5 h-5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-              <h2 className="text-xl font-semibold">Company Logo</h2>
+          <div className={`rounded-2xl p-6 glass-card ${darkMode ? 'bg-black/50 border-cyan-500/20' : 'bg-white/70 border-cyan-400/20 shadow-sm shadow-cyan-400/5'}`}>
+            <div className="flex items-center gap-3 mb-6">
+              <FaCamera className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-xl font-bold font-display cyan-gradient-text">Company Logo</h2>
             </div>
 
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center gap-6">
               <div className="relative">
                 <div
-                  className={`w-24 h-24 rounded-lg border-4 border-dashed flex items-center justify-center cursor-pointer transition-all ${
+                  className={`w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all glass-card ${
                     darkMode
-                      ? 'border-gray-600 hover:border-purple-500 bg-gray-700'
-                      : 'border-gray-300 hover:border-purple-500 bg-gray-50'
+                      ? 'border-cyan-500/30 hover:border-cyan-400 bg-white/[0.03]'
+                      : 'border-cyan-400/30 hover:border-cyan-400 bg-white/80'
                   }`}
                   onClick={handleLogoClick}
                 >
@@ -506,16 +551,14 @@ const CompanyProfile: React.FC = () => {
                     <img
                       src={logo}
                       alt="Company Logo"
-                      className="w-full h-full rounded-lg object-cover"
+                      className="w-full h-full rounded-xl object-cover"
                     />
                   ) : (
-                    <FaBuilding className={`w-8 h-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <FaBuilding className={`w-8 h-8 ${darkMode ? 'text-cyan-400' : 'text-cyan-600'}`} />
                   )}
                 </div>
                 <motion.button
-                  className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center ${
-                    darkMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-500 hover:bg-purple-600'
-                  } text-white shadow-lg`}
+                  className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleLogoClick}
@@ -525,10 +568,10 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div className="flex-1">
-                <h3 className={`font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h3 className={`font-medium mb-2 font-body ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   Upload Company Logo
                 </h3>
-                <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-sm mb-4 font-body ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Choose a professional logo for your company. Recommended size: 400x400px
                 </p>
                 <input
@@ -540,11 +583,7 @@ const CompanyProfile: React.FC = () => {
                 />
                 <motion.button
                   onClick={handleLogoClick}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    darkMode
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                      : 'bg-purple-500 hover:bg-purple-600 text-white'
-                  }`}
+                  className="px-4 py-2 rounded-xl font-medium font-body bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 transition-all"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -555,15 +594,15 @@ const CompanyProfile: React.FC = () => {
           </div>
 
           {/* Company Information */}
-          <div className={`rounded-lg border p-6 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <FaBuilding className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-              <h2 className="text-xl font-semibold">Company Information</h2>
+          <div className={`rounded-2xl p-6 glass-card ${darkMode ? 'bg-black/50 border-cyan-500/20' : 'bg-white/70 border-cyan-400/20 shadow-sm shadow-cyan-400/5'}`}>
+            <div className="flex items-center gap-3 mb-6">
+              <FaBuilding className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-xl font-bold font-display cyan-gradient-text">Company Information</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2" id="field-companyName">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Company Name {!companyData.companyName.trim() ? '(optional for private clients)' : '(required for companies)'}
                   {!companyData.companyName.trim() && <span className="text-gray-400 text-xs ml-2">Private Client</span>}
                 </label>
@@ -572,13 +611,14 @@ const CompanyProfile: React.FC = () => {
                   value={companyData.companyName}
                   onChange={(e) => handleInputChange('companyName', e.target.value)}
                   onBlur={() => handleBlur('companyName')}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     touched.companyName && errors.companyName
                       ? 'border-red-500 focus:ring-red-500'
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder={companyData.companyName.trim() ? "Enter your company name" : "Leave blank for private clients"}
                 />
                 {touched.companyName && errors.companyName && (
@@ -587,20 +627,21 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div id="field-industry">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Industry *
                 </label>
                 <select
                   value={companyData.industry}
                   onChange={(e) => handleInputChange('industry', e.target.value)}
                   onBlur={() => handleBlur('industry')}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     touched.industry && errors.industry
                       ? 'border-red-500 focus:ring-red-500'
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  } focus:ring-2 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                 >
                   <option value="">Select Industry</option>
                   {industries.map((industry) => (
@@ -613,17 +654,18 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Company Size
                 </label>
                 <select
                   value={companyData.companySize}
                   onChange={(e) => handleInputChange('companySize', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                 >
                   <option value="">Select Company Size</option>
                   {companySizes.map((size) => (
@@ -633,24 +675,25 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Website
                 </label>
                 <input
                   type="url"
                   value={companyData.website}
                   onChange={(e) => handleInputChange('website', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="https://yourcompany.com"
                 />
               </div>
 
               <div id="field-phone">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Phone *
                 </label>
                 <PhoneInput
@@ -665,7 +708,7 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div id="field-email">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Email *
                 </label>
                 <input
@@ -673,13 +716,14 @@ const CompanyProfile: React.FC = () => {
                   value={companyData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   onBlur={() => handleBlur('email')}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     touched.email && errors.email
                       ? 'border-red-500 focus:ring-red-500'
                       : darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="contact@yourcompany.com"
                 />
                 {touched.email && errors.email && (
@@ -688,18 +732,19 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Founded Year
                 </label>
                 <input
                   type="number"
                   value={companyData.foundedYear}
                   onChange={(e) => handleInputChange('foundedYear', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="2020"
                   min="1900"
                   max={new Date().getFullYear()}
@@ -707,35 +752,37 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Company Description
                 </label>
                 <textarea
                   value={companyData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={4}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all resize-none ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="Describe your company, mission, and what you do..."
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Address
                 </label>
                 <textarea
                   value={companyData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
                   rows={2}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all resize-none ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="Company address"
                 />
               </div>
@@ -743,77 +790,79 @@ const CompanyProfile: React.FC = () => {
           </div>
 
           {/* Legal Documents */}
-          <div className={`rounded-lg border p-6 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <div className="flex items-center space-x-3 mb-6">
-              <FaFileAlt className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
-              <h2 className="text-xl font-semibold">Legal Documents</h2>
-              <span className={`text-xs px-2 py-1 rounded ${
+          <div className={`rounded-2xl p-6 glass-card ${darkMode ? 'bg-black/50 border-cyan-500/20' : 'bg-white/70 border-cyan-400/20 shadow-sm shadow-cyan-400/5'}`}>
+            <div className="flex items-center gap-3 mb-6">
+              <FaFileAlt className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-xl font-bold font-display cyan-gradient-text">Legal Documents</h2>
+              <span className={`text-[10px] px-2 py-1 rounded-full font-bold uppercase ${
                 isVerified
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
               }`}>
-                {isVerified ? 'Verified Documents' : 'Required for Verification'}
+                {isVerified ? 'Verified' : 'Required'}
               </span>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Business Registration Number {!companyData.companyName.trim() ? '(optional)' : '(optional - provides validity)'}
                 </label>
                 <input
                   type="text"
                   value={companyData.businessRegistrationNo}
                   onChange={(e) => handleInputChange('businessRegistrationNo', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="Enter your business registration number"
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Tax ID {!companyData.companyName.trim() ? '(optional)' : '(optional - provides validity)'}
                 </label>
                 <input
                   type="text"
                   value={companyData.taxId}
                   onChange={(e) => handleInputChange('taxId', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  className={`w-full px-4 py-3 rounded-xl border font-body text-sm backdrop-blur-xl transition-all ${
                     darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+                      ? 'bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]'
+                      : 'bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                  style={{ boxShadow: darkMode ? "inset 0 2px 4px rgba(0,0,0,0.2)" : "inset 0 1px 3px rgba(0,0,0,0.04)" }}
                   placeholder="Enter your tax identification number"
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 font-body ${darkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   Trade License (optional)
                 </label>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <div className={`flex items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                    <div className={`flex items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all glass-card ${
                       tradeLicense
-                        ? 'border-green-500 bg-green-50'
+                        ? 'border-emerald-500/50 bg-emerald-500/5'
                         : darkMode
-                        ? 'border-gray-600 hover:border-green-500 bg-gray-700'
-                        : 'border-gray-300 hover:border-green-500 bg-gray-50'
+                        ? 'border-cyan-500/20 hover:border-emerald-500/40 bg-white/[0.02]'
+                        : 'border-cyan-400/20 hover:border-emerald-500/40 bg-white/60'
                     }`}
                     onClick={handleTradeLicenseClick}>
                       {tradeLicense ? (
                         <div className="text-center">
-                          <FaCheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                          <p className="text-sm text-green-600 font-medium">Trade License Uploaded</p>
+                          <FaCheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                          <p className="text-sm font-medium font-body text-emerald-500">Trade License Uploaded</p>
                         </div>
                       ) : (
                         <div className="text-center">
-                          <FaUpload className={`w-8 h-8 mx-auto mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <FaUpload className={`w-8 h-8 mx-auto mb-2 ${darkMode ? 'text-cyan-400' : 'text-cyan-600'}`} />
+                          <p className={`text-sm font-body ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             Click to upload trade license
                           </p>
                         </div>
@@ -828,7 +877,7 @@ const CompanyProfile: React.FC = () => {
                     />
                   </div>
                 </div>
-                <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-xs mt-2 font-body ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                   Upload a clear image or PDF of your business trade license. Optional for basic validity, required for full verification.
                 </p>
               </div>
@@ -837,14 +886,12 @@ const CompanyProfile: React.FC = () => {
 
           {/* Verification Status */}
           {isVerified && (
-            <div className={`rounded-lg border p-6 ${darkMode ? 'bg-green-800 border-green-700' : 'bg-green-50 border-green-200'}`}>
-              <div className="flex items-center space-x-3">
-                <FaCheckCircle className={`w-6 h-6 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
+            <div className={`rounded-2xl p-6 glass-card ${darkMode ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50/80 border-emerald-400/30 shadow-sm shadow-emerald-400/5'}`}>
+              <div className="flex items-center gap-3">
+                <FaCheckCircle className="w-6 h-6 text-emerald-500" />
                 <div>
-                  <h3 className={`font-semibold ${darkMode ? 'text-green-400' : 'text-green-800'}`}>
-                    Company Verified
-                  </h3>
-                  <p className={`text-sm ${darkMode ? 'text-green-300' : 'text-green-700'}`}>
+                  <h3 className="font-bold font-display text-emerald-500">Company Verified</h3>
+                  <p className="text-sm font-body text-emerald-500/80">
                     Your company has been successfully verified. You can now post jobs and hire freelancers on the platform.
                   </p>
                 </div>
@@ -856,8 +903,8 @@ const CompanyProfile: React.FC = () => {
           <div className="flex justify-end pt-6">
             <motion.button
               onClick={handleSave}
-              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2"
-              whileHover={{ scale: 1.02 }}
+              className="px-8 py-3 rounded-xl font-bold font-body bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+              whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
             >
               <FaSave className="w-4 h-4" />
