@@ -1456,11 +1456,17 @@ router.post("/telegram-webhook", async (req, res) => {
     // /help command
     if (text.startsWith("/help") || text === "📋 Application") {
       const helpText = [
-        `📋 <b>Applications</b>`,
+        `📋 <b>Your Applications Arsenal</b>`,
         ``,
-        `Browse and manage your job applications on HustleX.`,
+        `Your applications are your conquest log — every bid is a battle, every hire is a victory. Stay on top of your game and never let an opportunity slip.`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">My Applications</a>`,
+        `<b>What awaits you inside:</b>`,
+        `• 🎯 <b>Active Bids</b> — Track your ongoing battles`,
+        `• ✅ <b>Won Contracts</b> — Seal the deal and celebrate`,
+        `• 📊 <b>Proposal Stats</b> — Know your win rate`,
+        `• 🔔 <b>Real-time Alerts</b> — Strike when iron's hot`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">Open Applications</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
@@ -1500,39 +1506,45 @@ router.post("/telegram-webhook", async (req, res) => {
       const aboutText = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
-        `HustleX is Ethiopia's premier freelance platform connecting talented professionals with businesses worldwide.`,
+        `HustleX is the arena where Ethiopia's finest talent meets global opportunity. We're not just a platform — we're a movement building the future of work.`,
         ``,
-        `🎯 <b>Key Features:</b>`,
-        `• ✅ Verified freelancers and companies`,
-        `• ✅ Project management tools`,
-        `• ✅ Skill-based job matching`,
-        `• ✅ Professional networking`,
+        `<b>Why HustleX?</b>`,
+        `• 🌍 <b>Global Reach</b> — Ethiopian talent, worldwide impact`,
+        `• ✅ <b>Verified Trust</b> — Every profile, every client, vetted`,
+        `• ⚡ <b>Instant Connect</b> — From pitch to hire in record time`,
+        `• 💎 <b>Quality First</b> — Top-tier talent, premium results`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app">Visit HustleX</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app">Join the Arena</a>`,
         `📧 support@hustleX.et`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      await sendMessage(chatId, aboutText, { disable_web_page_preview: true });
+      await sendMessage(chatId, aboutText);
       return;
     }
 
     // Setting button
     if (text === "⚙️ Setting") {
       const settingText = [
-        `⚙️ <b>Settings</b>`,
+        `⚙️ <b>Your Command Center</b>`,
         ``,
-        `Manage your preferences and account settings.`,
+        `Your settings are your command center — tune your battlefield, control your notifications, and keep your arsenal sharp.`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Settings</a>`,
+        `<b>What you can configure:</b>`,
+        `• 🔔 <b>Notifications</b> — Never miss a strike`,
+        `• 👤 <b>Profile Visibility</b> — Control who sees your legend`,
+        `• 🔒 <b>Privacy</b> — Lock down your fortress`,
+        `• 🌐 <b>Preferences</b> — Customize your arena`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Command Center</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, settingText, { disable_web_page_preview: true });
+      await sendMessage(chatId, settingText);
       return;
     }
 
