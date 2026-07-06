@@ -1473,20 +1473,25 @@ router.post("/telegram-webhook", async (req, res) => {
     // /profile command or button
     if (text.startsWith("/profile") || text === "👤 Profile") {
       const profileText = [
-        `👤 <b>Your Profile</b>`,
+        `👤 <b>Your Profile Arsenal</b>`,
         ``,
-        `<b>Telegram:</b> ${username}`,
-        `<b>Name:</b> ${firstName} ${user?.last_name || ""}`.trim(),
+        `Your profile is your digital throne — the kingdom where clients discover your genius. It's not just a page; it's your 24/7 sales machine, your silent pitch, and the difference between "maybe" and "hired."`,
         ``,
-        `To complete your HustleX profile, visit the website and sign in with Telegram.`,
+        `A complete profile = 3× more invites, 5× more trust, and clients fighting to work with you.`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app">HustleX Platform</a>`,
+        `<b>What awaits you inside:</b>`,
+        `• 🎯 <b>Battle Station</b> — Showcase skills that slay`,
+        `• 🌟 <b>Epic Portfolio</b> — Let your work do the talkin'`,
+        `• 📊 <b>Verified Badges</b> — Flex your credibility`,
+        `• 🚀 <b>Instant Apply</b> — One tap to your next gig`,
+        ``,
+        `This isn't just a profile — it's your legacy in the making 👑`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, profileText, { disable_web_page_preview: true });
+      await sendMessage(chatId, profileText, { parse_mode: "HTML" });
       return;
     }
 
