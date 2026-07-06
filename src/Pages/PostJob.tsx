@@ -402,28 +402,7 @@ const PostJob: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const t = useTranslation();
 
-  // Check authentication before allowing access to post job page
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // Redirect to login with return path
-      navigate("/signup?redirect=" + encodeURIComponent(window.location.pathname));
-      return;
-    }
-  }, [isAuthenticated, navigate]);
-
-  // Show loading while checking authentication
-  if (!isAuthenticated) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-black" : "bg-white"}`}>
-        <div className="text-center">
-          <div className={`w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`} />
-          <p className={`text-lg ${darkMode ? "text-gray-300" : "text-gray-600"}`}>{t.postJob.checkingAuthentication}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Allow all authenticated users to access PostJob page
+  // Allow all users to access PostJob page (auth not required for Mini App access)
   // Role checking removed for error-free access
 
   // Form state
@@ -575,12 +554,6 @@ const PostJob: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check authentication before submitting
-    if (!isAuthenticated || !user) {
-      navigate("/login?redirect=" + encodeURIComponent(location.pathname));
-      return;
-    }
-
     // Validate form
     if (!validateForm()) {
       // Mark only required fields as touched to show errors
@@ -645,7 +618,7 @@ const PostJob: React.FC = () => {
         applicants: 0,
         views: 0,
         jobId: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        postedBy: user._id,
+        postedBy: user?._id || "anonymous",
         isActive: true,
         applicationCount: 0,
       };
