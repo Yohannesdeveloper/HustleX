@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -62,10 +62,11 @@ import FloatingChatBot from "./components/FloatingChatBot";
 function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const navigate = useNavigate();
   const startParamHandled = useRef(false);
+  const redirectHandled = useRef(false);
 
   const [appReady, setAppReady] = useState(false);
+  const [telegramRedirect, setTelegramRedirect] = useState<string | null>(null);
 
   // Wait for Telegram WebApp to be available (loads async from CDN),
   // then check for start_param — prevents homepage flicker on channel apply.
@@ -101,18 +102,18 @@ function AppContent() {
 
         const authUser = checkAuth.fulfilled.match(result) ? result.payload : null;
 
+        let dest;
         if (!authUser) {
           const hasToken = !!localStorage.getItem("token");
-          if (hasToken) {
-            navigate(redirect, { replace: true });
-            if (!cancelled) setAppReady(true);
-            return;
-          }
+          dest = hasToken ? redirect : resolveApplyFlowPath(false, null, redirect);
+        } else {
+          dest = resolveApplyFlowPath(true, authUser, redirect);
         }
 
-        const dest = resolveApplyFlowPath(!!authUser, authUser, redirect);
-        navigate(dest, { replace: true });
-        if (!cancelled) setAppReady(true);
+        if (!cancelled) {
+          setTelegramRedirect(dest);
+          setAppReady(true);
+        }
       })();
     };
 
@@ -139,7 +140,15 @@ function AppContent() {
       if (interval) clearInterval(interval);
       if (fallbackTimer) clearTimeout(fallbackTimer);
     };
-  }, [dispatch, navigate]);
+  }, [dispatch]);
+
+  // Clear telegramRedirect once location changes away from the redirect target
+  // to prevent infinite <Navigate> loops
+  useEffect(() => {
+    if (telegramRedirect && location.pathname !== '/' && location.pathname !== telegramRedirect) {
+      setTelegramRedirect(null);
+    }
+  }, [location, telegramRedirect]);
 
   useEffect(() => {
     if (!appReady) return;
@@ -171,6 +180,13 @@ function AppContent() {
         </div>
       </WebSocketProvider>
     );
+  }
+
+  // Use declarative Navigate to prevent homepage flash —
+  // the redirect happens during React reconciliation, before the first paint
+  if (telegramRedirect && !redirectHandled.current) {
+    redirectHandled.current = true;
+    return <Navigate to={telegramRedirect} replace />;
   }
 
   console.log("[App] Rendering routes");
