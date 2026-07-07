@@ -126,13 +126,13 @@ const RegistrationPage: React.FC = () => {
 
   // ── All hooks are above this line. Early returns below are safe. ──
 
-  // Show loading only for returning users with a job redirect (not new registrations)
-  if (!authInitialized && redirectParam && !success && !showPhonePermission) {
+  // Show loading while auth is being checked (JWT or Telegram initData login)
+  if (!authInitialized && !success && !showPhonePermission) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: MINI_APP_BG }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading...</p>
+          <p className="text-gray-400">Loading your account...</p>
         </div>
       </div>
     );

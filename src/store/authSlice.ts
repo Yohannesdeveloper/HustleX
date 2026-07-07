@@ -34,7 +34,18 @@ const syncPersistedRole = async (user: User): Promise<User> => {
       return user;
     }
 
+    // Don't auto-switch role if user is on job-details page to avoid navigation flicker
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    console.log("[syncPersistedRole] Current path:", currentPath, "user.currentRole:", user.currentRole);
+    
+    if (currentPath.startsWith("/job-details/")) {
+      console.log("[syncPersistedRole] Skipping role switch on job-details page to avoid navigation flicker");
+      return user;
+    }
+
     const persistedRole = readPersistedActiveRole();
+    console.log("[syncPersistedRole] Persisted role:", persistedRole);
+    
     if (
       persistedRole &&
       user.roles.includes(persistedRole) &&
@@ -42,6 +53,7 @@ const syncPersistedRole = async (user: User): Promise<User> => {
       // Don't try to switch to admin via API (since API doesn't support it)
       persistedRole !== "admin"
     ) {
+      console.log("[syncPersistedRole] Switching role from", user.currentRole, "to", persistedRole);
       // Switch to persisted role
       return await apiService.switchRole(persistedRole as "freelancer" | "client");
     }
@@ -51,28 +63,52 @@ const syncPersistedRole = async (user: User): Promise<User> => {
   return user;
 };
 
+async function tryTelegramMiniAppLogin(): Promise<User | null> {
+  const initData =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData : undefined;
+  if (!initData) return null;
+
+  try {
+    const loginResult = await apiService.telegramLogin({ initData });
+    if ("needsRegistration" in loginResult && loginResult.needsRegistration) {
+      return null;
+    }
+    if ("user" in loginResult && loginResult.user) {
+      return await syncPersistedRole(loginResult.user);
+    }
+  } catch (error) {
+    console.error("Telegram Mini App login failed:", error);
+  }
+  return null;
+}
+
 // Async thunks
 export const checkAuth = createAsyncThunk(
   "auth/checkAuth",
-  async (_, { rejectWithValue }) => {
+  async () => {
+    const authTimeoutMs = 8000;
+
     try {
       if (apiService.isAuthenticated()) {
-        apiService.clearUserCache(); // Clear cache to get fresh user
-        // Add a timeout to the auth check
+        apiService.clearUserCache();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Auth check timeout")), 2000)
+          setTimeout(() => reject(new Error("Auth check timeout")), authTimeoutMs)
         );
 
         const userPromise = apiService.getCurrentUser();
-        let currentUser = await Promise.race([userPromise, timeoutPromise]) as any;
+        let currentUser = (await Promise.race([userPromise, timeoutPromise])) as User;
         currentUser = await syncPersistedRole(currentUser);
         return currentUser;
       }
-      return null;
+
+      return await tryTelegramMiniAppLogin();
     } catch (error: any) {
       console.error("Auth check failed:", error);
       // Don't logout on transient failures (timeout, network).
       // The axios interceptor already handles 401 token clearing.
+      const telegramUser = await tryTelegramMiniAppLogin();
+      if (telegramUser) return telegramUser;
+
       return null;
     }
   }

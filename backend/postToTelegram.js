@@ -141,14 +141,22 @@ async function postJobToTelegram(job) {
   const message = lines.join("\n");
 
   const botUsername = (process.env.TELEGRAM_BOT_USERNAME || 'HustleXet_bot').replace(/^@/, '');
+  const miniAppShortName = (process.env.TELEGRAM_MINI_APP_SHORTNAME || '').trim();
   const jobUrl = `${baseUrl}/job-details/${jobId}`;
-  const channelMiniAppUrl = `https://t.me/${botUsername}?startapp=apply_${jobId}`;
+  const applyRedirectUrl = `${baseUrl}/ApplyRedirect?redirect=${encodeURIComponent(`/job-details/${jobId}`)}`;
+  const channelMiniAppUrl = miniAppShortName
+    ? `https://t.me/${botUsername}/${miniAppShortName}?startapp=apply_${jobId}`
+    : `https://t.me/${botUsername}?startapp=apply_${jobId}`;
   console.log("  ╔═══════════════════════════════════════════════════╗");
   console.log("  ║             CHANNEL BUTTON DEBUG                  ║");
   console.log("  ╠═══════════════════════════════════════════════════╣");
   console.log(`  ║  Bot:       t.me/${botUsername}                      `);
   console.log(`  ║  Mini App:  ${channelMiniAppUrl}`);
+  console.log(`  ║  Fallback:  ${applyRedirectUrl}`);
   console.log(`  ║  Job ID:    ${jobId}`);
+  if (!miniAppShortName) {
+    console.warn("  ⚠️  TELEGRAM_MINI_APP_SHORTNAME not set. Configure Main Mini App in @BotFather or set the short name in .env");
+  }
   console.log("  ╚═══════════════════════════════════════════════════╝");
 
   const results = await Promise.allSettled(
@@ -156,7 +164,7 @@ async function postJobToTelegram(job) {
       const isChannel = String(chatId).startsWith("-100") || String(chatId).startsWith("@");
       const button = isChannel
         ? { text: "🚀 Apply for this job", url: channelMiniAppUrl }
-        : { text: "🚀 Apply for this job", web_app: { url: jobUrl } };
+        : { text: "🚀 Apply for this job", web_app: { url: applyRedirectUrl } };
       const inlineKeyboard = [[button]];
       console.log(`  Chat ${chatId} (${isChannel ? "channel" : "private"}): ${isChannel ? "t.me(mini-app)" : "web_app"} button`);
       return sendTelegramMessage({ botToken, chatId, message, inlineKeyboard });
