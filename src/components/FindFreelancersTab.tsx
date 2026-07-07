@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppSelector } from "../store/hooks";
 import { useAuth } from "../store/hooks";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, X, MapPin, Briefcase, Clock, MessageCircle, Sparkles, Star, TrendingUp, Zap } from "lucide-react";
+import { Search, Filter, X, MapPin, Briefcase, Clock, MessageCircle, Sparkles, Star, TrendingUp, Zap, Users, Eye } from "lucide-react";
 import apiService from "../services/api";
 import { FreelancerWithStatus } from "../types";
 import StatusIndicator from "./StatusIndicator";
@@ -245,7 +245,7 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
 
       const profile = freelancer.profile || {};
       const fullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim().toLowerCase();
-      const email = freelancer.email.toLowerCase();
+      const email = (freelancer.email || "").toLowerCase();
       const skills = profile.skills || [];
       const location = profile.location || "";
 
@@ -369,9 +369,9 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`p-6 backdrop-blur-xl ${darkMode
-          ? "bg-black/40 border-b border-white/10"
-          : "bg-white/60 border-b border-gray-200/50"
+        className={`p-6 backdrop-blur-xl border-b ${darkMode
+          ? "bg-black/40 border-cyan-500/10"
+          : "bg-white/60 border-cyan-400/20"
           }`}
       >
         <div className="flex flex-col gap-6">
@@ -389,11 +389,11 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
                 }`} />
             </motion.div>
             <div>
-              <h2 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-gray-900"
-                }`}>
-                Find Elite Freelancers
+              <h2 className="text-2xl md:text-3xl font-bold font-display tracking-tight">
+                <span className="cyan-gradient-text animate-shimmer">Find Elite Freelancers</span>
+                <Sparkles className="inline-block w-5 h-5 md:w-6 md:h-6 ml-2 text-cyan-400 animate-float" />
               </h2>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"
+              <p className={`text-sm font-body ${darkMode ? "text-gray-400" : "text-gray-500"
                 }`}>
                 Discover top talent ready to work
               </p>
@@ -415,10 +415,10 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
               placeholder="Search by name, skill, or expertise..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 transition-all backdrop-blur-xl ${darkMode
-                ? "bg-white/5 border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-500 focus:bg-white/10 focus:shadow-[0_0_30px_rgba(6,182,212,0.3)]"
-                : "bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-500 focus:bg-white focus:shadow-[0_0_30px_rgba(6,182,212,0.2)]"
-                } focus:outline-none focus:ring-4 focus:ring-cyan-500/20`}
+              className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 transition-all backdrop-blur-xl font-body ${darkMode
+                ? "glass-card text-white placeholder-gray-500 focus:border-cyan-400 focus:shadow-[0_0_30px_rgba(6,242,242,0.15)]"
+                : "bg-white/80 border-cyan-400/20 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white focus:shadow-[0_0_30px_rgba(6,242,242,0.1)]"
+                } focus:outline-none focus:ring-4 focus:ring-cyan-400/20`}
             />
           </motion.div>
         </div>
@@ -433,16 +433,18 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
             >
-              <motion.div
-                className={`w-16 h-16 border-4 rounded-full mx-auto mb-6 ${darkMode
-                  ? "border-cyan-500/30 border-t-cyan-500"
+              <div className="relative">
+                <div className={`w-16 h-16 border-2 rounded-full mx-auto mb-6 ${darkMode
+                  ? "border-cyan-500/30 border-t-cyan-400"
                   : "border-cyan-200 border-t-cyan-500"
-                  }`}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
+                  } animate-spin`} />
+                <div className={`w-16 h-16 border-2 rounded-full mx-auto mb-6 absolute inset-0 ${darkMode
+                  ? "border-blue-500/20 border-b-blue-400"
+                  : "border-blue-200 border-b-blue-400"
+                  } animate-spin`} style={{ animationDirection: "reverse", animationDuration: "0.8s" }} />
+              </div>
               <motion.p
-                className={`text-lg font-semibold ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                className={`text-lg font-semibold font-display ${darkMode ? "text-cyan-400" : "text-cyan-600"
                   }`}
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -457,22 +459,18 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className={`text-center max-w-md p-8 rounded-2xl border ${
-              darkMode
-                ? "bg-gray-900/60 border-white/10"
-                : "bg-white border-gray-200"
-            } shadow-2xl`}>
+            <div className={`text-center max-w-md p-8 rounded-2xl glass-card ${darkMode ? "" : "bg-white/70 border-cyan-400/20"}`}>
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
                 isRoleError
-                  ? darkMode ? "bg-amber-500/20 border border-amber-500/30" : "bg-amber-50 border border-amber-200"
-                  : darkMode ? "bg-red-500/20 border border-red-500/30" : "bg-red-50 border border-red-200"
+                  ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30"
+                  : "bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-500/30"
               }`}>
                 <span className="text-3xl">{isRoleError ? "🔑" : "⚠️"}</span>
               </div>
-              <p className={`text-xl font-bold mb-2 ${darkMode ? "text-white" : "text-gray-900"}`}>
+              <p className={`text-xl font-bold mb-2 font-display ${darkMode ? "text-white" : "text-gray-900"}`}>
                 {isRoleError ? "Client Access Required" : "Cannot load freelancers"}
               </p>
-              <p className={`text-sm mb-6 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+              <p className={`text-sm mb-6 font-body ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                 {isRoleError
                   ? "Your account needs client access to browse freelancers. Add the client role below, then switch to Client mode from the menu (⋮)."
                   : loadError}
@@ -521,22 +519,16 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
           >
             <div className="text-center">
               <motion.div
-                className={`w-24 h-24 rounded-full mx-auto mb-6 ${darkMode
-                  ? "bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-cyan-500/30"
-                  : "bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-cyan-200"
-                  } flex items-center justify-center`}
+                className={`w-24 h-24 rounded-full mx-auto mb-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 ${darkMode ? "border-cyan-500/30" : "border-cyan-400/30"} flex items-center justify-center`}
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <Search className={`w-12 h-12 ${darkMode ? "text-gray-600" : "text-gray-400"
-                  }`} />
+                <Search className={`w-12 h-12 ${darkMode ? "text-cyan-400/50" : "text-cyan-500/50"}`} />
               </motion.div>
-              <p className={`text-xl font-bold mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
-                }`}>
+              <p className={`text-xl font-bold mb-2 font-display ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                 No freelancers found
               </p>
-              <p className={`text-sm ${darkMode ? "text-gray-500" : "text-gray-500"
-                }`}>
+              <p className={`text-sm font-body ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
                 {searchTerm || filters.skills.length > 0 || filters.location || filters.status || filters.experienceLevel
                   ? "Try adjusting your search or filters"
                   : "No freelancers have registered yet, or complete freelancer profile setup on another account to test messaging."}
@@ -544,97 +536,120 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
             </div>
           </motion.div>
         ) : filteredFreelancers.length > 0 ? (
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredFreelancers.map((freelancer, index) => {
               const profile = freelancer.profile || {};
               const fullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || freelancer.email;
               const primarySkill = profile.primarySkill || profile.skills?.[0] || "Freelancer";
               const location = profile.location || "Not specified";
               const avatarUrl = profile.avatar ? (profile.avatar.startsWith('http') || profile.avatar.startsWith('data:') ? profile.avatar : apiService.getFileUrl(profile.avatar)) : null;
+              const skills = profile.skills || [];
+              const hourlyRate = profile.hourlyRate;
 
               return (
                 <motion.div
                   key={freelancer._id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    delay: index * 0.03,
+                    delay: index * 0.04,
                     type: "spring",
                     stiffness: 120,
                     damping: 20
                   }}
                   whileHover={{
-                    scale: 1.005,
-                    x: 4,
+                    scale: 1.02,
+                    y: -4,
                     transition: { duration: 0.2 }
                   }}
-                  className={`group relative rounded-xl border p-3 md:p-4 cursor-pointer transition-all backdrop-blur-xl overflow-hidden ${darkMode
-                    ? "bg-gradient-to-r from-gray-800/40 to-gray-900/40 border-white/5 hover:border-cyan-500/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.1)]"
-                    : "bg-white border-gray-100 hover:border-cyan-400/50 hover:shadow-lg"
-                    }`}
+                  className={`group relative rounded-2xl p-5 cursor-pointer transition-all duration-300 overflow-hidden glass-card hover:animate-glow-pulse flex flex-col ${darkMode ? "" : "bg-white/70 border-cyan-400/20 hover:border-cyan-400/40"}`}
                   onClick={() => handleViewProfile(freelancer)}
                 >
-                  <div className="relative z-10 flex items-center gap-4">
-                    {/* Compact Avatar */}
-                    <div className="relative flex-shrink-0">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    {/* Avatar */}
+                    <div className="relative mb-3">
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
                           alt={fullName}
-                          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover ${darkMode ? "border border-cyan-500/30" : "border border-cyan-200"}`}
+                          className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover ${darkMode ? "border-2 border-cyan-500/30" : "border-2 border-cyan-200"}`}
                         />
                       ) : (
                         <div
-                          className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${darkMode
-                            ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30"
-                            : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
-                            } flex items-center justify-center text-lg md:text-xl font-bold shadow-sm`}
+                          className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl ${darkMode
+                            ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-2 border-cyan-500/30"
+                            : "bg-gradient-to-br from-cyan-100 to-blue-100 border-2 border-cyan-200"
+                            } flex items-center justify-center text-2xl md:text-3xl font-bold`}
                         >
                           {fullName.charAt(0).toUpperCase()}
                         </div>
                       )}
                       {freelancer.status && (
-                        <div className="absolute -bottom-0.5 -right-0.5 scale-75">
+                        <div className="absolute -bottom-1 right-0">
                           <StatusIndicator status={freelancer.status} size="sm" />
                         </div>
                       )}
                     </div>
 
-                    {/* Compact Info Section */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className={`font-bold text-sm md:text-base truncate ${darkMode ? "text-white" : "text-gray-900"}`}>
-                          {fullName}
-                        </h3>
-                        {index < 3 && !searchTerm && (
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${darkMode ? "bg-cyan-500/20 text-cyan-400" : "bg-cyan-100 text-cyan-700"}`}>
-                            Top
+                    {/* Name & Badge */}
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <h3 className={`font-bold text-base md:text-lg truncate max-w-[200px] font-display ${darkMode ? "text-white group-hover:text-cyan-300" : "text-gray-900 group-hover:text-cyan-700"} transition-colors duration-200`}>
+                        {fullName}
+                      </h3>
+                      {index < 3 && !searchTerm && (
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider font-body ${darkMode ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/20" : "bg-cyan-100 text-cyan-700 border border-cyan-200"}`}>
+                          ★ Top
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Primary Skill */}
+                    <p className={`text-xs md:text-sm font-semibold mb-1 font-body ${darkMode ? "text-cyan-400" : "text-cyan-600"}`}>
+                      {primarySkill}
+                    </p>
+
+                    {/* Location */}
+                    <div className="flex items-center justify-center gap-1 mb-3">
+                      <MapPin className={`w-3 h-3 ${darkMode ? "text-gray-500" : "text-gray-400"}`} />
+                      <span className={`text-xs font-body ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                        {location}
+                      </span>
+                    </div>
+
+                    {/* Skills Pills */}
+                    {skills.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                        {skills.slice(0, 3).map((skill) => (
+                          <span key={skill} className={`px-2 py-0.5 rounded-full text-[10px] font-medium font-body ${darkMode ? "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20" : "bg-cyan-50 text-cyan-700 border border-cyan-200"}`}>
+                            {skill}
+                          </span>
+                        ))}
+                        {skills.length > 3 && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium font-body ${darkMode ? "bg-gray-500/10 text-gray-400 border border-gray-500/20" : "bg-gray-50 text-gray-500 border border-gray-200"}`}>
+                            +{skills.length - 3}
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-0.5">
-                        <p className={`text-xs font-semibold truncate ${darkMode ? "text-cyan-400" : "text-cyan-600"}`}>
-                          {primarySkill}
-                        </p>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className={`w-3 h-3 ${darkMode ? "text-gray-500" : "text-gray-400"}`} />
-                          <span className={`text-[10px] md:text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                            {location}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    )}
 
-                    {/* Compact Action Section */}
-                    <div className="flex items-center gap-2">
+                    {/* Rate */}
+                    {hourlyRate && (
+                      <p className={`text-sm font-bold font-display mb-3 ${darkMode ? "text-emerald-400" : "text-emerald-600"}`}>
+                        ${hourlyRate}/hr
+                      </p>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 mt-auto pt-3 border-t border-cyan-500/10 w-full justify-center">
                       <motion.button
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           handleMessage(freelancer);
                         }}
-                        className={`p-2 rounded-lg transition-all ${darkMode
-                          ? "bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20"
-                          : "bg-cyan-50 hover:bg-cyan-100 text-cyan-600 border border-cyan-100"
+                        className={`p-2 rounded-xl transition-all border ${darkMode
+                          ? "bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border-cyan-500/20"
+                          : "bg-cyan-50 hover:bg-cyan-100 text-cyan-600 border-cyan-200"
                           }`}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -647,14 +662,11 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
                           e.stopPropagation();
                           handleViewProfile(freelancer);
                         }}
-                        className={`px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold transition-all ${darkMode
-                          ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/10"
-                          : "bg-gradient-to-r from-cyan-600 to-blue-600 text-white"
-                          }`}
+                        className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold font-body transition-all bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/20`}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        Profile
+                        View Profile
                       </motion.button>
                     </div>
                   </div>

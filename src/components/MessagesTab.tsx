@@ -325,7 +325,7 @@ const VoicePlayer: React.FC<VoicePlayerProps> = ({ src, duration, isOwnMessage, 
         </div>
 
         {/* Time Labels */}
-        <div className="flex items-center justify-between mt-0.5 text-[8px]">
+        <div className="flex items-center justify-between mt-0.5 text-[8px] font-body">
           <span className={isOwnMessage ? "text-white/70" : "text-gray-500"}>
             {Math.floor(currentTime / 60)}:{(Math.floor(currentTime) % 60).toString().padStart(2, '0')}
           </span>
@@ -2093,34 +2093,120 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
+      <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+      <style>{`
+        :root {
+          --cyan: #06f2f2;
+          --cyan-dark: #05b8b8;
+          --cyan-glow: 0 0 20px rgba(6, 242, 242, 0.3), 0 0 60px rgba(6, 242, 242, 0.1);
+          --glass-bg: rgba(255, 255, 255, 0.03);
+          --glass-border: rgba(6, 242, 242, 0.15);
+        }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes glow-pulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(6, 242, 242, 0.2); }
+          50% { box-shadow: 0 0 40px rgba(6, 242, 242, 0.4); }
+        }
+        @keyframes border-shimmer {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes bubble-rise {
+          0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes check-appear {
+          0% { opacity: 0; transform: scale(0); }
+          50% { transform: scale(1.3); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+        .animate-border-shimmer { background-size: 200% 200%; animation: border-shimmer 4s linear infinite; }
+        .animate-bubble-rise { animation: bubble-rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-check-appear { animation: check-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .glass-card {
+          background: var(--glass-bg);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--glass-border);
+        }
+        .cyan-gradient-text {
+          background: linear-gradient(135deg, #06f2f2 0%, #0af 50%, #06f2f2 100%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .dark .glass-card { background: rgba(0, 0, 0, 0.4); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.25); border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 242, 242, 0.4); }
+        .custom-scrollbar-chat::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar-chat::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar-chat::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.15); border-radius: 999px; }
+      `}</style>
+
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <motion.div
+          className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-cyan-500/10 blur-[120px]"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[150px]"
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/3 left-1/4 w-64 h-64 rounded-full bg-cyan-500/5 blur-[100px]"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.3, 0.2] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+      </div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`p-3 border-b backdrop-blur-xl ${darkMode
+        className={`p-4 border-b backdrop-blur-xl relative z-10 ${darkMode
           ? "bg-black/40 border-cyan-500/30"
           : "bg-white/60 border-cyan-200"
           }`}
       >
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <motion.div
-              className={`p-2 rounded-lg ${darkMode
+              className={`p-2.5 rounded-xl ${darkMode
                 ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30"
                 : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
                 }`}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, rotate: -5 }}
               transition={{ type: "spring", stiffness: 400 }}
             >
-              <MessageSquare className={`w-4 h-4 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+              <MessageSquare className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                 }`} />
             </motion.div>
             <div>
-              <h2 className={`text-lg font-bold ${darkMode ? "text-white" : "text-gray-900"
-                }`}>
+              <h2 className="text-xl font-bold font-display cyan-gradient-text">
                 Messages
               </h2>
-              <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-600"
+              <p className={`text-xs font-body ${darkMode ? "text-gray-400" : "text-gray-600"
                 }`}>
                 {displayConversations.length} {displayConversations.length === 1 ? "conversation" : "conversations"}
               </p>
@@ -2139,23 +2225,23 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         >
           {displayConversations.length === 0 ? (
             <div className="p-4 h-full flex flex-col">
-              <p className={`text-sm font-semibold mb-1 ${darkMode ? "text-gray-200" : "text-gray-800"}`}>
+              <p className={`text-sm font-semibold mb-1 font-display ${darkMode ? "text-gray-200" : "text-gray-800"}`}>
                 No messages yet
               </p>
-              <p className={`text-xs mb-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+              <p className={`text-xs mb-4 font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
                 {isClient ? "Go to Find Freelancers to start a conversation" : "Go to Find Jobs to start a conversation"}
               </p>
 
               {freelancersLoading ? (
-                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>{isClient ? "Loading freelancers..." : "Loading clients..."}</p>
+                <p className={`text-sm font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>{isClient ? "Loading freelancers..." : "Loading clients..."}</p>
               ) : browseLoadError ? (
                 <div className="space-y-3">
-                  <p className={`text-sm ${darkMode ? "text-red-400" : "text-red-600"}`}>{browseLoadError}</p>
+                  <p className={`text-sm font-body ${darkMode ? "text-red-400" : "text-red-600"}`}>{browseLoadError}</p>
                   {onGoToFindFreelancers && (
                     <button
                       type="button"
                       onClick={onGoToFindFreelancers}
-                      className="w-full py-2 rounded-lg bg-cyan-600 text-white text-sm font-medium hover:bg-cyan-500"
+                      className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold font-body hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/20"
                     >
                       Open Find Freelancers
                     </button>
@@ -2163,14 +2249,14 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                 </div>
               ) : browseFreelancers.length === 0 ? (
                 <div className="space-y-3 text-center">
-                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                  <p className={`text-sm font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
                     {isClient ? "No freelancers registered yet." : "No clients registered yet."}
                   </p>
                   {onGoToFindFreelancers && (
                     <button
                       type="button"
                       onClick={onGoToFindFreelancers}
-                      className="w-full py-2 rounded-lg border border-cyan-500 text-cyan-500 text-sm font-medium hover:bg-cyan-500/10"
+                      className="w-full py-2 rounded-lg glass-card border-2 border-cyan-500/50 text-cyan-500 text-sm font-bold font-body hover:bg-cyan-500/10 hover:shadow-[0_0_20px_rgba(6,242,242,0.15)]"
                     >
                       Browse Find Freelancers
                     </button>
@@ -2187,27 +2273,27 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                         key={freelancer._id}
                         type="button"
                         onClick={() => startConversationWithFreelancer(freelancer)}
-                        className={`w-full text-left p-3 rounded-xl border transition-colors ${darkMode
+                        className={`w-full text-left p-3 rounded-xl border transition-colors glass-card ${darkMode
                           ? "bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 hover:bg-gray-800"
                           : "bg-white border-gray-200 hover:border-cyan-400 hover:bg-cyan-50/50"
                           }`}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 ${darkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 font-display ${darkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"
                               }`}
                           >
                             {name.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className={`font-semibold text-sm truncate ${darkMode ? "text-white" : "text-gray-900"}`}>
+                            <p className={`font-semibold text-sm truncate font-display ${darkMode ? "text-white" : "text-gray-900"}`}>
                               {name}
                             </p>
-                            <p className={`text-xs truncate ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                            <p className={`text-xs truncate font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
                               {skill}
                             </p>
                           </div>
-                          <span className="text-xs font-medium text-cyan-500 shrink-0">Message</span>
+                          <span className="text-xs font-medium text-cyan-500 shrink-0 font-body">Message</span>
                         </div>
                       </button>
                     );
@@ -2216,59 +2302,82 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               )}
             </div>
           ) : (
-            <div className="divide-y-2 divide-cyan-500/10 dark:divide-cyan-500/20">
+            <div className="divide-y divide-cyan-500/10 dark:divide-cyan-500/20">
               {displayConversations.map((conv, index) => (
                 <motion.div
                   key={conv.id}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -24 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.04, type: "spring", stiffness: 200, damping: 25 }}
                   onClick={() => setSelectedConversation(conv)}
-                  className={`p-3 cursor-pointer transition-all relative group ${selectedConversation?.id === conv.id
+                  className={`p-3.5 cursor-pointer transition-all duration-300 relative group glass-card ${selectedConversation?.id === conv.id
                     ? darkMode
-                      ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-l-2 border-cyan-500 shadow-md"
-                      : "bg-gradient-to-r from-cyan-50 to-blue-50 border-l-2 border-cyan-500 shadow-sm"
+                      ? "bg-gradient-to-r from-cyan-500/20 via-blue-500/10 to-cyan-500/20 border-l-[3px] border-cyan-400 shadow-lg shadow-cyan-500/15"
+                      : "bg-gradient-to-r from-cyan-50 via-blue-50/50 to-cyan-50 border-l-[3px] border-cyan-500 shadow-md shadow-cyan-500/10"
                     : darkMode
-                      ? "hover:bg-white/5 hover:border-l hover:border-cyan-500/50"
-                      : "hover:bg-gray-100/50 hover:border-l hover:border-cyan-300"
+                      ? "hover:bg-white/[0.03] hover:border-l-[3px] hover:border-cyan-500/40 hover:shadow-sm hover:shadow-cyan-500/5"
+                      : "hover:bg-cyan-50/30 hover:border-l-[3px] hover:border-cyan-400/60 hover:shadow-sm"
                     }`}
-                  whileHover={{ x: 2, scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
+                  whileHover={{ x: 3, scale: 1.005 }}
+                  whileTap={{ scale: 0.995 }}
                 >
-                  <div className="flex items-start gap-2">
+                  {conv.unreadCount > 0 && (
                     <motion.div
-                      className={`w-10 h-10 rounded-lg ${darkMode
-                        ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
-                        : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
-                        } flex items-center justify-center flex-shrink-0 shadow-sm`}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ type: "spring", stiffness: 400 }}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[9px] font-bold font-body flex items-center justify-center px-1 shadow-lg shadow-cyan-500/30"
                     >
-                      <span className={`text-base font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
-                        }`}>
-                        {conv.freelancerName.charAt(0).toUpperCase()}
-                      </span>
+                      {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                     </motion.div>
+                  )}
+                  <div className="flex items-start gap-3">
+                    <div className="relative flex-shrink-0">
+                      <motion.div
+                        className={`w-11 h-11 rounded-xl ${darkMode
+                          ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
+                          : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-300"
+                          } flex items-center justify-center shadow-sm`}
+                        whileHover={{ scale: 1.05, rotate: -5 }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                      >
+                        <span className={`text-base font-bold font-display ${darkMode ? "text-cyan-300" : "text-cyan-700"
+                          }`}>
+                          {conv.freelancerName.charAt(0).toUpperCase()}
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 ${darkMode ? "border-gray-900" : "border-white"} bg-green-500`}
+                        animate={{ scale: [1, 1.15, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className={`font-bold text-sm truncate ${darkMode ? "text-white" : "text-gray-900"
+                      <div className="flex items-center justify-between mb-0.5">
+                        <h3 className={`font-bold text-sm truncate font-display ${darkMode ? "text-white" : "text-gray-900"
                           }`}>
                           {conv.freelancerName}
                         </h3>
                         <motion.span
-                          className={`text-[10px] font-medium flex-shrink-0 ml-2 px-1.5 py-0.5 rounded ${darkMode
+                          className={`text-[9px] font-medium flex-shrink-0 ml-2 px-1.5 py-0.5 rounded-full font-body ${darkMode
                             ? "bg-white/10 text-gray-400"
-                            : "bg-gray-200 text-gray-600"
+                            : "bg-gray-200/80 text-gray-600"
                             }`}
                           whileHover={{ scale: 1.05 }}
                         >
                           {formatTime(conv.lastMessageTime)}
                         </motion.span>
                       </div>
-                      <p className={`text-xs truncate ${darkMode ? "text-gray-400" : "text-gray-600"
-                        }`}>
-                        {conv.lastMessage || "Start a conversation..."}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {conv.unreadCount > 0 && (
+                          <span className="text-cyan-400 text-xs font-semibold">•</span>
+                        )}
+                        <p className={`text-xs truncate font-body ${conv.unreadCount > 0
+                          ? darkMode ? "text-white font-medium" : "text-gray-900 font-medium"
+                          : darkMode ? "text-gray-400" : "text-gray-600"
+                          }`}>
+                          {conv.lastMessage || "Start a conversation..."}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -2300,7 +2409,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                 <div className="flex items-center gap-2">
                   {/* Mobile back button — returns to conversations list */}
                   <motion.button
-                    className={`md:hidden p-2 rounded-lg mr-0.5 ${darkMode ? "text-gray-300 hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
+                    className={`md:hidden p-2 rounded-lg mr-0.5 glass-card ${darkMode ? "text-gray-300 hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
                     onClick={() => setSelectedConversation(null)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -2308,43 +2417,67 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </motion.button>
-                  <motion.div
-                    className={`w-10 h-10 rounded-lg ${darkMode
-                      ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
-                      : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
-                      } flex items-center justify-center shadow-sm cursor-pointer`}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 400 }}
-                    onClick={() => openFreelancerProfile(selectedConversation)}
-                  >
-                    <span className={`text-base font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
-                      }`}>
-                      {selectedConversation.freelancerName.charAt(0).toUpperCase()}
-                    </span>
-                  </motion.div>
+                  <div className="relative flex-shrink-0">
+                    <motion.div
+                      className={`w-10 h-10 rounded-xl ${darkMode
+                        ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
+                        : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
+                        } flex items-center justify-center shadow-sm cursor-pointer`}
+                      whileHover={{ scale: 1.05, rotate: -5 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                      onClick={() => openFreelancerProfile(selectedConversation)}
+                    >
+                      <span className={`text-base font-bold font-display ${darkMode ? "text-cyan-300" : "text-cyan-700"
+                        }`}>
+                        {selectedConversation.freelancerName.charAt(0).toUpperCase()}
+                      </span>
+                    </motion.div>
+                    <motion.div
+                      className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-900 bg-green-500"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </div>
                   <div
                     className="cursor-pointer"
                     onClick={() => openFreelancerProfile(selectedConversation)}
                   >
-                    <h3 className={`font-bold text-base mb-0.5 hover:underline ${darkMode ? "text-white" : "text-gray-900"
+                    <h3 className={`font-bold text-base mb-0.5 hover:underline font-display ${darkMode ? "text-white" : "text-gray-900"
                       }`}>
                       {selectedConversation.freelancerName}
                     </h3>
-                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-600"
+                    <p className={`text-xs font-body flex items-center gap-1.5 ${darkMode ? "text-gray-400" : "text-gray-600"
                       }`}>
-                      {selectedConversation.freelancerEmail}
+                      <motion.span
+                        className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"
+                        animate={{ opacity: [1, 0.4, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      Online
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 relative">
                   {/* WebSocket Connection Status */}
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
-                    title={connected ? "Real-time messaging active" : "Connecting..."}>
-                    <div className={`w-2 h-2 rounded-full ${connected
-                      ? "bg-green-500 animate-pulse"
-                      : "bg-yellow-500 animate-pulse"
-                      }`} />
-                    <span className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-600"
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs glass-card"
+                    title={connected ? "Real-time messaging active" : "Connecting..."}
+                    style={{
+                      background: connected
+                        ? darkMode ? "rgba(34,197,94,0.1)" : "rgba(34,197,94,0.08)"
+                        : darkMode ? "rgba(234,179,8,0.1)" : "rgba(234,179,8,0.08)"
+                    }}
+                  >
+                    <motion.div
+                      className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-yellow-500"}`}
+                      animate={connected
+                        ? { scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }
+                        : { scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }
+                      }
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    <span className={`text-[10px] font-medium font-body ${connected
+                      ? darkMode ? "text-green-400" : "text-green-600"
+                      : darkMode ? "text-yellow-400" : "text-yellow-600"
                       }`}>
                       {connected ? "Live" : "Connecting"}
                     </span>
@@ -2353,9 +2486,9 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   {/* Video Call Button */}
                   <motion.button
                     onClick={initiateVideoCall}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.05, rotate: -3 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`p-2 rounded-lg transition-all ${darkMode
+                    className={`p-2 rounded-lg transition-all glass-card ${darkMode
                       ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/30 hover:to-emerald-500/30 text-green-400 border border-green-500/30"
                       : "bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-600 border border-green-200"
                       }`}
@@ -2368,9 +2501,9 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   <div className="relative z-50">
                     <motion.button
                       onClick={() => setChatHeaderMenuOpen(!chatHeaderMenuOpen)}
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1.05, rotate: 90 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`p-2 rounded-lg transition-all ${darkMode
+                      className={`p-2 rounded-lg transition-all glass-card ${darkMode
                         ? "bg-white/10 hover:bg-white/20 text-gray-300"
                         : "bg-gray-100 hover:bg-gray-200 text-gray-600"
                         }`}
@@ -2387,10 +2520,15 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                           initial={{ opacity: 0, scale: 0.9, y: -10 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                          className={`absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-lg shadow-xl overflow-hidden ${darkMode
-                            ? "bg-gray-800 border border-gray-700"
-                            : "bg-white border border-gray-200"
+                          className={`absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-xl shadow-2xl overflow-hidden glass-card ${darkMode
+                            ? "bg-gray-900/90 border border-cyan-500/20 backdrop-blur-2xl"
+                            : "bg-white/90 border border-cyan-200/60 backdrop-blur-2xl"
                             }`}
+                          style={{
+                            boxShadow: darkMode
+                              ? "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(6,242,242,0.08)"
+                              : "0 20px 60px rgba(0,0,0,0.12), 0 0 40px rgba(6,242,242,0.06)"
+                          }}
                         >
 
                           {/* View Profile Option */}
@@ -2441,34 +2579,40 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               </motion.div>
 
               {/* Messages */}
-              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-visible p-4 pb-12 space-y-3 custom-scrollbar bg-gradient-to-b from-transparent via-transparent to-transparent">
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-visible p-4 pb-12 space-y-3 custom-scrollbar-chat bg-gradient-to-b from-transparent via-transparent to-transparent">
                 {messages.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex items-center justify-center h-full"
                   >
-                    <div className="text-center">
+                  <div className="text-center px-8">
+                    <motion.div
+                      className={`w-24 h-24 rounded-2xl mx-auto mb-5 relative overflow-hidden ${darkMode
+                        ? "bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-cyan-500/20"
+                        : "bg-gradient-to-br from-gray-100/80 to-gray-200/80 border-2 border-cyan-200/60"
+                        } flex items-center justify-center`}
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10`} />
+                      <MessageSquare className={`w-12 h-12 relative z-10 ${darkMode ? "text-cyan-400/50" : "text-cyan-500/50"
+                        }`} />
                       <motion.div
-                        className={`w-20 h-20 rounded-full mx-auto mb-4 ${darkMode
-                          ? "bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-cyan-500/30"
-                          : "bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-cyan-200"
-                          } flex items-center justify-center`}
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        <MessageSquare className={`w-10 h-10 ${darkMode ? "text-gray-600" : "text-gray-400"
-                          }`} />
-                      </motion.div>
-                      <p className={`text-lg font-semibold ${darkMode ? "text-gray-400" : "text-gray-600"
-                        }`}>
-                        No messages yet
-                      </p>
-                      <p className={`text-sm mt-2 ${darkMode ? "text-gray-500" : "text-gray-500"
-                        }`}>
-                        Start the conversation!
-                      </p>
-                    </div>
+                        className="absolute -bottom-8 -right-8 w-16 h-16 rounded-full bg-cyan-500/20 blur-xl"
+                        animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                      />
+                    </motion.div>
+                    <p className={`text-xl font-bold font-display mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                      No messages yet
+                    </p>
+                    <p className={`text-sm font-body ${darkMode ? "text-gray-500" : "text-gray-500"
+                      }`}>
+                      Start the conversation!
+                    </p>
+                  </div>
                   </motion.div>
                 ) : (
                   messages.map((msg, index) => {
@@ -2535,7 +2679,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                                 initial={{ opacity: 0, scale: 0.9, y: -10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                                className={`absolute ${isOwnMessage ? 'right-0' : 'left-0'} top-2 z-20 min-w-[160px] rounded-xl shadow-xl overflow-hidden ${darkMode
+                                className={`absolute ${isOwnMessage ? 'right-0' : 'left-0'} top-2 z-20 min-w-[160px] rounded-xl shadow-xl overflow-hidden glass-card ${darkMode
                                   ? "bg-gray-800 border border-gray-700"
                                   : "bg-white border border-gray-200"
                                   }`}
@@ -2625,15 +2769,24 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                             className={`min-w-[140px] rounded-xl px-4 py-3 shadow-sm ${hasVoice ? "w-[220px] sm:w-[260px]" : "w-fit"
                               } ${isOwnMessage
                                 ? darkMode
-                                  ? "bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
-                                  : "bg-gradient-to-br from-cyan-500 to-blue-500 text-white"
+                                  ? "bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 text-white animate-border-shimmer"
+                                  : "bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 text-white animate-border-shimmer"
                                 : darkMode
-                                  ? "bg-gray-800/80 backdrop-blur-xl text-white border border-white/10"
-                                  : "bg-white text-black border border-gray-200"
-                              } ${isPinned ? (isOwnMessage ? "ring-2 ring-yellow-300/80" : "ring-2 ring-yellow-400/80") : ""}`}
-                            whileHover={{ scale: 1.01 }}
+                                  ? "glass-card bg-gray-800/60 backdrop-blur-xl text-white border border-white/10"
+                                  : "glass-card bg-white/80 backdrop-blur-xl text-black border border-gray-200"
+                              } ${isPinned ? (isOwnMessage ? "ring-2 ring-yellow-300/80 shadow-lg shadow-yellow-300/20" : "ring-2 ring-yellow-400/80 shadow-lg shadow-yellow-400/20") : ""}`}
+                            whileHover={{ scale: 1.015 }}
                             transition={{ type: "spring", stiffness: 400 }}
-                            style={{ minHeight: 'min-content' }}
+                            style={{
+                              minHeight: 'min-content',
+                              boxShadow: isOwnMessage
+                                ? darkMode
+                                  ? "0 4px 24px rgba(6, 242, 242, 0.25), inset 0 1px 0 rgba(255,255,255,0.2)"
+                                  : "0 4px 24px rgba(6, 242, 242, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)"
+                                : darkMode
+                                  ? "0 4px 16px rgba(0,0,0,0.2)"
+                                  : "0 2px 12px rgba(0,0,0,0.06)"
+                            }}
                           >
                             {isPinned && (
                               <div className="flex items-center gap-1 mb-1 text-[10px] text-yellow-100/90 dark:text-yellow-200/90">
@@ -2743,11 +2896,11 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                             {/* Text Message */}
                             {messageText && !messageText.startsWith('🎤') && !messageText.startsWith('📎') && (
                               <div className="flex items-start gap-1">
-                                <p className="text-xs whitespace-pre-wrap break-words font-medium leading-snug flex-1">
+                                <p className="text-xs whitespace-pre-wrap break-words font-medium leading-snug flex-1 font-body">
                                   {messageText}
                                 </p>
                                 {msg.isEdited && (
-                                  <span className={`text-[9px] flex-shrink-0 ${isOwnMessage ? "text-cyan-100/60" : darkMode ? "text-gray-500" : "text-gray-400"}`} title="Edited">
+                                  <span className={`text-[9px] flex-shrink-0 font-body ${isOwnMessage ? "text-cyan-100/60" : darkMode ? "text-gray-500" : "text-gray-400"}`} title="Edited">
                                     (edited)
                                   </span>
                                 )}
@@ -2755,7 +2908,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                             )}
 
                             <div className="flex items-center justify-end gap-1.5 mt-2 pt-1 w-full">
-                              <p className={`text-[10px] whitespace-nowrap flex-shrink-0 px-2 py-0.5 rounded-full ${isOwnMessage
+                              <p className={`text-[10px] whitespace-nowrap flex-shrink-0 px-2 py-0.5 rounded-full font-body ${isOwnMessage
                                 ? "text-cyan-100/90 bg-white/15"
                                 : darkMode
                                   ? "text-gray-300 bg-white/10"
@@ -2795,7 +2948,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`p-3 border-t backdrop-blur-xl ${darkMode
+                className={`p-3 border-t backdrop-blur-xl glass-card ${darkMode
                   ? "bg-black/40 border-cyan-500/30"
                   : "bg-white/60 border-cyan-200"
                   }`}
@@ -2813,7 +2966,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <Pencil className={`w-4 h-4 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
-                      <span className={`text-sm font-medium ${darkMode ? "text-cyan-300" : "text-cyan-700"}`}>
+                      <span className={`text-sm font-medium font-body ${darkMode ? "text-cyan-300" : "text-cyan-700"}`}>
                         Editing message
                       </span>
                     </div>
@@ -2841,10 +2994,10 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                     <div className="flex items-center gap-2 min-w-0">
                       <Reply className={`w-4 h-4 ${darkMode ? "text-purple-300" : "text-purple-600"}`} />
                       <div className="min-w-0">
-                        <span className={`text-xs font-semibold block ${darkMode ? "text-purple-200" : "text-purple-700"}`}>
+                        <span className={`text-xs font-semibold block font-body ${darkMode ? "text-purple-200" : "text-purple-700"}`}>
                           Replying to
                         </span>
-                        <span className={`text-xs truncate block ${darkMode ? "text-gray-200" : "text-gray-700"}`}>
+                        <span className={`text-xs truncate block font-body ${darkMode ? "text-gray-200" : "text-gray-700"}`}>
                           {replyToMessage.text}
                         </span>
                       </div>
@@ -2874,10 +3027,10 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                         }`}>
                         <div className="flex items-center gap-2">
                           <Paperclip className="w-4 h-4" />
-                          <span className="text-sm font-medium">
+                          <span className="text-sm font-medium font-body">
                             {attachedFiles.length} {attachedFiles.length === 1 ? 'file' : 'files'} attached
                           </span>
-                          <span className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
+                          <span className={`text-xs font-body ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
                             ({formatFileSize(attachedFiles.reduce((acc, f) => acc + f.size, 0))} total)
                           </span>
                         </div>
@@ -2963,7 +3116,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                               animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
                               transition={{ duration: 1, repeat: Infinity }}
                             />
-                            <span className={`text-sm ${darkMode ? "text-white" : "text-gray-900"}`}>
+                            <span className={`text-sm font-body ${darkMode ? "text-white" : "text-gray-900"}`}>
                               Recording... {formatRecordingTime(recordingTime)}
                             </span>
                             <div className="flex-1" />
@@ -3000,7 +3153,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                             >
                               <Mic className={`w-3.5 h-3.5 ${darkMode ? "text-green-400" : "text-green-600"}`} />
                             </motion.div>
-                            <span className={`text-sm ${darkMode ? "text-white" : "text-gray-900"}`}>
+                            <span className={`text-sm font-body ${darkMode ? "text-white" : "text-gray-900"}`}>
                               Voice • {formatRecordingTime(recordingTime)}
                             </span>
                             <div className="flex-1" />
@@ -3062,15 +3215,15 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   {/* Emoji Picker Button */}
                   <motion.button
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className={`p-2 rounded-lg transition-all ${showEmojiPicker
+                    className={`p-2 rounded-lg transition-all glass-card ${showEmojiPicker
                       ? darkMode
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md"
-                        : "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md"
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20"
+                        : "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20"
                       : darkMode
                         ? "bg-white/10 hover:bg-white/20 text-gray-300"
                         : "bg-gray-100 hover:bg-gray-200 text-gray-600"
                       }`}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.05, rotate: 10 }}
                     whileTap={{ scale: 0.95 }}
                     title="Add Emoji"
                   >
@@ -3081,15 +3234,15 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   <div className="relative">
                     <motion.button
                       onClick={() => fileInputRef.current?.click()}
-                      className={`p-2 rounded-lg transition-all ${attachedFiles.length > 0
+                      className={`p-2 rounded-lg transition-all glass-card ${attachedFiles.length > 0
                         ? darkMode
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
-                          : "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-500/20"
+                          : "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-500/20"
                         : darkMode
                           ? "bg-white/10 hover:bg-white/20 text-gray-300"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-600"
                         }`}
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1.05, rotate: -10 }}
                       whileTap={{ scale: 0.95 }}
                       title={`Attach Files (${attachedFiles.length} attached)`}
                     >
@@ -3100,7 +3253,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md"
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-red-500/30"
                       >
                         {attachedFiles.length > 99 ? '99+' : attachedFiles.length}
                       </motion.div>
@@ -3110,14 +3263,14 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                   {/* Voice Recording Button */}
                   <motion.button
                     onClick={isRecording ? stopRecording : startRecording}
-                    className={`p-2 rounded-lg transition-all ${isRecording
+                    className={`p-2 rounded-lg transition-all glass-card ${isRecording
                       ? darkMode
-                        ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md"
-                        : "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md"
+                        ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md shadow-red-500/20"
+                        : "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md shadow-red-500/20"
                       : audioBlob
                         ? darkMode
-                          ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md"
-                          : "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md"
+                          ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-500/20"
+                          : "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-500/20"
                         : darkMode
                           ? "bg-white/10 hover:bg-white/20 text-gray-300"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-600"
@@ -3148,8 +3301,16 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                         exit={{ opacity: 0, y: 20, scale: 0.9 }}
                         className="absolute bottom-full left-0 mb-3 z-50 max-w-[calc(100vw-2rem)]"
                       >
-                        <div className={`rounded-2xl overflow-hidden shadow-2xl ${darkMode ? "bg-gray-900 border-2 border-cyan-500/30" : "bg-white border-2 border-cyan-200"
-                          }`}>
+                        <div className={`rounded-2xl overflow-hidden shadow-2xl glass-card ${darkMode
+                          ? "bg-gray-900/95 border-2 border-cyan-500/30 backdrop-blur-2xl"
+                          : "bg-white/95 border-2 border-cyan-200 backdrop-blur-2xl"
+                          }`}
+                          style={{
+                            boxShadow: darkMode
+                              ? "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(6,242,242,0.1)"
+                              : "0 20px 60px rgba(0,0,0,0.12), 0 0 40px rgba(6,242,242,0.06)"
+                          }}
+                        >
                           <EmojiPicker
                             onEmojiClick={handleEmojiClick}
                             theme={darkMode ? Theme.DARK : Theme.LIGHT}
@@ -3173,18 +3334,23 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                       }
                     }}
                     placeholder="Type your message..."
-                    className={`flex-1 px-4 py-2.5 rounded-lg border text-sm backdrop-blur-xl transition-all ${darkMode
-                      ? "bg-white/5 border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-500 focus:bg-white/10"
-                      : "bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-500 focus:bg-white"
-                      } focus:outline-none focus:ring-2 focus:ring-cyan-500/20`}
+                    className={`flex-1 px-4 py-2.5 rounded-xl border text-sm backdrop-blur-xl transition-all font-body ${darkMode
+                      ? "bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]"
+                      : "bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white"
+                      } focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:shadow-[0_0_20px_rgba(6,242,242,0.08)]`}
+                    style={{
+                      boxShadow: darkMode
+                        ? "inset 0 2px 4px rgba(0,0,0,0.2)"
+                        : "inset 0 1px 3px rgba(0,0,0,0.04)"
+                    }}
                   />
                   <motion.button
                     onClick={handleSendMessage}
                     disabled={(!newMessage.trim() && attachedFiles.length === 0 && !audioBlob) || sending}
-                    className={`p-2.5 rounded-lg transition-all ${(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending
+                    className={`p-2.5 rounded-xl transition-all relative overflow-hidden ${(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending
                       ? darkMode
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-md"
-                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-md"
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25"
+                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25"
                       : darkMode
                         ? "bg-white/10 text-gray-500 cursor-not-allowed"
                         : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -3193,6 +3359,13 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                     whileTap={(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending ? { scale: 0.95 } : {}}
                     title={editingMessageId ? "Save changes" : "Send message"}
                   >
+                    {(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        animate={{ x: ["-200%", "200%"] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                      />
+                    )}
                     {sending ? (
                       <motion.div
                         className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
@@ -3200,7 +3373,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       />
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <Send className="w-4 h-4 relative z-10" />
                     )}
                   </motion.button>
                 </div>
@@ -3212,23 +3385,38 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               className="flex-1 flex items-center justify-center"
             >
-              <div className="text-center">
+              <div className="text-center px-6">
                 <motion.div
-                  className={`w-32 h-32 rounded-full mx-auto mb-6 ${darkMode
-                    ? "bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-cyan-500/30"
-                    : "bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-cyan-200"
-                    } flex items-center justify-center shadow-2xl`}
-                  animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                  className={`w-36 h-36 rounded-2xl mx-auto mb-6 ${darkMode
+                    ? "bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-cyan-500/20"
+                    : "bg-gradient-to-br from-gray-100/80 to-gray-200/80 border-2 border-cyan-200"
+                    } flex items-center justify-center shadow-2xl relative overflow-hidden`}
+                  animate={{ scale: [1, 1.08, 1], rotate: [0, 3, -3, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  style={{
+                    boxShadow: darkMode
+                      ? "0 0 60px rgba(6, 242, 242, 0.08)"
+                      : "0 0 60px rgba(6, 242, 242, 0.06)"
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10" />
+                  <MessageSquare className={`w-16 h-16 relative z-10 ${darkMode ? "text-cyan-400/60" : "text-cyan-500/60"
+                    }`} />
+                  <motion.div
+                    className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-cyan-500/20 blur-xl"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                </motion.div>
+                <motion.p
+                  className={`text-2xl font-bold mb-3 font-display ${darkMode ? "text-gray-200" : "text-gray-800"
+                    }`}
+                  animate={{ opacity: [0.8, 1, 0.8] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 >
-                  <MessageSquare className={`w-16 h-16 ${darkMode ? "text-gray-600" : "text-gray-400"
-                    }`} />
-                </motion.div>
-                <p className={`text-xl font-bold mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
-                  }`}>
                   Select a conversation
-                </p>
-                <p className={`text-sm ${darkMode ? "text-gray-500" : "text-gray-500"
+                </motion.p>
+                <p className={`text-sm font-body max-w-xs mx-auto leading-relaxed ${darkMode ? "text-gray-500" : "text-gray-500"
                   }`}>
                   Choose a conversation from the list to start chatting
                 </p>

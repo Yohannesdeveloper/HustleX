@@ -1370,6 +1370,85 @@ router.post("/telegram-webhook", async (req, res) => {
       const messageId = callbackQuery.message?.message_id;
       const data = callbackQuery.data;
 
+      // Menu inline button callbacks
+      if (data === "menu_applications" || data === "menu_profile" || data === "menu_settings" || data === "menu_about") {
+        await axios.post(
+          `https://api.telegram.org/bot${botToken}/answerCallbackQuery`,
+          { callback_query_id: callbackQuery.id }
+        ).catch(() => {});
+        const menuTexts = {
+          menu_applications: [
+            `📋 <b>Your Applications Arsenal</b>`,
+            ``,
+            `Your applications are your conquest log — every bid is a battle, every hire is a victory. Stay on top of your game and never let an opportunity slip.`,
+            ``,
+            `<b>What awaits you inside:</b>`,
+            `• 🎯 <b>Active Bids</b> — Track your ongoing battles`,
+            `• ✅ <b>Won Contracts</b> — Seal the deal and celebrate`,
+            `• 📊 <b>Proposal Stats</b> — Know your win rate`,
+            `• 🔔 <b>Real-time Alerts</b> — Strike when iron's hot`,
+            ``,
+            `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">Open Applications</a>`,
+            ``,
+            `━━━━━━━━━━━━━━━━━━━━━`,
+            `💼 <b>HustleX</b> — Your Freelance Journey`,
+          ].join("\n"),
+          menu_profile: [
+            `👤 <b>Your Profile Arsenal</b>`,
+            ``,
+            `Your profile is your digital throne — the kingdom where clients discover your genius. It's not just a page; it's your 24/7 sales machine, your silent pitch, and the difference between "maybe" and "hired."`,
+            ``,
+            `A complete profile = 3× more invites, 5× more trust, and clients fighting to work with you.`,
+            ``,
+            `<b>What awaits you inside:</b>`,
+            `• 🎯 <b>Battle Station</b> — Showcase skills that slay`,
+            `• 🌟 <b>Epic Portfolio</b> — Let your work do the talkin'`,
+            `• 📊 <b>Verified Badges</b> — Flex your credibility`,
+            `• 🚀 <b>Instant Apply</b> — One tap to your next gig`,
+            ``,
+            `This isn't just a profile — it's your legacy in the making 👑`,
+            ``,
+            `━━━━━━━━━━━━━━━━━━━━━`,
+            `💼 <b>HustleX</b> — Your Freelance Journey`,
+          ].join("\n"),
+          menu_settings: [
+            `⚙️ <b>Your Command Center</b>`,
+            ``,
+            `Your settings are your command center — tune your battlefield, control your notifications, and keep your arsenal sharp.`,
+            ``,
+            `<b>What you can configure:</b>`,
+            `• 🔔 <b>Notifications</b> — Never miss a strike`,
+            `• 👤 <b>Profile Visibility</b> — Control who sees your legend`,
+            `• 🔒 <b>Privacy</b> — Lock down your fortress`,
+            `• 🌐 <b>Preferences</b> — Customize your arena`,
+            ``,
+            `🌐 <a href="https://hustlexet.vercel.app/settings">Open Command Center</a>`,
+            ``,
+            `━━━━━━━━━━━━━━━━━━━━━`,
+            `💼 <b>HustleX</b> — Your Freelance Journey`,
+          ].join("\n"),
+          menu_about: [
+            `🌟 <b>About HustleX</b> 🌟`,
+            ``,
+            `HustleX is the arena where Ethiopia's finest talent meets global opportunity. We're not just a platform — we're a movement building the future of work.`,
+            ``,
+            `<b>Why HustleX?</b>`,
+            `• 🌍 <b>Global Reach</b> — Ethiopian talent, worldwide impact`,
+            `• ✅ <b>Verified Trust</b> — Every profile, every client, vetted`,
+            `• ⚡ <b>Instant Connect</b> — From pitch to hire in record time`,
+            `• 💎 <b>Quality First</b> — Top-tier talent, premium results`,
+            ``,
+            `🌐 <a href="https://hustlexet.vercel.app">Join the Arena</a>`,
+            `📧 support@hustleX.et`,
+            ``,
+            `━━━━━━━━━━━━━━━━━━━━━`,
+            `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+          ].join("\n"),
+        };
+        await sendMessage(chatId, menuTexts[data]);
+        return; // done with callback_query
+      }
+
       if (data && data.startsWith("tglogin_")) {
         const action = data.startsWith("tglogin_confirm_")
           ? "confirm"
@@ -1430,12 +1509,10 @@ router.post("/telegram-webhook", async (req, res) => {
         `I'm your HustleX assistant. Here's what I can do:`,
         ``,
         `🔐 <b>Login</b> — Confirm login requests from the HustleX website`,
+        `📋 <b>Applications</b> — Track your bids and contracts`,
         `👤 <b>Profile</b> — Manage your freelancer profile`,
-        ``,
-        `<b>Available commands:</b>`,
-        `/start — Show this welcome message`,
-        `/help — Show help information`,
-        `/profile — View your profile status`,
+        `⚙️ <b>Settings</b> — Configure your preferences`,
+        `ℹ️ <b>About</b> — Learn more about HustleX`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
@@ -1443,11 +1520,13 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
-          keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          remove_keyboard: true,
+          inline_keyboard: [
+            [{ text: "📋 Applications", callback_data: "menu_applications" }],
+            [{ text: "👤 Profile", callback_data: "menu_profile" }],
+            [{ text: "⚙️ Settings", callback_data: "menu_settings" }],
+            [{ text: "ℹ️ About", callback_data: "menu_about" }],
           ],
-          resize_keyboard: true,
         },
       });
       return;
@@ -1456,11 +1535,17 @@ router.post("/telegram-webhook", async (req, res) => {
     // /help command
     if (text.startsWith("/help") || text === "📋 Application") {
       const helpText = [
-        `📋 <b>Applications</b>`,
+        `📋 <b>Your Applications Arsenal</b>`,
         ``,
-        `Browse and manage your job applications on HustleX.`,
+        `Your applications are your conquest log — every bid is a battle, every hire is a victory. Stay on top of your game and never let an opportunity slip.`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">My Applications</a>`,
+        `<b>What awaits you inside:</b>`,
+        `• 🎯 <b>Active Bids</b> — Track your ongoing battles`,
+        `• ✅ <b>Won Contracts</b> — Seal the deal and celebrate`,
+        `• 📊 <b>Proposal Stats</b> — Know your win rate`,
+        `• 🔔 <b>Real-time Alerts</b> — Strike when iron's hot`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">Open Applications</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
@@ -1473,20 +1558,25 @@ router.post("/telegram-webhook", async (req, res) => {
     // /profile command or button
     if (text.startsWith("/profile") || text === "👤 Profile") {
       const profileText = [
-        `👤 <b>Your Profile</b>`,
+        `👤 <b>Your Profile Arsenal</b>`,
         ``,
-        `<b>Telegram:</b> ${username}`,
-        `<b>Name:</b> ${firstName} ${user?.last_name || ""}`.trim(),
+        `Your profile is your digital throne — the kingdom where clients discover your genius. It's not just a page; it's your 24/7 sales machine, your silent pitch, and the difference between "maybe" and "hired."`,
         ``,
-        `To complete your HustleX profile, visit the website and sign in with Telegram.`,
+        `A complete profile = 3× more invites, 5× more trust, and clients fighting to work with you.`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app">HustleX Platform</a>`,
+        `<b>What awaits you inside:</b>`,
+        `• 🎯 <b>Battle Station</b> — Showcase skills that slay`,
+        `• 🌟 <b>Epic Portfolio</b> — Let your work do the talkin'`,
+        `• 📊 <b>Verified Badges</b> — Flex your credibility`,
+        `• 🚀 <b>Instant Apply</b> — One tap to your next gig`,
+        ``,
+        `This isn't just a profile — it's your legacy in the making 👑`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, profileText, { disable_web_page_preview: true });
+      await sendMessage(chatId, profileText, { parse_mode: "HTML" });
       return;
     }
 
@@ -1495,39 +1585,45 @@ router.post("/telegram-webhook", async (req, res) => {
       const aboutText = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
-        `HustleX is Ethiopia's premier freelance platform connecting talented professionals with businesses worldwide.`,
+        `HustleX is the arena where Ethiopia's finest talent meets global opportunity. We're not just a platform — we're a movement building the future of work.`,
         ``,
-        `🎯 <b>Key Features:</b>`,
-        `• ✅ Verified freelancers and companies`,
-        `• ✅ Project management tools`,
-        `• ✅ Skill-based job matching`,
-        `• ✅ Professional networking`,
+        `<b>Why HustleX?</b>`,
+        `• 🌍 <b>Global Reach</b> — Ethiopian talent, worldwide impact`,
+        `• ✅ <b>Verified Trust</b> — Every profile, every client, vetted`,
+        `• ⚡ <b>Instant Connect</b> — From pitch to hire in record time`,
+        `• 💎 <b>Quality First</b> — Top-tier talent, premium results`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app">Visit HustleX</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app">Join the Arena</a>`,
         `📧 support@hustleX.et`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      await sendMessage(chatId, aboutText, { disable_web_page_preview: true });
+      await sendMessage(chatId, aboutText);
       return;
     }
 
     // Setting button
     if (text === "⚙️ Setting") {
       const settingText = [
-        `⚙️ <b>Settings</b>`,
+        `⚙️ <b>Your Command Center</b>`,
         ``,
-        `Manage your preferences and account settings.`,
+        `Your settings are your command center — tune your battlefield, control your notifications, and keep your arsenal sharp.`,
         ``,
-        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Settings</a>`,
+        `<b>What you can configure:</b>`,
+        `• 🔔 <b>Notifications</b> — Never miss a strike`,
+        `• 👤 <b>Profile Visibility</b> — Control who sees your legend`,
+        `• 🔒 <b>Privacy</b> — Lock down your fortress`,
+        `• 🌐 <b>Preferences</b> — Customize your arena`,
+        ``,
+        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Command Center</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, settingText, { disable_web_page_preview: true });
+      await sendMessage(chatId, settingText);
       return;
     }
 
