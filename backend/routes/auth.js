@@ -1558,7 +1558,15 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, helpText);
+      await sendMessage(chatId, helpText, {
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
       return;
     }
 
@@ -1583,7 +1591,16 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, profileText, { parse_mode: "HTML" });
+      await sendMessage(chatId, profileText, {
+        parse_mode: "HTML",
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
       return;
     }
 
@@ -1607,7 +1624,15 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      await sendMessage(chatId, aboutText);
+      await sendMessage(chatId, aboutText, {
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
       return;
     }
 
@@ -1630,14 +1655,31 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, settingText);
+      await sendMessage(chatId, settingText, {
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
       return;
     }
 
     // Default fallback for unrecognized messages
     await sendMessage(
       chatId,
-      `💬 Hi ${firstName}! Use /start to see available options or /help for more info.`
+      `💬 Hi ${firstName}! Use /start to see available options or /help for more info.`,
+      {
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
     );
 
   } catch (err) {
