@@ -39,6 +39,15 @@ const ApplyRedirect: React.FC = () => {
 
       resolvedRef.current = true;
       const authUser = checkAuth.fulfilled.match(result) ? result.payload : null;
+
+      if (!authUser) {
+        const hasToken = !!localStorage.getItem("token");
+        if (hasToken) {
+          navigate(effectiveRedirect || "/", { replace: true });
+          return;
+        }
+      }
+
       const dest = resolveApplyFlowPath(!!authUser, authUser, effectiveRedirect);
       navigate(dest, { replace: true });
     })();
