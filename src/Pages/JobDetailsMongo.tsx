@@ -1879,11 +1879,7 @@ const JobDetailsMongo: React.FC = () => {
         darkMode={darkMode}
         onComplete={() => {
           setShowSuccessAnimation(false);
-          navigate("/dashboard/freelancer", {
-            state: {
-              tab: "myApplications",
-            },
-          });
+          // Stay on job details page instead of navigating to dashboard
         }}
       />
       {!isTelegramMiniApp && <Footer />}

@@ -34,6 +34,13 @@ const syncPersistedRole = async (user: User): Promise<User> => {
       return user;
     }
 
+    // Don't auto-switch role if user is on job-details page to avoid navigation flicker
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    if (currentPath.startsWith("/job-details/")) {
+      console.log("[syncPersistedRole] Skipping role switch on job-details page to avoid navigation flicker");
+      return user;
+    }
+
     const persistedRole = readPersistedActiveRole();
     if (
       persistedRole &&
