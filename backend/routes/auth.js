@@ -139,6 +139,19 @@ router.post(
 
       const { email, password, role, roles, firstName, lastName, dateOfBirth, gender, country, city, telegram } = req.body;
 
+      // Mini App: if this Telegram account is already registered, log them in
+      if (telegram?.id) {
+        const existingByTelegram = await User.findOne({ "telegram.id": telegram.id });
+        if (existingByTelegram) {
+          const token = generateToken(existingByTelegram._id);
+          await ensureAdminRole(existingByTelegram);
+          return res.status(200).json({
+            token,
+            user: toAuthUserPayload(existingByTelegram),
+          });
+        }
+      }
+
       // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {

@@ -51,27 +51,52 @@ const syncPersistedRole = async (user: User): Promise<User> => {
   return user;
 };
 
+async function tryTelegramMiniAppLogin(): Promise<User | null> {
+  const initData =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.initData : undefined;
+  if (!initData) return null;
+
+  try {
+    const loginResult = await apiService.telegramLogin({ initData });
+    if ("needsRegistration" in loginResult && loginResult.needsRegistration) {
+      return null;
+    }
+    if ("user" in loginResult && loginResult.user) {
+      return await syncPersistedRole(loginResult.user);
+    }
+  } catch (error) {
+    console.error("Telegram Mini App login failed:", error);
+  }
+  return null;
+}
+
 // Async thunks
 export const checkAuth = createAsyncThunk(
   "auth/checkAuth",
-  async (_, { rejectWithValue }) => {
+  async () => {
+    const authTimeoutMs = 8000;
+
     try {
       if (apiService.isAuthenticated()) {
-        apiService.clearUserCache(); // Clear cache to get fresh user
-        // Add a timeout to the auth check
+        apiService.clearUserCache();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Auth check timeout")), 2000)
+          setTimeout(() => reject(new Error("Auth check timeout")), authTimeoutMs)
         );
 
         const userPromise = apiService.getCurrentUser();
-        let currentUser = await Promise.race([userPromise, timeoutPromise]) as any;
+        let currentUser = (await Promise.race([userPromise, timeoutPromise])) as User;
         currentUser = await syncPersistedRole(currentUser);
         return currentUser;
       }
-      return null;
+
+      return await tryTelegramMiniAppLogin();
     } catch (error: any) {
       console.error("Auth check failed:", error);
       apiService.logout();
+
+      const telegramUser = await tryTelegramMiniAppLogin();
+      if (telegramUser) return telegramUser;
+
       return null;
     }
   }
