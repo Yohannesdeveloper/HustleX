@@ -722,7 +722,7 @@ const HiringDashboard: React.FC = () => {
                   {[
                     { label: "Applications", value: analyticsData.totalApplications, icon: Users, color: "from-cyan-500 to-blue-600", glow: "rgba(6,242,242,0.3)", action: () => setActiveTab("applications") },
                     { label: "Active Jobs", value: analyticsData.totalJobs, icon: Briefcase, color: "from-cyan-500 to-blue-600", glow: "rgba(6,242,242,0.3)", action: () => setActiveTab("jobs") },
-                    { label: "Hired", value: analyticsData.hiredCount, icon: CheckCircle, color: "from-violet-500 to-purple-600", glow: "rgba(139,92,246,0.3)", action: undefined },
+                    { label: "Hired", value: analyticsData.hiredCount, icon: CheckCircle, color: "from-violet-500 to-purple-600", glow: "rgba(139,92,246,0.3)", action: () => setActiveTab("applications") },
                     { label: "Success Rate", value: `${analyticsData.successRate}%`, icon: TrendingUp, color: "from-green-400 to-emerald-600", glow: "rgba(74,222,128,0.3)", action: undefined },
                     { label: "Avg Days to Hire", value: analyticsData.avgDaysToHire, icon: Calendar, color: "from-amber-400 to-orange-500", glow: "rgba(251,191,36,0.3)", action: undefined },
                     { label: "Response Time", value: `${analyticsData.responseTime}h`, icon: Clock, color: "from-blue-400 to-indigo-600", glow: "rgba(96,165,250,0.3)", action: undefined },
