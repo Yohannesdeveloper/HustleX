@@ -1460,12 +1460,11 @@ router.post("/telegram-webhook", async (req, res) => {
         };
         await sendMessage(chatId, menuTexts[data], {
           reply_markup: {
-            inline_keyboard: [
-              [{ text: "📋 Applications", callback_data: "menu_applications" },
-               { text: "👤 Profile", callback_data: "menu_profile" }],
-              [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-               { text: "ℹ️ About", callback_data: "menu_about" }],
+            keyboard: [
+              [{ text: "📋 Application" }, { text: "👤 Profile" }],
+              [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
             ],
+            resize_keyboard: true,
           },
         });
         return; // done with callback_query
@@ -1538,16 +1537,6 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About", callback_data: "menu_about" }],
-          ],
-        },
-      });
-      await sendMessage(chatId, "👇 Tap a button above or use the menu below:", {
-        reply_markup: {
           keyboard: [
             [{ text: "📋 Application" }, { text: "👤 Profile" }],
             [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
@@ -1579,12 +1568,11 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, helpText, {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About", callback_data: "menu_about" }],
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
+          resize_keyboard: true,
         },
       });
       return;
@@ -1614,12 +1602,11 @@ router.post("/telegram-webhook", async (req, res) => {
       await sendMessage(chatId, profileText, {
         parse_mode: "HTML",
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About", callback_data: "menu_about" }],
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
+          resize_keyboard: true,
         },
       });
       return;
@@ -1647,12 +1634,11 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, aboutText, {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About", callback_data: "menu_about" }],
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
+          resize_keyboard: true,
         },
       });
       return;
@@ -1679,12 +1665,11 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, settingText, {
         reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About", callback_data: "menu_about" }],
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
+          resize_keyboard: true,
         },
       });
       return;
