@@ -1530,8 +1530,8 @@ router.post("/telegram-webhook", async (req, res) => {
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
           keyboard: [
-            [{ text: "👤 My Profile" }, { text: "📋 Applications" }],
-            [{ text: "⚙️ Settings" }, { text: "ℹ️ About HustleX" }],
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
           ],
           resize_keyboard: true,
         },
