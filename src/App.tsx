@@ -64,32 +64,34 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const startParamHandled = useRef(false);
-  const [isProcessingStartParam, setIsProcessingStartParam] = useState(false);
-  const [initialRouteCheck, setInitialRouteCheck] = useState(true);
-  const [showLoading, setShowLoading] = useState(false);
-  const [hasStartParam, setHasStartParam] = useState(false);
-  const [readyToRender, setReadyToRender] = useState(false);
+  const shouldBlockRenderRef = useRef(false);
+  
+  // Synchronous check for start_param BEFORE any rendering
+  const tg = window.Telegram?.WebApp;
+  const startParam = tg?.initDataUnsafe?.start_param;
+  const detectedStartParam = startParam?.startsWith("apply_");
+  
+  // Initialize state synchronously based on start_param check
+  const [isProcessingStartParam, setIsProcessingStartParam] = useState(detectedStartParam);
+  const [initialRouteCheck, setInitialRouteCheck] = useState(detectedStartParam);
+  const [readyToRender, setReadyToRender] = useState(!detectedStartParam);
+  
+  // Set ref synchronously to block first render if start_param present
+  if (detectedStartParam && !startParamHandled.current) {
+    shouldBlockRenderRef.current = true;
+  }
+  
   console.log('╔══════════════════════════════════════════╗');
-  console.log('║      HUSTLEX MINI APP LAUNCHED           ║');
+  console.log('║      HUSTLEX MINI LAUNCHED           ║');
   console.log('╚══════════════════════════════════════════╝');
   console.log('[App] pathname:', location.pathname, 'search:', location.search);
   console.log('[App] Telegram.WebApp:', !!window.Telegram?.WebApp);
+  console.log('[App] Synchronous start_param check:', startParam, 'detected:', detectedStartParam);
+  console.log('[App] shouldBlockRender:', shouldBlockRenderRef.current, 'readyToRender:', readyToRender);
 
   // Dismiss Telegram navy screen and set consistent background app-wide
   useEffect(() => {
     initTelegramMiniApp();
-    
-    // Check for start_param immediately on mount
-    const tg = window.Telegram?.WebApp;
-    const startParam = tg?.initDataUnsafe?.start_param;
-    if (startParam?.startsWith("apply_")) {
-      console.log("[App] Start param detected on mount:", startParam);
-      setHasStartParam(true);
-      setShowLoading(true);
-    } else {
-      // No start_param, ready to render immediately
-      setReadyToRender(true);
-    }
   }, []);
 
   // Handle start_param from channel Mini App deep link — single auth check, one navigation
@@ -103,22 +105,21 @@ function AppContent() {
       
       if (!startParam?.startsWith("apply_")) {
         setInitialRouteCheck(false);
-        setShowLoading(false);
         setReadyToRender(true);
+        shouldBlockRenderRef.current = false;
         return;
       }
 
       const jobId = startParam.replace("apply_", "");
       if (!jobId) {
         setInitialRouteCheck(false);
-        setShowLoading(false);
         setReadyToRender(true);
+        shouldBlockRenderRef.current = false;
         return;
       }
 
       console.log("[App] Processing start_param for job:", jobId);
       startParamHandled.current = true;
-      setIsProcessingStartParam(true);
       const redirect = `/job-details/${jobId}`;
       setPendingJobRedirect(redirect);
       storeTelegramUserFromInitData();
@@ -137,10 +138,13 @@ function AppContent() {
           if (hasToken) {
             console.log("[App] checkAuth failed but token exists — navigating to job details");
             navigate(redirect, { replace: true });
-            setIsProcessingStartParam(false);
-            setInitialRouteCheck(false);
-            setShowLoading(false);
-            setReadyToRender(true);
+            // Small delay to ensure navigation completes before rendering
+            setTimeout(() => {
+              setIsProcessingStartParam(false);
+              setInitialRouteCheck(false);
+              setReadyToRender(true);
+              shouldBlockRenderRef.current = false;
+            }, 100);
             return;
           }
         }
@@ -148,10 +152,13 @@ function AppContent() {
         const dest = resolveApplyFlowPath(!!authUser, authUser, redirect);
         console.log("[App] Navigating to:", dest);
         navigate(dest, { replace: true });
-        setIsProcessingStartParam(false);
-        setInitialRouteCheck(false);
-        setShowLoading(false);
-        setReadyToRender(true);
+        // Small delay to ensure navigation completes before rendering
+        setTimeout(() => {
+          setIsProcessingStartParam(false);
+          setInitialRouteCheck(false);
+          setReadyToRender(true);
+          shouldBlockRenderRef.current = false;
+        }, 100);
       })();
 
       return () => {
@@ -161,8 +168,8 @@ function AppContent() {
       console.error("[App] start_param error:", e);
       setIsProcessingStartParam(false);
       setInitialRouteCheck(false);
-      setShowLoading(false);
       setReadyToRender(true);
+      shouldBlockRenderRef.current = false;
     }
   }, [dispatch, navigate]);
 
@@ -182,7 +189,8 @@ function AppContent() {
 
   // Don't render anything until we've processed start_param (if present)
   // This prevents the homepage flicker when navigating from Telegram inline keyboard
-  if (!readyToRender) {
+  if (!readyToRender || shouldBlockRenderRef.current) {
+    console.log("[App] Blocking render - readyToRender:", readyToRender, "shouldBlockRender:", shouldBlockRenderRef.current);
     return (
       <WebSocketProvider>
         <div style={{ 
@@ -199,6 +207,7 @@ function AppContent() {
     );
   }
 
+  console.log("[App] Rendering routes");
   return (
     <WebSocketProvider>
       <Routes>
