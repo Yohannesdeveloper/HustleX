@@ -228,18 +228,6 @@ const JobDetailsMongo: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // Incomplete freelancer profile → finish setup first, then return to this job
-  useEffect(() => {
-    if (!currentUser || userRole === "guest") return;
-    if (userRole === "client" && !userRoles.includes("freelancer")) return;
-
-    if (!isFreelancerProfileComplete({ profile: currentUser.profile })) {
-      const redirect = location.pathname + location.search;
-      setPendingJobRedirect(redirect);
-      navigate(freelancerProfileSetupPath(redirect), { replace: true });
-    }
-  }, [currentUser, userRole, userRoles, location.pathname, location.search, navigate]);
-
   useEffect(() => {
     if (!jobId) {
       setError("No job ID provided");
@@ -344,17 +332,25 @@ const JobDetailsMongo: React.FC = () => {
   };
 
   const handleApply = async () => {
+    console.log('[handleApply] Starting - userRole:', userRole, 'currentUser:', !!currentUser);
+    
     if (!job) {
       alert("Job information not available. Please refresh the page.");
       return;
     }
 
     if (userRole === "guest" || !currentUser) {
+      console.log('[handleApply] Navigating to signup');
       navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
       return;
     }
 
-    if (!isFreelancerProfileComplete({ profile: currentUser.profile })) {
+    // Check if user needs to complete freelancer profile before allowing apply
+    const profileComplete = isFreelancerProfileComplete({ profile: currentUser.profile });
+    console.log('[handleApply] Profile complete:', profileComplete);
+    
+    if (!profileComplete) {
+      console.log('[handleApply] Profile incomplete, navigating to setup');
       const redirect = location.pathname + location.search;
       setPendingJobRedirect(redirect);
       navigate(freelancerProfileSetupPath(redirect), { replace: true });
@@ -378,6 +374,7 @@ const JobDetailsMongo: React.FC = () => {
       // CV is inherited from profile wizard via cvUrl field
     }
 
+    console.log('[handleApply] Showing application form');
     setShowApplicationForm(true);
   };
 

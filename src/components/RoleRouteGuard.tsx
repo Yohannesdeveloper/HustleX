@@ -13,7 +13,7 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isAuthenticated, user, loading, logout } = useAuth();
   const location = useLocation();
 
-  console.log('[RoleRouteGuard] render - pathname:', location.pathname, 'isAuthenticated:', isAuthenticated, 'loading:', loading, 'user:', !!user);
+  console.log('[RoleRouteGuard] render - pathname:', location.pathname, 'isAuthenticated:', isAuthenticated, 'loading:', loading, 'user:', !!user, 'user.currentRole:', user?.currentRole);
 
   if (loading || !isAuthenticated || !user) {
     return <>{children}</>;

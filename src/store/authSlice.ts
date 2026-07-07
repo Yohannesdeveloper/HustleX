@@ -36,12 +36,16 @@ const syncPersistedRole = async (user: User): Promise<User> => {
 
     // Don't auto-switch role if user is on job-details page to avoid navigation flicker
     const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    console.log("[syncPersistedRole] Current path:", currentPath, "user.currentRole:", user.currentRole);
+    
     if (currentPath.startsWith("/job-details/")) {
       console.log("[syncPersistedRole] Skipping role switch on job-details page to avoid navigation flicker");
       return user;
     }
 
     const persistedRole = readPersistedActiveRole();
+    console.log("[syncPersistedRole] Persisted role:", persistedRole);
+    
     if (
       persistedRole &&
       user.roles.includes(persistedRole) &&
@@ -49,6 +53,7 @@ const syncPersistedRole = async (user: User): Promise<User> => {
       // Don't try to switch to admin via API (since API doesn't support it)
       persistedRole !== "admin"
     ) {
+      console.log("[syncPersistedRole] Switching role from", user.currentRole, "to", persistedRole);
       // Switch to persisted role
       return await apiService.switchRole(persistedRole as "freelancer" | "client");
     }
