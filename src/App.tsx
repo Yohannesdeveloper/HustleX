@@ -65,6 +65,7 @@ function AppContent() {
   const navigate = useNavigate();
   const startParamHandled = useRef(false);
   const [isProcessingStartParam, setIsProcessingStartParam] = useState(false);
+  const [initialRouteCheck, setInitialRouteCheck] = useState(true);
   console.log('╔══════════════════════════════════════════╗');
   console.log('║      HUSTLEX MINI APP LAUNCHED           ║');
   console.log('╚══════════════════════════════════════════╝');
@@ -85,10 +86,16 @@ function AppContent() {
       const startParam = tg?.initDataUnsafe?.start_param;
       console.log("[App] Checking start_param:", startParam);
       
-      if (!startParam?.startsWith("apply_")) return;
+      if (!startParam?.startsWith("apply_")) {
+        setInitialRouteCheck(false);
+        return;
+      }
 
       const jobId = startParam.replace("apply_", "");
-      if (!jobId) return;
+      if (!jobId) {
+        setInitialRouteCheck(false);
+        return;
+      }
 
       console.log("[App] Processing start_param for job:", jobId);
       startParamHandled.current = true;
@@ -112,6 +119,7 @@ function AppContent() {
             console.log("[App] checkAuth failed but token exists — navigating to job details");
             navigate(redirect, { replace: true });
             setIsProcessingStartParam(false);
+            setInitialRouteCheck(false);
             return;
           }
         }
@@ -120,6 +128,7 @@ function AppContent() {
         console.log("[App] Navigating to:", dest);
         navigate(dest, { replace: true });
         setIsProcessingStartParam(false);
+        setInitialRouteCheck(false);
       })();
 
       return () => {
@@ -128,16 +137,17 @@ function AppContent() {
     } catch (e) {
       console.error("[App] start_param error:", e);
       setIsProcessingStartParam(false);
+      setInitialRouteCheck(false);
     }
   }, [dispatch, navigate]);
 
   useEffect(() => {
-    if (isProcessingStartParam) return; // Skip auth check while processing Telegram start_param to avoid navigation flicker
+    if (isProcessingStartParam || initialRouteCheck) return; // Skip auth check while processing Telegram start_param or during initial route check
     if (location.pathname.includes("ApplyRedirect")) return;
     if (location.pathname.startsWith("/job-details/")) return;
     if (location.pathname === "/Register" || location.pathname === "/register") return;
     dispatch(checkAuth());
-  }, [dispatch, location.pathname, isProcessingStartParam]);
+  }, [dispatch, location.pathname, isProcessingStartParam, initialRouteCheck]);
 
   // Track page views on every route change
   useEffect(() => {
