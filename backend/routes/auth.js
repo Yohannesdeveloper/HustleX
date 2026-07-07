@@ -1506,34 +1506,28 @@ router.post("/telegram-webhook", async (req, res) => {
         ``,
         `Hello <b>${firstName}</b>! 👋`,
         ``,
-        `I'm your HustleX assistant. Here's what I can do:`,
+        `HustleX is the arena where Ethiopia's finest talent meets global opportunity. You're now in the fight — let's get you equipped.`,
         ``,
-        `🔐 <b>Login</b> — Confirm login requests from the HustleX website`,
-        `📋 <b>Applications</b> — Track your bids and contracts`,
-        `👤 <b>Profile</b> — Manage your freelancer profile`,
-        `⚙️ <b>Settings</b> — Configure your preferences`,
-        `ℹ️ <b>About</b> — Learn more about HustleX`,
+        `👇 Use the buttons below to navigate your battlefield:`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
-          remove_keyboard: true,
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" }],
-            [{ text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" }],
-            [{ text: "ℹ️ About", callback_data: "menu_about" }],
+          keyboard: [
+            [{ text: "👤 My Profile" }, { text: "📋 Applications" }],
+            [{ text: "⚙️ Settings" }, { text: "ℹ️ About HustleX" }],
           ],
+          resize_keyboard: true,
         },
       });
       return;
     }
 
     // /help command
-    if (text.startsWith("/help") || text === "📋 Application") {
+    if (text.startsWith("/help") || text === "📋 Applications" || text === "📋 Application") {
       const helpText = [
         `📋 <b>Your Applications Arsenal</b>`,
         ``,
@@ -1556,7 +1550,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /profile command or button
-    if (text.startsWith("/profile") || text === "👤 Profile") {
+    if (text.startsWith("/profile") || text === "👤 My Profile" || text === "👤 Profile") {
       const profileText = [
         `👤 <b>Your Profile Arsenal</b>`,
         ``,
@@ -1581,7 +1575,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // About button
-    if (text === "ℹ️ About") {
+    if (text === "ℹ️ About HustleX" || text === "ℹ️ About") {
       const aboutText = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
@@ -1605,7 +1599,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // Setting button
-    if (text === "⚙️ Setting") {
+    if (text === "⚙️ Settings" || text === "⚙️ Setting") {
       const settingText = [
         `⚙️ <b>Your Command Center</b>`,
         ``,
