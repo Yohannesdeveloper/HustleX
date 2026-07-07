@@ -1559,7 +1559,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /help command
-    if (text.startsWith("/help") || text === "📋 Applications" || text === "📋 Application") {
+    if (text.startsWith("/help") || text === "📋 Application") {
       const helpText = [
         `📋 <b>Your Applications Arsenal</b>`,
         ``,
@@ -1591,7 +1591,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /profile command or button
-    if (text.startsWith("/profile") || text === "👤 My Profile" || text === "👤 Profile") {
+    if (text.startsWith("/profile") || text === "👤 Profile") {
       const profileText = [
         `👤 <b>Your Profile Arsenal</b>`,
         ``,
@@ -1626,7 +1626,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // About button
-    if (text === "ℹ️ About HustleX" || text === "ℹ️ About") {
+    if (text === "ℹ️ About") {
       const aboutText = [
         `🌟 <b>About HustleX</b> 🌟`,
         ``,
@@ -1659,7 +1659,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // Setting button
-    if (text === "⚙️ Settings" || text === "⚙️ Setting") {
+    if (text === "⚙️ Setting") {
       const settingText = [
         `⚙️ <b>Your Command Center</b>`,
         ``,
