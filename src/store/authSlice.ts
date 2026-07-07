@@ -92,8 +92,8 @@ export const checkAuth = createAsyncThunk(
       return await tryTelegramMiniAppLogin();
     } catch (error: any) {
       console.error("Auth check failed:", error);
-      apiService.logout();
-
+      // Don't logout on transient failures (timeout, network).
+      // The axios interceptor already handles 401 token clearing.
       const telegramUser = await tryTelegramMiniAppLogin();
       if (telegramUser) return telegramUser;
 

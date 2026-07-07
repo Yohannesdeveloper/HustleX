@@ -366,6 +366,18 @@ const inputVariants = {
   hover: { scale: 1.02, transition: { duration: 0.2 } },
 };
 
+const getFieldClass = (darkMode: boolean, hasError?: boolean, touched?: boolean) => {
+  const base = "w-full p-4 rounded-xl border transition-all duration-300 focus:outline-none";
+  const color = darkMode
+    ? "bg-white/[0.04] border-white/10 text-white placeholder:text-white/30 backdrop-blur-xl"
+    : "bg-white/80 border-black/10 text-gray-900 placeholder:text-gray-400";
+  const focus = "focus:ring-2 focus:ring-cyan-400/50 focus:border-cyan-400/50";
+  const error = hasError && touched
+    ? "!border-red-500 !ring-2 !ring-red-500/20"
+    : "";
+  return `${base} ${color} ${focus} ${error}`;
+};
+
 interface Job {
   _id: string; // Made optional for creation
   title: string;
@@ -402,28 +414,7 @@ const PostJob: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const t = useTranslation();
 
-  // Check authentication before allowing access to post job page
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // Redirect to login with return path
-      navigate("/signup?redirect=" + encodeURIComponent(window.location.pathname));
-      return;
-    }
-  }, [isAuthenticated, navigate]);
-
-  // Show loading while checking authentication
-  if (!isAuthenticated) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-black" : "bg-white"}`}>
-        <div className="text-center">
-          <div className={`w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4`} />
-          <p className={`text-lg ${darkMode ? "text-gray-300" : "text-gray-600"}`}>{t.postJob.checkingAuthentication}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Allow all authenticated users to access PostJob page
+  // Allow all users to access PostJob page (auth not required for Mini App access)
   // Role checking removed for error-free access
 
   // Form state
@@ -575,12 +566,6 @@ const PostJob: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check authentication before submitting
-    if (!isAuthenticated || !user) {
-      navigate("/login?redirect=" + encodeURIComponent(location.pathname));
-      return;
-    }
-
     // Validate form
     if (!validateForm()) {
       // Mark only required fields as touched to show errors
@@ -645,7 +630,7 @@ const PostJob: React.FC = () => {
         applicants: 0,
         views: 0,
         jobId: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        postedBy: user._id,
+        postedBy: user?._id || "anonymous",
         isActive: true,
         applicationCount: 0,
       };
@@ -709,7 +694,7 @@ const PostJob: React.FC = () => {
       <HireSEO />
       <div
         className={`min-h-screen ${darkMode ? "bg-black text-white" : "bg-white text-black"
-          } px-6 pt-20 pb-12 flex flex-col items-center`}
+          } px-6 pt-20 pb-12 flex flex-col items-center relative z-10`}
       >
       {/* Font Import */}
       <link
@@ -725,24 +710,76 @@ const PostJob: React.FC = () => {
             line-height: 1.2;
           }
 
-          /* Date picker icon styling */
+          .glass-card {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          :root:not(.dark) .glass-card {
+            background: rgba(255, 255, 255, 0.8) !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+          }
+
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+
+          @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+          }
+          @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.15); }
+            50% { box-shadow: 0 0 40px rgba(6, 182, 212, 0.3); }
+          }
+          @keyframes blob1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -50px) scale(1.1); }
+            50% { transform: translate(-20px, -20px) scale(0.9); }
+            75% { transform: translate(20px, 20px) scale(1.05); }
+          }
+          @keyframes blob2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(-30px, 30px) scale(1.1); }
+            50% { transform: translate(20px, -30px) scale(0.9); }
+            75% { transform: translate(-20px, 10px) scale(1.05); }
+          }
+          @keyframes blob3 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(40px, 20px) scale(1.1); }
+            50% { transform: translate(-10px, 40px) scale(0.9); }
+            75% { transform: translate(-30px, -10px) scale(1.05); }
+          }
+
+          .shimmer-text {
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shimmer 3s linear infinite;
+          }
+
           input[type="date"]::-webkit-calendar-picker-indicator {
             filter: ${darkMode ? "invert(1) brightness(1.5)" : "none"};
             cursor: pointer;
           }
-
-          /* Additional fallback for some browsers */
           input[type="date"] {
             color-scheme: ${darkMode ? "dark" : "light"};
             color: ${darkMode ? "white" : "black"};
           }
 
-          /* Error state styling */
           .input-error {
             border-color: #ef4444 !important;
             box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
           }
-
           .error-message {
             color: #ef4444;
             font-size: 0.75rem;
@@ -751,6 +788,31 @@ const PostJob: React.FC = () => {
         `}
       </style>
 
+      {/* Animated background blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div
+          className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full opacity-20 dark:opacity-10"
+          style={{
+            background: "radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)",
+            animation: "blob1 20s infinite ease-in-out",
+          }}
+        />
+        <div
+          className="absolute top-1/3 -right-40 w-[400px] h-[400px] rounded-full opacity-20 dark:opacity-10"
+          style={{
+            background: "radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)",
+            animation: "blob2 25s infinite ease-in-out",
+          }}
+        />
+        <div
+          className="absolute -bottom-40 left-1/3 w-[600px] h-[600px] rounded-full opacity-20 dark:opacity-10"
+          style={{
+            background: "radial-gradient(circle, rgba(6,182,212,0.3) 0%, transparent 70%)",
+            animation: "blob3 18s infinite ease-in-out",
+          }}
+        />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -758,16 +820,16 @@ const PostJob: React.FC = () => {
         className="w-full max-w-5xl mb-12"
       >
         <motion.h2
-          className={`text-4xl font-bold bg-gradient-to-r ${darkMode ? "from-blue-300 to-blue-500" : "from-blue-400 to-blue-600"
-            } bg-clip-text text-transparent text-center font-inter tracking-tight`}
+          className={`text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent text-center font-inter tracking-tight shimmer-text`}
+          style={{ backgroundImage: "linear-gradient(135deg, #06b6d4, #3b82f6, #06b6d4)" }}
           variants={letterVariants}
           initial="hidden"
           animate="visible"
           whileHover={{
             scale: 1.05,
             textShadow: darkMode
-              ? "0 0 8px rgba(255, 255, 255, 0.8)"
-              : "0 0 8px rgba(59, 130, 246, 0.8)",
+              ? "0 0 20px rgba(6, 182, 212, 0.6)"
+              : "0 0 12px rgba(6, 182, 212, 0.5)",
             transition: { duration: 0.3 },
           }}
         >
@@ -791,7 +853,7 @@ const PostJob: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`mb-6 p-4 rounded-xl border-2 w-full max-w-5xl ${postingStatus.canPost
+            className={`mb-6 p-4 rounded-xl border-2 w-full max-w-5xl glass-card ${postingStatus.canPost
               ? darkMode
                 ? "bg-green-900/20 border-green-500/50"
                 : "bg-green-50 border-green-500"
@@ -854,14 +916,11 @@ const PostJob: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`w-full max-w-2xl p-12 rounded-3xl border-2 text-center shadow-2xl backdrop-blur-md ${darkMode
-            ? "bg-black/80 border-cyan-500/30 text-white"
-            : "bg-white/90 border-cyan-500/50 text-black"
-            }`}
+          className="w-full max-w-2xl p-12 rounded-3xl border-2 text-center shadow-2xl glass-card border-cyan-500/30"
         >
           <div className="mb-8 relative inline-block">
-            <div className="p-6 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-full animate-pulse">
-              <div className="p-4 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-full text-white shadow-xl">
+            <div className="p-6 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full animate-pulse">
+              <div className="p-4 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full text-white shadow-xl">
                 <Briefcase size={48} className="animate-bounce" />
               </div>
             </div>
@@ -870,36 +929,33 @@ const PostJob: React.FC = () => {
             </div>
           </div>
 
-          <h3 className="text-3xl font-bold mb-4 font-inter">
+          <h3 className="text-3xl font-bold mb-4 font-inter bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
             {postingStatus.limits.type === "lifetime" ? t.postJob.freeTrialLimitReached : t.postJob.upgradeRequired}
           </h3>
 
-          <p className={`text-lg mb-8 leading-relaxed ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+          <p className="text-lg mb-8 leading-relaxed text-gray-400">
             {postingStatus.message || t.postJob.jobLimitMessage}
           </p>
 
           <div className="space-y-4">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full py-4 text-lg font-bold rounded-2xl text-white bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 shadow-xl transform transition hover:scale-105 active:scale-95"
+              className="w-full py-4 text-lg font-bold rounded-2xl text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-xl transform transition hover:scale-105 active:scale-95"
             >
               🚀 {t.postJob.upgradePlan}
             </button>
 
             <button
               onClick={() => navigate(-1)}
-              className={`w-full py-4 text-lg font-semibold rounded-2xl border-2 transition-colors ${darkMode
-                ? "border-gray-700 hover:bg-gray-800 text-gray-300"
-                : "border-gray-200 hover:bg-gray-50 text-gray-700"
-                }`}
+              className="w-full py-4 text-lg font-semibold rounded-2xl border-2 border-white/10 hover:bg-white/[0.04] text-gray-300 transition-colors"
             >
               {t.postJob.goBack}
             </button>
           </div>
 
-          <div className={`mt-8 pt-8 border-t ${darkMode ? "border-white/10" : "border-black/10"}`}>
-            <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              {t.postJob.needHelp} <button onClick={() => navigate("/contact-us")} className="text-cyan-500 hover:underline">{t.postJob.contactSupport}</button>
+          <div className="mt-8 pt-8 border-t border-white/10">
+            <p className="text-sm text-gray-400">
+              {t.postJob.needHelp} <button onClick={() => navigate("/contact-us")} className="text-cyan-400 hover:underline">{t.postJob.contactSupport}</button>
             </p>
           </div>
         </motion.div>
@@ -910,21 +966,12 @@ const PostJob: React.FC = () => {
             variants={sectionVariants}
             initial="hidden"
             animate="visible"
-            className={`${darkMode
-              ? "bg-black/50 border-white/10"
-              : "bg-white/80 border-black/10"
-              } border rounded-2xl p-8 shadow-2xl backdrop-blur-sm`}
+            className="glass-card border rounded-2xl p-8 shadow-2xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <Briefcase
-                className={`w-6 h-6 ${darkMode ? "text-cyan-400" : "text-blue-600"
-                  }`}
-              />
+              <Briefcase className="w-6 h-6 text-cyan-400" />
               <motion.h3
-                className={`text-xl font-semibold bg-gradient-to-r ${darkMode
-                  ? "from-blue-300 to-blue-500"
-                  : "from-blue-400 to-blue-600"
-                  } bg-clip-text text-transparent font-inter tracking-tight`}
+                className="text-xl font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent font-inter tracking-tight"
                 variants={letterVariants}
                 initial="hidden"
                 animate="visible"
@@ -950,13 +997,7 @@ const PostJob: React.FC = () => {
                   onBlur={() => handleBlur('title')}
                   placeholder={t.postJob.enterJobTitle}
                   required
-                  className={`w-full p-4 rounded-xl border ${
-                    touched.title && errors.title
-                      ? "input-error"
-                      : darkMode
-                      ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                      : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                  } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={`${getFieldClass(darkMode, !!errors.title, touched.title)}`}
                 />
                 {touched.title && errors.title && (
                   <p className="error-message">{errors.title}</p>
@@ -973,10 +1014,7 @@ const PostJob: React.FC = () => {
                   value={jobSite}
                   onChange={(e) => setJobSite(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectJobSite}
@@ -1004,10 +1042,7 @@ const PostJob: React.FC = () => {
                   value={jobType}
                   onChange={(e) => setJobType(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectJobType}
@@ -1035,10 +1070,7 @@ const PostJob: React.FC = () => {
                   value={jobSector}
                   onChange={(e) => setJobSector(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectJobSector}
@@ -1066,10 +1098,7 @@ const PostJob: React.FC = () => {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectCategory}
@@ -1096,10 +1125,7 @@ const PostJob: React.FC = () => {
                 <select
                   value={education}
                   onChange={(e) => setEducation(e.target.value)}
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" className="text-gray-400">
                     {t.postJob.selectEducation}
@@ -1124,10 +1150,7 @@ const PostJob: React.FC = () => {
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectExperience}
@@ -1155,10 +1178,7 @@ const PostJob: React.FC = () => {
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectGenderPref}
@@ -1189,10 +1209,7 @@ const PostJob: React.FC = () => {
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
                   type="date"
-                  className={`w-full p-4 rounded-xl border date-picker-input ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={`${getFieldClass(darkMode)} date-picker-input`}
                 />
               </motion.div>
               <motion.div variants={inputVariants} className="mb-6">
@@ -1208,10 +1225,7 @@ const PostJob: React.FC = () => {
                   onChange={(e) => setVacancies(e.target.value)}
                   placeholder={t.postJob.numberOfVacancies}
                   min="1"
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                    : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 />
               </motion.div>
               <motion.div variants={inputVariants} className="md:col-span-2">
@@ -1344,13 +1358,7 @@ const PostJob: React.FC = () => {
                   rows={8}
                   required
                   maxLength={maxDescriptionLength}
-                  className={`w-full p-4 rounded-xl border ${
-                    touched.description && errors.description
-                      ? "input-error"
-                      : darkMode
-                      ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                      : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                  } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 resize-none`}
+                  className={`${getFieldClass(darkMode, !!errors.description, touched.description)} resize-none`}
                 />
                 {touched.description && errors.description && (
                   <p className="error-message">{errors.description}</p>
@@ -1379,21 +1387,12 @@ const PostJob: React.FC = () => {
             variants={sectionVariants}
             initial="hidden"
             animate="visible"
-            className={`${darkMode
-              ? "bg-black/50 border-white/10"
-              : "bg-white/80 border-black/10"
-              } border rounded-2xl p-8 shadow-2xl backdrop-blur-sm`}
+            className="glass-card border rounded-2xl p-8 shadow-2xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <MapPin
-                className={`w-6 h-6 ${darkMode ? "text-cyan-400" : "text-blue-600"
-                  }`}
-              />
+              <MapPin className="w-6 h-6 text-cyan-400" />
               <motion.h3
-                className={`text-xl font-semibold bg-gradient-to-r ${darkMode
-                  ? "from-blue-300 to-blue-500"
-                  : "from-blue-400 to-blue-600"
-                  } bg-clip-text text-transparent font-inter tracking-tight`}
+                className="text-xl font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent font-inter tracking-tight"
                 variants={letterVariants}
                 initial="hidden"
                 animate="visible"
@@ -1417,10 +1416,7 @@ const PostJob: React.FC = () => {
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectCountry}
@@ -1449,10 +1445,7 @@ const PostJob: React.FC = () => {
                   onChange={(e) => setCity(e.target.value)}
                   placeholder={t.postJob.enterCityPlaceholder}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                    : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 />
               </motion.div>
               <motion.div variants={inputVariants} className="md:col-span-2">
@@ -1466,10 +1459,7 @@ const PostJob: React.FC = () => {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder={t.postJob.enterWorkAddress}
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                    : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 />
               </motion.div>
             </div>
@@ -1480,21 +1470,12 @@ const PostJob: React.FC = () => {
             variants={sectionVariants}
             initial="hidden"
             animate="visible"
-            className={`${darkMode
-              ? "bg-black/50 border-white/10"
-              : "bg-white/80 border-black/10"
-              } border rounded-2xl p-8 shadow-2xl backdrop-blur-sm`}
+            className="glass-card border rounded-2xl p-8 shadow-2xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <LinkIcon
-                className={`w-6 h-6 ${darkMode ? "text-cyan-400" : "text-blue-600"
-                  }`}
-              />
+              <LinkIcon className="w-6 h-6 text-cyan-400" />
               <motion.h3
-                className={`text-xl font-semibold bg-gradient-to-r ${darkMode
-                  ? "from-blue-300 to-blue-500"
-                  : "from-blue-400 to-blue-600"
-                  } bg-clip-text text-transparent font-inter tracking-tight`}
+                className="text-xl font-semibold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent font-inter tracking-tight"
                 variants={letterVariants}
                 initial="hidden"
                 animate="visible"
@@ -1518,10 +1499,7 @@ const PostJob: React.FC = () => {
                   value={compensationType}
                   onChange={(e) => setCompensationType(e.target.value)}
                   required
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option value="" disabled className="text-gray-400">
                     {t.postJob.selectCompensationType}
@@ -1545,24 +1523,18 @@ const PostJob: React.FC = () => {
                 >
                   {t.postJob.compensationAmountLabel}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-3">
                   <input
                     value={compensationAmount}
                     onChange={(e) => setCompensationAmount(e.target.value)}
                     placeholder={t.postJob.addSalaryPlaceholder}
                     type="number"
-                    className={`flex-1 p-4 rounded-xl border ${darkMode
-                      ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                      : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                      } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                    className={`w-full ${getFieldClass(darkMode)}`}
                   />
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className={`w-32 p-4 rounded-xl border ${darkMode
-                      ? "bg-black/50 border-gray-700/50 text-white"
-                      : "bg-white/10 border-gray-300/50 text-black"
-                      } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                    className={`w-full ${getFieldClass(darkMode)}`}
                   >
                     {currencies.map((curr) => (
                       <option
@@ -1589,10 +1561,7 @@ const PostJob: React.FC = () => {
                   onChange={(e) =>
                     setVisibility(e.target.value as "public" | "private")
                   }
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white"
-                    : "bg-white/10 border-gray-300/50 text-black"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 >
                   <option
                     value="public"
@@ -1621,10 +1590,7 @@ const PostJob: React.FC = () => {
                   value={jobLink}
                   onChange={(e) => setJobLink(e.target.value)}
                   placeholder={t.postJob.enterJobLink}
-                  className={`w-full p-4 rounded-xl border ${darkMode
-                    ? "bg-black/50 border-gray-700/50 text-white placeholder:text-gray-400"
-                    : "bg-white/10 border-gray-300/50 text-black placeholder:text-gray-500"
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300`}
+                  className={getFieldClass(darkMode)}
                 />
               </motion.div>
             </div>
@@ -1642,9 +1608,9 @@ const PostJob: React.FC = () => {
               onClick={() => navigate(-1)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${darkMode
-                ? "bg-gray-800 hover:bg-gray-700 text-white border border-gray-600"
-                : "bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300"
+              className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 border ${darkMode
+                ? "bg-white/[0.04] hover:bg-white/[0.08] text-white border-white/10"
+                : "bg-white/80 hover:bg-white text-gray-700 border-black/10"
                 }`}
             >
               <ArrowLeft className="w-5 h-5" />

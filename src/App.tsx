@@ -98,6 +98,18 @@ function AppContent() {
         if (cancelled) return;
 
         const authUser = checkAuth.fulfilled.match(result) ? result.payload : null;
+
+        if (!authUser) {
+          // checkAuth failed (timeout, network, etc.) — check if a token still exists.
+          // If so, the user IS registered; don't redirect to /Register.
+          const hasToken = !!localStorage.getItem("token");
+          if (hasToken) {
+            console.log("[App] checkAuth failed but token exists — navigating to job details");
+            navigate(redirect, { replace: true });
+            return;
+          }
+        }
+
         const dest = resolveApplyFlowPath(!!authUser, authUser, redirect);
         navigate(dest, { replace: true });
       })();

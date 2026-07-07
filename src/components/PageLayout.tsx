@@ -11,11 +11,14 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
   const location = useLocation();
   const darkMode = useAppSelector((s) => s.theme.darkMode);
 
-  // Don't show navbar on job-details, preview-job, and blog/post pages
+  // Don't show navbar on job-details, preview-job, blog/post, company-profile, post-job, and applications-management pages
   const showNavbar =
     !location.pathname.startsWith("/job-details") &&
+    !location.pathname.startsWith("/applications-management") &&
     location.pathname !== "/preview-job" &&
-    location.pathname !== "/blog/post";
+    location.pathname !== "/blog/post" &&
+    location.pathname !== "/company-profile" &&
+    location.pathname !== "/post-job";
 
   return (
     <div

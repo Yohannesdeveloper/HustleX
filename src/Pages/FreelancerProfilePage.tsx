@@ -165,7 +165,70 @@ const FreelancerProfilePage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen pb-24 relative overflow-hidden ${darkMode ? "bg-[#090f1e] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
+    <div className={`min-h-screen pb-24 relative overflow-hidden font-body ${darkMode ? "bg-[#090f1e] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+      <style>{`
+        :root {
+          --cyan: #06f2f2;
+          --cyan-dark: #05b8b8;
+          --cyan-glow: 0 0 20px rgba(6, 242, 242, 0.3), 0 0 60px rgba(6, 242, 242, 0.1);
+          --glass-bg: rgba(255, 255, 255, 0.03);
+          --glass-border: rgba(6, 242, 242, 0.15);
+        }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes glow-pulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(6, 242, 242, 0.2); }
+          50% { box-shadow: 0 0 40px rgba(6, 242, 242, 0.4); }
+        }
+        @keyframes blob-drift {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(30px, -40px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(40px, 10px) scale(1.05); }
+        }
+        .animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+        .animate-blob-drift { animation: blob-drift 20s ease-in-out infinite; }
+        .glass-card {
+          background: var(--glass-bg);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--glass-border);
+        }
+        .cyan-gradient-text {
+          background: linear-gradient(135deg, #06f2f2 0%, #0af 50%, #06f2f2 100%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .dark .glass-card { background: rgba(0, 0, 0, 0.4); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.3); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 242, 242, 0.5); }
+      `}</style>
+
+      {/* Ambient animated blobs */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <motion.div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-cyan-500/10 blur-[120px] animate-blob-drift" />
+        <motion.div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[150px]" style={{ animationDelay: "-7s" }} />
+        <motion.div className="absolute top-1/2 left-1/3 w-[400px] h-[400px] rounded-full bg-purple-500/5 blur-[130px]" style={{ animationDelay: "-14s" }} />
+      </div>
+
       <SEO
         title={`${fullName} | Elite ${primarySkill} | HustleX`}
         description={bio.substring(0, 160)}
