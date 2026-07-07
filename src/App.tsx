@@ -66,6 +66,9 @@ function AppContent() {
   const startParamHandled = useRef(false);
   const [isProcessingStartParam, setIsProcessingStartParam] = useState(false);
   const [initialRouteCheck, setInitialRouteCheck] = useState(true);
+  const [showLoading, setShowLoading] = useState(false);
+  const [hasStartParam, setHasStartParam] = useState(false);
+  const [readyToRender, setReadyToRender] = useState(false);
   console.log('╔══════════════════════════════════════════╗');
   console.log('║      HUSTLEX MINI APP LAUNCHED           ║');
   console.log('╚══════════════════════════════════════════╝');
@@ -75,6 +78,18 @@ function AppContent() {
   // Dismiss Telegram navy screen and set consistent background app-wide
   useEffect(() => {
     initTelegramMiniApp();
+    
+    // Check for start_param immediately on mount
+    const tg = window.Telegram?.WebApp;
+    const startParam = tg?.initDataUnsafe?.start_param;
+    if (startParam?.startsWith("apply_")) {
+      console.log("[App] Start param detected on mount:", startParam);
+      setHasStartParam(true);
+      setShowLoading(true);
+    } else {
+      // No start_param, ready to render immediately
+      setReadyToRender(true);
+    }
   }, []);
 
   // Handle start_param from channel Mini App deep link — single auth check, one navigation
@@ -88,12 +103,16 @@ function AppContent() {
       
       if (!startParam?.startsWith("apply_")) {
         setInitialRouteCheck(false);
+        setShowLoading(false);
+        setReadyToRender(true);
         return;
       }
 
       const jobId = startParam.replace("apply_", "");
       if (!jobId) {
         setInitialRouteCheck(false);
+        setShowLoading(false);
+        setReadyToRender(true);
         return;
       }
 
@@ -120,6 +139,8 @@ function AppContent() {
             navigate(redirect, { replace: true });
             setIsProcessingStartParam(false);
             setInitialRouteCheck(false);
+            setShowLoading(false);
+            setReadyToRender(true);
             return;
           }
         }
@@ -129,6 +150,8 @@ function AppContent() {
         navigate(dest, { replace: true });
         setIsProcessingStartParam(false);
         setInitialRouteCheck(false);
+        setShowLoading(false);
+        setReadyToRender(true);
       })();
 
       return () => {
@@ -138,6 +161,8 @@ function AppContent() {
       console.error("[App] start_param error:", e);
       setIsProcessingStartParam(false);
       setInitialRouteCheck(false);
+      setShowLoading(false);
+      setReadyToRender(true);
     }
   }, [dispatch, navigate]);
 
@@ -154,6 +179,25 @@ function AppContent() {
     const path = location.pathname + location.search;
     ReactGA.send({ hitType: "pageview", page: path });
   }, [location]);
+
+  // Don't render anything until we've processed start_param (if present)
+  // This prevents the homepage flicker when navigating from Telegram inline keyboard
+  if (!readyToRender) {
+    return (
+      <WebSocketProvider>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          background: '#0a0a0a',
+          color: '#fff'
+        }}>
+          <div>Loading...</div>
+        </div>
+      </WebSocketProvider>
+    );
+  }
 
   return (
     <WebSocketProvider>
