@@ -71,7 +71,8 @@ export const checkAuth = createAsyncThunk(
       return null;
     } catch (error: any) {
       console.error("Auth check failed:", error);
-      apiService.logout();
+      // Don't logout on transient failures (timeout, network).
+      // The axios interceptor already handles 401 token clearing.
       return null;
     }
   }
