@@ -1458,16 +1458,17 @@ router.post("/telegram-webhook", async (req, res) => {
             `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
           ].join("\n"),
         };
-        await sendMessage(chatId, menuTexts[data], {
+        const extra = data === "menu_applications" || data === "menu_profile" ? {
           reply_markup: {
             inline_keyboard: [
               [{ text: "📋 Applications", callback_data: "menu_applications" },
                { text: "👤 Profile", callback_data: "menu_profile" }],
               [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-               { text: "ℹ️ About", callback_data: "menu_about" }],
+               { text: "ℹ️ About HustleX", callback_data: "menu_about" }],
             ],
           },
-        });
+        } : {};
+        await sendMessage(chatId, menuTexts[data], extra);
         return; // done with callback_query
       }
 
@@ -1645,16 +1646,7 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
 
-      await sendMessage(chatId, aboutText, {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About HustleX", callback_data: "menu_about" }],
-          ],
-        },
-      });
+      await sendMessage(chatId, aboutText);
       return;
     }
 
@@ -1677,16 +1669,7 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, settingText, {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📋 Applications", callback_data: "menu_applications" },
-             { text: "👤 Profile", callback_data: "menu_profile" }],
-            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
-             { text: "ℹ️ About HustleX", callback_data: "menu_about" }],
-          ],
-        },
-      });
+      await sendMessage(chatId, settingText);
       return;
     }
 
