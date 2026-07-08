@@ -1460,11 +1460,12 @@ router.post("/telegram-webhook", async (req, res) => {
         };
         await sendMessage(chatId, menuTexts[data], {
           reply_markup: {
-            keyboard: [
-              [{ text: "📋 Application" }, { text: "👤 Profile" }],
-              [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+            inline_keyboard: [
+              [{ text: "📋 Applications", callback_data: "menu_applications" },
+               { text: "👤 Profile", callback_data: "menu_profile" }],
+              [{ text: "⚙️ Settings", callback_data: "menu_settings" },
+               { text: "ℹ️ About", callback_data: "menu_about" }],
             ],
-            resize_keyboard: true,
           },
         });
         return; // done with callback_query
@@ -1523,23 +1524,33 @@ router.post("/telegram-webhook", async (req, res) => {
     // /start command
     if (text.startsWith("/start")) {
       const welcomeText = [
-        `🌟 <b>Welcome to HustleX!</b> 🌟`,
+        `🌐 https://hustlexet.vercel.app/`,
         ``,
-        `Hello <b>${firstName}</b>! 👋`,
+        `Choose a tab:`,
         ``,
-        `HustleX is the arena where Ethiopia's finest talent meets global opportunity. You're now in the fight — let's get you equipped.`,
+        `🔥 <b>Welcome to the Arena, Champion!</b> 🔥`,
         ``,
-        `👇 Use the buttons below to navigate your battlefield:`,
+        `You're now in the <b>HustleX command center</b> — where freelancers become legends and clients find their secret weapons. Every tab is a tool. Every click is a power-up.`,
+        ``,
+        `<b>⚔️ Your Arsenal:</b>`,
+        `📋 <b>Applications</b> — Track your conquests, seal the deals`,
+        `👤 <b>Profile</b> — Your digital throne, flex your empire`,
+        `⚙️ <b>Settings</b> — Calibrate your battlefield`,
+        `ℹ️ <b>About HustleX</b> — Know the kingdom you're building in`,
+        ``,
+        `Let's make moves. 🚀`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Your Freelance Journey`,
+        `HustleX (https://hustlexet.vercel.app/)`,
+        `HustleX — Hire Elite Freelancers Worldwide`,
+        `Connect with top 1% freelancers in web development, MERN stack, UI/UX design & AI services. The premium marketplace for excellence.`,
       ].join("\n");
 
       await sendMessage(chatId, welcomeText, {
         reply_markup: {
           keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+            [{ text: "📋 Applications" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Settings" }, { text: "ℹ️ About HustleX" }],
           ],
           resize_keyboard: true,
         },
@@ -1548,7 +1559,7 @@ router.post("/telegram-webhook", async (req, res) => {
     }
 
     // /help command
-    if (text.startsWith("/help") || text === "📋 Applications" || text === "📋 Application") {
+    if (text.startsWith("/help") || text === "📋 Applications") {
       const helpText = [
         `📋 <b>Your Applications Arsenal</b>`,
         ``,
@@ -1568,18 +1579,19 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, helpText, {
         reply_markup: {
-          keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          inline_keyboard: [
+            [{ text: "📋 Applications", callback_data: "menu_applications" },
+             { text: "👤 Profile", callback_data: "menu_profile" }],
+            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
+             { text: "ℹ️ About", callback_data: "menu_about" }],
           ],
-          resize_keyboard: true,
         },
       });
       return;
     }
 
     // /profile command or button
-    if (text.startsWith("/profile") || text === "👤 My Profile" || text === "👤 Profile") {
+    if (text.startsWith("/profile") || text === "👤 Profile") {
       const profileText = [
         `👤 <b>Your Profile Arsenal</b>`,
         ``,
@@ -1602,11 +1614,12 @@ router.post("/telegram-webhook", async (req, res) => {
       await sendMessage(chatId, profileText, {
         parse_mode: "HTML",
         reply_markup: {
-          keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          inline_keyboard: [
+            [{ text: "📋 Applications", callback_data: "menu_applications" },
+             { text: "👤 Profile", callback_data: "menu_profile" }],
+            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
+             { text: "ℹ️ About", callback_data: "menu_about" }],
           ],
-          resize_keyboard: true,
         },
       });
       return;
@@ -1634,11 +1647,12 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, aboutText, {
         reply_markup: {
-          keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          inline_keyboard: [
+            [{ text: "📋 Applications", callback_data: "menu_applications" },
+             { text: "👤 Profile", callback_data: "menu_profile" }],
+            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
+             { text: "ℹ️ About HustleX", callback_data: "menu_about" }],
           ],
-          resize_keyboard: true,
         },
       });
       return;
@@ -1665,11 +1679,12 @@ router.post("/telegram-webhook", async (req, res) => {
 
       await sendMessage(chatId, settingText, {
         reply_markup: {
-          keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          inline_keyboard: [
+            [{ text: "📋 Applications", callback_data: "menu_applications" },
+             { text: "👤 Profile", callback_data: "menu_profile" }],
+            [{ text: "⚙️ Settings", callback_data: "menu_settings" },
+             { text: "ℹ️ About HustleX", callback_data: "menu_about" }],
           ],
-          resize_keyboard: true,
         },
       });
       return;
@@ -1682,8 +1697,8 @@ router.post("/telegram-webhook", async (req, res) => {
       {
         reply_markup: {
           keyboard: [
-            [{ text: "📋 Application" }, { text: "👤 Profile" }],
-            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+            [{ text: "📋 Applications" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Settings" }, { text: "ℹ️ About HustleX" }],
           ],
           resize_keyboard: true,
         },
