@@ -64,22 +64,25 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const startParamHandled = useRef(false);
-  const shouldBlockRenderRef = useRef(false);
   
   // Synchronous check for start_param BEFORE any rendering
   const tg = window.Telegram?.WebApp;
   const startParam = tg?.initDataUnsafe?.start_param;
   const detectedStartParam = startParam?.startsWith("apply_");
   
+  // Calculate initial redirect synchronously
+  let initialRedirect: string | null = null;
+  if (detectedStartParam && startParam) {
+    const jobId = startParam.replace("apply_", "");
+    if (jobId) {
+      initialRedirect = `/job-details/${jobId}`;
+    }
+  }
+  
   // Initialize state synchronously based on start_param check
   const [isProcessingStartParam, setIsProcessingStartParam] = useState(detectedStartParam);
   const [initialRouteCheck, setInitialRouteCheck] = useState(detectedStartParam);
   const [readyToRender, setReadyToRender] = useState(!detectedStartParam);
-  
-  // Set ref synchronously to block first render if start_param present
-  if (detectedStartParam && !startParamHandled.current) {
-    shouldBlockRenderRef.current = true;
-  }
   
   console.log('╔══════════════════════════════════════════╗');
   console.log('║      HUSTLEX MINI LAUNCHED           ║');
@@ -87,7 +90,7 @@ function AppContent() {
   console.log('[App] pathname:', location.pathname, 'search:', location.search);
   console.log('[App] Telegram.WebApp:', !!window.Telegram?.WebApp);
   console.log('[App] Synchronous start_param check:', startParam, 'detected:', detectedStartParam);
-  console.log('[App] shouldBlockRender:', shouldBlockRenderRef.current, 'readyToRender:', readyToRender);
+  console.log('[App] initialRedirect:', initialRedirect, 'readyToRender:', readyToRender);
 
   // Dismiss Telegram navy screen and set consistent background app-wide
   useEffect(() => {
@@ -106,7 +109,6 @@ function AppContent() {
       if (!startParam?.startsWith("apply_")) {
         setInitialRouteCheck(false);
         setReadyToRender(true);
-        shouldBlockRenderRef.current = false;
         return;
       }
 
@@ -114,7 +116,6 @@ function AppContent() {
       if (!jobId) {
         setInitialRouteCheck(false);
         setReadyToRender(true);
-        shouldBlockRenderRef.current = false;
         return;
       }
 
@@ -143,7 +144,6 @@ function AppContent() {
               setIsProcessingStartParam(false);
               setInitialRouteCheck(false);
               setReadyToRender(true);
-              shouldBlockRenderRef.current = false;
             }, 100);
             return;
           }
@@ -157,7 +157,6 @@ function AppContent() {
           setIsProcessingStartParam(false);
           setInitialRouteCheck(false);
           setReadyToRender(true);
-          shouldBlockRenderRef.current = false;
         }, 100);
       })();
 
@@ -169,7 +168,6 @@ function AppContent() {
       setIsProcessingStartParam(false);
       setInitialRouteCheck(false);
       setReadyToRender(true);
-      shouldBlockRenderRef.current = false;
     }
   }, [dispatch, navigate]);
 
@@ -189,8 +187,8 @@ function AppContent() {
 
   // Don't render anything until we've processed start_param (if present)
   // This prevents the homepage flicker when navigating from Telegram inline keyboard
-  if (!readyToRender || shouldBlockRenderRef.current) {
-    console.log("[App] Blocking render - readyToRender:", readyToRender, "shouldBlockRender:", shouldBlockRenderRef.current);
+  if (!readyToRender) {
+    console.log("[App] Blocking render - readyToRender:", readyToRender);
     return (
       <WebSocketProvider>
         <div style={{ 
@@ -221,7 +219,7 @@ function AppContent() {
           <Route path="/register" element={<RegistrationPage />} />
           <Route path="/Register" element={<RegistrationPage />} />
           <Route path="/ApplyRedirect" element={<ApplyRedirect />} />
-          <Route path="/" element={<HomeFinal />} />
+          <Route path="/" element={initialRedirect ? <Navigate to={initialRedirect} replace /> : <HomeFinal />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/homefinal" element={<Navigate to="/" replace />} />
           <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
