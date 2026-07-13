@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import { useAppDispatch } from "./store/hooks";
@@ -62,122 +62,101 @@ import FloatingChatBot from "./components/FloatingChatBot";
 function AppContent() {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const navigate = useNavigate();
   const startParamHandled = useRef(false);
-  
-  // Synchronous check for start_param BEFORE any rendering
-  const tg = window.Telegram?.WebApp;
-  const startParam = tg?.initDataUnsafe?.start_param;
-  const detectedStartParam = startParam?.startsWith("apply_");
-  
-  // Calculate initial redirect synchronously
-  let initialRedirect: string | null = null;
-  if (detectedStartParam && startParam) {
-    const jobId = startParam.replace("apply_", "");
-    if (jobId) {
-      initialRedirect = `/job-details/${jobId}`;
-    }
-  }
-  
-  // Initialize state synchronously based on start_param check
-  const [isProcessingStartParam, setIsProcessingStartParam] = useState(detectedStartParam);
-  const [initialRouteCheck, setInitialRouteCheck] = useState(detectedStartParam);
-  const [readyToRender, setReadyToRender] = useState(!detectedStartParam);
-  
-  console.log('╔══════════════════════════════════════════╗');
-  console.log('║      HUSTLEX MINI LAUNCHED           ║');
-  console.log('╚══════════════════════════════════════════╝');
-  console.log('[App] pathname:', location.pathname, 'search:', location.search);
-  console.log('[App] Telegram.WebApp:', !!window.Telegram?.WebApp);
-  console.log('[App] Synchronous start_param check:', startParam, 'detected:', detectedStartParam);
-  console.log('[App] initialRedirect:', initialRedirect, 'readyToRender:', readyToRender);
+  const redirectHandled = useRef(false);
 
-  // Dismiss Telegram navy screen and set consistent background app-wide
+  const [appReady, setAppReady] = useState(false);
+  const [telegramRedirect, setTelegramRedirect] = useState<string | null>(null);
+
+  // Wait for Telegram WebApp to be available (loads async from CDN),
+  // then check for start_param — prevents homepage flicker on channel apply.
   useEffect(() => {
-    initTelegramMiniApp();
-  }, []);
+    let cancelled = false;
+    let interval;
+    let fallbackTimer;
 
-  // Handle start_param from channel Mini App deep link — single auth check, one navigation
-  useEffect(() => {
-    if (startParamHandled.current) return;
-
-    try {
+    const processStartParam = () => {
+      initTelegramMiniApp();
       const tg = window.Telegram?.WebApp;
       const startParam = tg?.initDataUnsafe?.start_param;
-      console.log("[App] Checking start_param:", startParam);
-      
+
       if (!startParam?.startsWith("apply_")) {
-        setInitialRouteCheck(false);
-        setReadyToRender(true);
+        if (!cancelled) setAppReady(true);
         return;
       }
 
       const jobId = startParam.replace("apply_", "");
       if (!jobId) {
-        setInitialRouteCheck(false);
-        setReadyToRender(true);
+        if (!cancelled) setAppReady(true);
         return;
       }
 
-      console.log("[App] Processing start_param for job:", jobId);
       startParamHandled.current = true;
       const redirect = `/job-details/${jobId}`;
       setPendingJobRedirect(redirect);
       storeTelegramUserFromInitData();
 
-      let cancelled = false;
       (async () => {
         const result = await dispatch(checkAuth());
         if (cancelled) return;
 
         const authUser = checkAuth.fulfilled.match(result) ? result.payload : null;
 
+        let dest;
         if (!authUser) {
-          // checkAuth failed (timeout, network, etc.) — check if a token still exists.
-          // If so, the user IS registered; don't redirect to /Register.
           const hasToken = !!localStorage.getItem("token");
-          if (hasToken) {
-            console.log("[App] checkAuth failed but token exists — navigating to job details");
-            navigate(redirect, { replace: true });
-            // Small delay to ensure navigation completes before rendering
-            setTimeout(() => {
-              setIsProcessingStartParam(false);
-              setInitialRouteCheck(false);
-              setReadyToRender(true);
-            }, 100);
-            return;
-          }
+          dest = hasToken ? redirect : resolveApplyFlowPath(false, null, redirect);
+        } else {
+          dest = resolveApplyFlowPath(true, authUser, redirect);
         }
 
-        const dest = resolveApplyFlowPath(!!authUser, authUser, redirect);
-        console.log("[App] Navigating to:", dest);
-        navigate(dest, { replace: true });
-        // Small delay to ensure navigation completes before rendering
-        setTimeout(() => {
-          setIsProcessingStartParam(false);
-          setInitialRouteCheck(false);
-          setReadyToRender(true);
-        }, 100);
+        if (!cancelled) {
+          setTelegramRedirect(dest);
+          setAppReady(true);
+        }
       })();
+    };
 
-      return () => {
-        cancelled = true;
-      };
-    } catch (e) {
-      console.error("[App] start_param error:", e);
-      setIsProcessingStartParam(false);
-      setInitialRouteCheck(false);
-      setReadyToRender(true);
+    const tryInit = () => {
+      if (window.Telegram?.WebApp) {
+        processStartParam();
+        return true;
+      }
+      return false;
+    };
+
+    if (!tryInit()) {
+      interval = setInterval(() => {
+        if (tryInit()) clearInterval(interval);
+      }, 30);
+      fallbackTimer = setTimeout(() => {
+        clearInterval(interval);
+        if (!cancelled) setAppReady(true);
+      }, 5000);
     }
-  }, [dispatch, navigate]);
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [dispatch]);
+
+  // Clear telegramRedirect once location changes away from the redirect target
+  // to prevent infinite <Navigate> loops
+  useEffect(() => {
+    if (telegramRedirect && location.pathname !== '/' && location.pathname !== telegramRedirect) {
+      setTelegramRedirect(null);
+    }
+  }, [location, telegramRedirect]);
 
   useEffect(() => {
-    if (isProcessingStartParam || initialRouteCheck) return; // Skip auth check while processing Telegram start_param or during initial route check
+    if (!appReady) return;
     if (location.pathname.includes("ApplyRedirect")) return;
     if (location.pathname.startsWith("/job-details/")) return;
     if (location.pathname === "/Register" || location.pathname === "/register") return;
     dispatch(checkAuth());
-  }, [dispatch, location.pathname, isProcessingStartParam, initialRouteCheck]);
+  }, [dispatch, location.pathname, appReady]);
 
   // Track page views on every route change
   useEffect(() => {
@@ -185,10 +164,8 @@ function AppContent() {
     ReactGA.send({ hitType: "pageview", page: path });
   }, [location]);
 
-  // Don't render anything until we've processed start_param (if present)
-  // This prevents the homepage flicker when navigating from Telegram inline keyboard
-  if (!readyToRender) {
-    console.log("[App] Blocking render - readyToRender:", readyToRender);
+  // Block render until we've determined the correct initial route
+  if (!appReady) {
     return (
       <WebSocketProvider>
         <div style={{ 
@@ -205,6 +182,13 @@ function AppContent() {
     );
   }
 
+  // Use declarative Navigate to prevent homepage flash —
+  // the redirect happens during React reconciliation, before the first paint
+  if (telegramRedirect && !redirectHandled.current) {
+    redirectHandled.current = true;
+    return <Navigate to={telegramRedirect} replace />;
+  }
+
   console.log("[App] Rendering routes");
   return (
     <WebSocketProvider>
@@ -219,7 +203,7 @@ function AppContent() {
           <Route path="/register" element={<RegistrationPage />} />
           <Route path="/Register" element={<RegistrationPage />} />
           <Route path="/ApplyRedirect" element={<ApplyRedirect />} />
-          <Route path="/" element={initialRedirect ? <Navigate to={initialRedirect} replace /> : <HomeFinal />} />
+          <Route path="/" element={<HomeFinal />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/homefinal" element={<Navigate to="/" replace />} />
           <Route path="/post-job" element={<PageLayout><PostJob /></PageLayout>} />
