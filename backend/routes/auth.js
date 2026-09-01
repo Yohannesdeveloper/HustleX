@@ -9,6 +9,10 @@ const { sendMail } = require("../services/mail");
 const Company = require("../models/Company");
 const { auth } = require("../middleware/auth");
 const { ensureAdminRole, toAuthUserPayload } = require("../config/admin");
+const {
+  generateEmbedding,
+  buildUserEmbeddingInput,
+} = require("../services/embeddings");
 
 const router = express.Router();
 
@@ -1059,6 +1063,12 @@ router.post("/profile/freelancer", auth, [
     } else {
       delete profile.cvUrl;
     }
+
+    // Accept pre-parsed CV text (returned by the CV upload endpoint) if present
+    if (typeof req.body.cvText === "string" && req.body.cvText.length > 0) {
+      profile.cvText = req.body.cvText;
+      profile.cvTextExtractedAt = new Date();
+    }
     if (avatar) {
       profile.avatar = avatar;
     } else {
@@ -1071,6 +1081,28 @@ router.post("/profile/freelancer", auth, [
     console.log("POST /api/auth/profile/freelancer - User before save:", req.user.toObject());
     await req.user.save();
     console.log("POST /api/auth/profile/freelancer - User saved successfully");
+
+    // Regenerate embedding whenever CV text or skills change
+    (async () => {
+      try {
+        const input = buildUserEmbeddingInput({
+          cvText: profile.cvText,
+          skills: profile.skills,
+          primarySkill: profile.primarySkill,
+          bio: profile.bio,
+        });
+        if (!input) return;
+        const vector = await generateEmbedding(input);
+        await User.updateOne(
+          { _id: req.user._id },
+          vector
+            ? { $set: { "profile.cvEmbedding": vector } }
+            : { $set: { "profile.cvEmbedding": [] } }
+        );
+      } catch (err) {
+        console.error("Profile embedding generation failed:", err.message);
+      }
+    })();
 
     const io = req.app.get('io');
     if (io) {

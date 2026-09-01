@@ -107,9 +107,28 @@ const FreelancerDashboard: React.FC = () => {
       // Fetch user's applications
       const applications = await apiService.getMyApplications();
 
-      // Fetch recommended jobs (you might want to implement this in the backend)
-      const jobsResponse = await apiService.getJobs();
-      const jobs = jobsResponse.jobs;
+      // Fetch recommended jobs from the vector-based recommendation engine
+      let recommendedJobs: any[] = [];
+      try {
+        const recResponse = await apiService.getRecommendations(6);
+        recommendedJobs = recResponse.recommendations.map((r: any) => ({
+          ...r.job,
+          matchScore: r.score,
+          matchedSkills: r.matchedSkills || [],
+        }));
+      } catch (recError) {
+        console.warn("Recommendations unavailable, falling back to skill filter:", recError);
+        // Fallback: filter jobs client-side by exact skill overlap
+        const jobsResponse = await apiService.getJobs();
+        const jobs = jobsResponse.jobs;
+        const userSkills = user?.profile?.skills || [];
+        recommendedJobs = jobs
+          .filter((job: any) => {
+            if (!job.skills || !Array.isArray(job.skills)) return false;
+            return job.skills.some((skill: string) => userSkills.includes(skill));
+          })
+          .slice(0, 6);
+      }
 
       // Calculate dashboard metrics
       const activeApplications = applications.filter((app: any) =>
@@ -137,15 +156,6 @@ const FreelancerDashboard: React.FC = () => {
       const recentApplications = applications
         .sort((a: any, b: any) => new Date(b.appliedAt || b.createdAt).getTime() - new Date(a.appliedAt || a.createdAt).getTime())
         .slice(0, 5);
-
-      // Get recommended jobs (filter by skills, limit to 6)
-      const userSkills = user?.profile?.skills || [];
-      const recommendedJobs = jobs
-        .filter((job: any) => {
-          if (!job.skills || !Array.isArray(job.skills)) return false;
-          return job.skills.some((skill: string) => userSkills.includes(skill));
-        })
-        .slice(0, 6);
 
       // Get upcoming deadlines from active applications
       const upcomingDeadlines = applications
@@ -446,37 +456,65 @@ const FreelancerDashboard: React.FC = () => {
 
                   {dashboardData.recommendedJobs.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {dashboardData.recommendedJobs.map((job, index) => (
-                        <motion.div
-                          key={job._id}
-                          className={`${
-                            darkMode
-                              ? "bg-gray-800/50 border-white/10"
-                              : "bg-gray-50 border-black/10"
-                          } border rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6, delay: index * 0.1 }}
-                          whileHover={{ scale: 1.02 }}
-                          onClick={() => navigate(`/job-details/${job._id}`)}
-                        >
-                          <h4 className={`text-lg font-semibold mb-2 ${darkMode ? "text-white" : "text-black"}`}>
-                            {job.title}
-                          </h4>
-                          <p className={`text-sm mb-3 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-                            {job.company?.name || 'Company'}
-                          </p>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className={`flex items-center gap-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                              <MapPin className="w-4 h-4" />
-                              {job.location || 'Remote'}
-                            </span>
-                            <span className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                              ${job.budget || 0}
-                            </span>
-                          </div>
-                        </motion.div>
-                      ))}
+                      {dashboardData.recommendedJobs.map((job, index) => {
+                        const score = Math.round((job.matchScore || 0) * 100);
+                        return (
+                          <motion.div
+                            key={job._id}
+                            className={`${
+                              darkMode
+                                ? "bg-gray-800/50 border-white/10"
+                                : "bg-gray-50 border-black/10"
+                            } border rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                            whileHover={{ scale: 1.02 }}
+                            onClick={() => navigate(`/job-details/${job._id}`)}
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <h4 className={`text-lg font-semibold ${darkMode ? "text-white" : "text-black"}`}>
+                                {job.title}
+                              </h4>
+                              {score > 0 && (
+                                <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                  score >= 70
+                                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                    : score >= 40
+                                      ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                                      : "bg-gray-500/10 text-gray-500 dark:text-gray-400"
+                                }`}>
+                                  <TrendingUp className="w-3.5 h-3.5" />
+                                  {score}% match
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-sm mb-3 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                              {job.company?.name || 'Company'}
+                            </p>
+                            <div className="flex items-center justify-between text-sm mb-3">
+                              <span className={`flex items-center gap-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                                <MapPin className="w-4 h-4" />
+                                {job.location || 'Remote'}
+                              </span>
+                              <span className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                                ${job.budget || 0}
+                              </span>
+                            </div>
+                            {job.matchedSkills && job.matchedSkills.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {job.matchedSkills.slice(0, 3).map((skill: string) => (
+                                  <span key={skill} className={`px-2 py-0.5 rounded text-xs ${
+                                    darkMode ? "bg-blue-500/10 text-blue-400" : "bg-blue-100 text-blue-700"
+                                  }`}>
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-12">
@@ -1069,7 +1107,6 @@ const FreelancerDashboard: React.FC = () => {
             </div>
           );
         }
-    };
   };
 
   return (

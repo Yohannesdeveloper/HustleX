@@ -35,3 +35,29 @@ backend/.env.*.local
 
 # AI Code Review temporary files
 .ai-code-review/
+
+# Editor/VSCode local history snapshot directories
+.history/
+
+# Build artifacts / TypeScript incremental cache
+*.tsbuildinfo
+
+# Dev/test/debug output & logs
+*.txt
+backend/*_output.txt
+backend/*_log.txt
+test_*.js
+test_*.cjs
+test-backend.bat
+check-users.bat
+clear-freelancers.bat
+clear-uploads.bat
+clear-jobs.cjs
+branch_info.txt
+git_status.txt
+npm_version.txt
+log_info.txt
+error_output.txt
+
+# Large media (avoid bloating the repo / GitHub 50MB warning)
+src/Pages/videos/

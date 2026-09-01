@@ -209,6 +209,7 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/statistics", statisticsRoutes);
 app.use("/api/pricing", pricingRoutes);
+app.use("/api/recommendations", require("./routes/recommendations"));
 app.use("/", seoRoutes);
 
 // Prometheus metrics (K8s / monitoring)

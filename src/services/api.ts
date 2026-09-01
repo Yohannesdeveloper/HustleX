@@ -392,6 +392,52 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     };
   }
 
+  async getRecommendations(limit?: number): Promise<{
+    recommendations: Array<{
+      job: Job;
+      score: number;
+      semanticSimilarity: number;
+      skillSimilarity: number;
+      matchedSkills: string[];
+    }>;
+    total: number;
+  }> {
+    const response = await axios.get(`${this.baseUrl}/recommendations/jobs`, {
+      params: limit ? { limit } : {},
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
+    });
+    return response.data as {
+      recommendations: Array<{
+        job: Job;
+        score: number;
+        semanticSimilarity: number;
+        skillSimilarity: number;
+        matchedSkills: string[];
+      }>;
+      total: number;
+    };
+  }
+
+  async getRecommendationProfileStrength(): Promise<{
+    hasCV: boolean;
+    hasSkills: boolean;
+    hasEmbedding: boolean;
+    readyForRecommendations: boolean;
+    message: string;
+  }> {
+    const response = await axios.get(
+      `${this.baseUrl}/recommendations/profile-strength`,
+      { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} }
+    );
+    return response.data as {
+      hasCV: boolean;
+      hasSkills: boolean;
+      hasEmbedding: boolean;
+      readyForRecommendations: boolean;
+      message: string;
+    };
+  }
+
   async getJob(jobId: string): Promise<Job> {
     const cacheKey = `getJob_${jobId}`;
     const now = Date.now();

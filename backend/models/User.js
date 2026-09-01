@@ -67,6 +67,9 @@ const userSchema = new mongoose.Schema(
       portfolioUrl: String,
       certifications: [String],
       cvUrl: String,
+      cvText: String,
+      cvEmbedding: [Number],
+      cvTextExtractedAt: Date,
 
       // Availability & Rates
       availability: String,

@@ -7,6 +7,10 @@ const { cacheMiddleware, invalidatePattern, setCache, getCache } = require("../m
 const User = require("../models/User");
 const { sendMail, sendMailAsync } = require("../services/mail");
 const postJobToTelegram = require("../postToTelegram");
+const {
+  generateEmbedding,
+  buildJobEmbeddingInput,
+} = require("../services/embeddings");
 
 const router = express.Router();
 
@@ -57,6 +61,7 @@ router.get("/", cacheMiddleware(300), async (req, res) => {
     if (req.query.sortBy === "budget") sort = { budget: 1 };
 
     const jobs = await Job.find(filter)
+      .select("-embedding -embeddingVersion")
       .populate("postedBy", "email profile")
       .sort(sort)
       .skip(skip)
@@ -85,10 +90,12 @@ router.get("/", cacheMiddleware(300), async (req, res) => {
 // ================================
 router.get("/:id", async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id).populate(
-      "postedBy",
-      "email profile"
-    );
+    const job = await Job.findById(req.params.id)
+      .select("-embedding -embeddingVersion")
+      .populate(
+        "postedBy",
+        "email profile"
+      );
     if (!job) return res.status(404).json({ message: "Job not found" });
 
     // Fetch similar jobs for internal linking
@@ -180,6 +187,23 @@ router.post(
 
       const job = new Job(jobData);
       await job.save();
+
+      // Generate job embedding in background for semantic recommendations
+      (async () => {
+        try {
+          const input = buildJobEmbeddingInput(job);
+          if (!input) return;
+          const vector = await generateEmbedding(input);
+          if (vector) {
+            await Job.updateOne(
+              { _id: job._id },
+              { $set: { embedding: vector, embeddingVersion: 1 } }
+            );
+          }
+        } catch (err) {
+          console.error("Job embedding generation failed:", err.message);
+        }
+      })();
 
       // Invalidate job listing cache
       await invalidatePattern("cache:/api/jobs*");

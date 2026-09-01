@@ -113,6 +113,14 @@ const jobSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    embedding: {
+      type: [Number],
+      default: undefined,
+    },
+    embeddingVersion: {
+      type: Number,
+      default: 0,
+    },
     slug: {
       type: String,
       unique: true,

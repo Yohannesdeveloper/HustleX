@@ -30,6 +30,7 @@ export interface User {
     portfolioUrl?: string;
     certifications?: string[];
     cvUrl?: string;
+    cvText?: string;
     workExperience?: string;
 
     // Availability & Rates
