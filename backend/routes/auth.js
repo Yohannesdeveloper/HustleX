@@ -1487,7 +1487,7 @@ router.post("/telegram-webhook", async (req, res) => {
             `📧 support@hustleX.et`,
             ``,
             `━━━━━━━━━━━━━━━━━━━━━`,
-            `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+            `💼 <b>HustleX</b> — Your Freelance Journey`,
           ].join("\n"),
         };
         await sendMessage(chatId, menuTexts[data], {
@@ -1669,7 +1669,7 @@ router.post("/telegram-webhook", async (req, res) => {
         `📧 support@hustleX.et`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
-        `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
+        `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
       await sendMessage(chatId, aboutText, {
