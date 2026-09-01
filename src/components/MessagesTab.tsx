@@ -1,0 +1,3663 @@
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAppSelector } from "../store/hooks";
+import { useAuth } from "../store/hooks";
+import { useLocation } from "react-router-dom";
+import { useWebSocket } from "../context/WebSocketContext";
+import { Send, MessageSquare, X, Smile, CheckCircle2, Paperclip, Mic, MicOff, Video, FileText, Image, File, Trash2, Play, Pause, Square, Music, Film, Archive, Code, Database, FileSpreadsheet, Presentation, MoreVertical, Copy, Forward, Reply, Pencil, Download, Pin, User, ChevronLeft } from "lucide-react";
+import EmojiPicker, { Theme } from "emoji-picker-react";
+import type { EmojiClickData } from "emoji-picker-react";
+import apiService from "../services/api";
+import { FreelancerWithStatus } from "../types";
+import FreelancerProfileModal from "./FreelancerProfileModal";
+import {
+  fetchFreelancerDirectory,
+  getFreelancerDisplayName,
+  resolveFreelancerById,
+} from "../utils/freelancerDirectory";
+
+interface Conversation {
+  id: string;
+  freelancerId: string;
+  freelancerName: string;
+  freelancerEmail: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  freelancer?: FreelancerWithStatus;
+}
+
+interface UserProfile {
+  firstName?: string;
+  lastName?: string;
+}
+
+interface ChatUser {
+  _id?: string;
+  id?: string;
+  email?: string;
+  profile?: UserProfile;
+}
+
+interface FileAttachment {
+  name: string;
+  size: number;
+  type: string;
+  dataUrl: string;
+}
+
+interface StoredMessage {
+  _id?: string;
+  id?: string;
+  clientMessageId?: string;
+  senderId?: string | ChatUser;
+  receiverId?: string | ChatUser;
+  conversationId?: string;
+  message: string;
+  messageType?: string;
+  voiceData?: string | null;
+  voiceDuration?: number;
+  files?: FileAttachment[];
+  createdAt?: string;
+  timestamp?: string;
+  sender?: ChatUser;
+  receiver?: ChatUser;
+  senderEmail?: string;
+  senderName?: string;
+  receiverEmail?: string;
+  receiverName?: string;
+  editedAt?: string;
+  isEdited?: boolean;
+  action?: string;
+  isEdit?: boolean;
+  messageId?: string;
+}
+
+const getNormalizedConversationKey = (userId: string, otherId: string) =>
+  `conversation_${[userId, otherId].sort().join("_")}`;
+
+const normalizeEmail = (email?: string) => email?.trim().toLowerCase();
+const normalizeName = (name?: string) =>
+  name?.trim().toLowerCase().replace(/\s+/g, " ");
+
+const getConversationKey = (conv: Conversation) => {
+  const emailKey = normalizeEmail(conv.freelancerEmail);
+  if (emailKey) return `email:${emailKey}`;
+  const nameKey = normalizeName(conv.freelancerName);
+  if (nameKey) return `name:${nameKey}`;
+  if (conv.id?.startsWith("conversation_")) {
+    const parts = conv.id.replace("conversation_", "").split("_");
+    if (parts.length >= 2) {
+      return `id:${parts.sort().join("_")}`;
+    }
+  }
+  return conv.freelancerId ? `id:${conv.freelancerId}` : "";
+};
+
+const getConversationKeyFromData = (data: {
+  freelancerId?: string;
+  freelancerEmail?: string;
+  freelancerName?: string;
+}) => data.freelancerId || normalizeEmail(data.freelancerEmail) || normalizeName(data.freelancerName);
+
+const extractId = (value: unknown) => {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object") {
+    const candidate = value as { _id?: unknown; id?: unknown; toString?: () => string };
+    if (candidate._id != null) {
+      if (typeof candidate._id === "string") return candidate._id.trim();
+      if (typeof candidate._id === "object" && candidate._id !== null && "toString" in candidate._id) {
+        const nested = String((candidate._id as { toString: () => string }).toString()).trim();
+        if (nested && nested !== "[object Object]") return nested;
+      }
+    }
+    if (typeof candidate.id === "string") return candidate.id.trim();
+    if (typeof candidate.toString === "function") {
+      const asString = candidate.toString().trim();
+      if (/^[a-f0-9]{24}$/i.test(asString)) return asString;
+    }
+  }
+  return "";
+};
+
+const getUserId = (value?: string | ChatUser) => extractId(value);
+
+const isSameUser = (a: unknown, b: unknown) => {
+  const idA = getUserId(a as string | ChatUser);
+  const idB = getUserId(b as string | ChatUser);
+  return idA.length > 0 && idB.length > 0 && idA === idB;
+};
+
+const getNameFromChatUser = (chatUser?: ChatUser, fallback = ""): string => {
+  if (!chatUser) return fallback;
+  const profile = chatUser.profile || {};
+  const name = `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
+  return name || chatUser.email || fallback;
+};
+
+const getOtherPartyNameFromMessage = (
+  message: StoredMessage,
+  currentUserId: string,
+  otherUserId: string,
+  directoryEntry?: FreelancerWithStatus
+): string => {
+  let fromProfile = "";
+  if (isSameUser(message.senderId, otherUserId)) {
+    fromProfile = getNameFromChatUser(message.sender);
+  } else if (isSameUser(message.receiverId, otherUserId)) {
+    fromProfile = getNameFromChatUser(message.receiver);
+  }
+
+  const fromStoredName = isSameUser(message.senderId, currentUserId)
+    ? message.receiverName
+    : message.senderName;
+
+  return getFreelancerDisplayName(
+    directoryEntry,
+    fromProfile || fromStoredName || "Unknown"
+  );
+};
+
+const getMessageAvatarInitial = (
+  msg: StoredMessage,
+  isOwn: boolean,
+  currentUser: { _id?: string; email?: string; profile?: UserProfile } | null | undefined,
+  otherPartyName: string
+): string => {
+  if (isOwn) {
+    const ownName =
+      getNameFromChatUser(
+        currentUser
+          ? { _id: currentUser._id, email: currentUser.email, profile: currentUser.profile }
+          : undefined,
+        currentUser?.email || "You"
+      );
+    return ownName.charAt(0).toUpperCase() || "U";
+  }
+
+  const senderName = getNameFromChatUser(msg.sender, msg.senderName || otherPartyName);
+  return senderName.charAt(0).toUpperCase() || "?";
+};
+
+const parseStoredMessages = (raw: string | null): StoredMessage[] => {
+  try {
+    const parsed = JSON.parse(raw ?? "[]");
+    return Array.isArray(parsed) ? (parsed as StoredMessage[]) : [];
+  } catch (parseError) {
+    console.warn("Failed to parse stored messages:", parseError);
+    return [];
+  }
+};
+
+const getStoredMessages = (key: string) => parseStoredMessages(localStorage.getItem(key));
+
+const getConversationClearedKey = (userId: string, otherId: string) =>
+  `conversation_cleared_${[userId, otherId].sort().join("_")}`;
+
+const persistMessageToLocalStorage = (
+  conversationKey: string,
+  message: StoredMessage
+) => {
+  try {
+    const existing = getStoredMessages(conversationKey);
+    const exists = existing.some((m) =>
+      (m._id && message._id && m._id === message._id) ||
+      (m.id && message.id && m.id === message.id) ||
+      (m.message === message.message &&
+        m.senderId === message.senderId &&
+        m.receiverId === message.receiverId &&
+        (m.createdAt || m.timestamp) === (message.createdAt || message.timestamp))
+    );
+    if (!exists) {
+      existing.push(message);
+      localStorage.setItem(conversationKey, JSON.stringify(existing));
+    }
+  } catch (error) {
+    console.error("Failed to persist message to localStorage:", error);
+  }
+};
+
+const dedupeConversations = (list: Conversation[]) => {
+  const map = new Map<string, Conversation>();
+  for (const conv of list) {
+    const key = getConversationKey(conv);
+    if (!key) {
+      continue;
+    }
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, conv);
+      continue;
+    }
+    const existingTime = new Date(existing.lastMessageTime).getTime();
+    const currentTime = new Date(conv.lastMessageTime).getTime();
+    if (currentTime >= existingTime) {
+      map.set(key, conv);
+    }
+  }
+  return Array.from(map.values());
+};
+
+interface VoicePlayerProps {
+  src: string;
+  duration: number;
+  isOwnMessage: boolean;
+  darkMode: boolean;
+}
+
+const VoicePlayer: React.FC<VoicePlayerProps> = ({ src, duration, isOwnMessage, darkMode }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(duration || 0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const audio = new Audio(src);
+    audioRef.current = audio;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const handleEnded = () => setIsPlaying(false);
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setAudioDuration(audio.duration);
+      }
+    };
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    if (audio.readyState >= 1 && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      setAudioDuration(audio.duration);
+    }
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [src]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(err => console.error("Error playing audio:", err));
+      setIsPlaying(true);
+    }
+  };
+
+  const percentage = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={togglePlay}
+        className={`p-1.5 rounded-full flex-shrink-0 transition-all ${isOwnMessage
+            ? "bg-white/20 hover:bg-white/30 text-white"
+            : darkMode
+              ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400"
+              : "bg-cyan-100 hover:bg-cyan-200 text-cyan-600"
+          }`}
+      >
+        {isPlaying ? (
+          <Pause className="w-3.5 h-3.5 fill-current" />
+        ) : (
+          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        {/* Progress Bar Container */}
+        <div className={`h-1 w-full rounded-full relative overflow-hidden ${isOwnMessage ? "bg-white/20" : darkMode ? "bg-white/10" : "bg-gray-200"
+          }`}>
+          <div
+            className={`h-full rounded-full transition-all duration-100 ${isOwnMessage ? "bg-white" : "bg-cyan-500"
+              }`}
+            style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+          />
+        </div>
+
+        {/* Time Labels */}
+        <div className="flex items-center justify-between mt-0.5 text-[8px] font-body">
+          <span className={isOwnMessage ? "text-white/70" : "text-gray-500"}>
+            {Math.floor(currentTime / 60)}:{(Math.floor(currentTime) % 60).toString().padStart(2, '0')}
+          </span>
+          <span className={isOwnMessage ? "text-white/70" : "text-gray-500"}>
+            {Math.floor(audioDuration / 60)}:{(Math.floor(audioDuration) % 60).toString().padStart(2, '0')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface MessagesTabProps {
+  availableFreelancers?: FreelancerWithStatus[];
+  freelancersLoading?: boolean;
+  isClient?: boolean;
+  onGoToFindFreelancers?: () => void;
+  onFreelancersLoaded?: (freelancers: FreelancerWithStatus[]) => void;
+}
+
+const MessagesTab: React.FC<MessagesTabProps> = ({
+  availableFreelancers = [],
+  freelancersLoading = false,
+  isClient = true,
+  onGoToFindFreelancers,
+  onFreelancersLoaded,
+}) => {
+  const darkMode = useAppSelector((s) => s.theme.darkMode);
+  const { user } = useAuth();
+  const location = useLocation();
+  const { socket, connected, joinUser, sendMessage, onMessage, offMessage } = useWebSocket();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<StoredMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlayingRecording, setIsPlayingRecording] = useState(false);
+  const [showVideoCallModal, setShowVideoCallModal] = useState(false);
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle');
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [callDuration, setCallDuration] = useState(0);
+  const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
+  const [chatHeaderMenuOpen, setChatHeaderMenuOpen] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<{ id: string; text: string } | null>(null);
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<string[]>([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileFreelancer, setProfileFreelancer] = useState<FreelancerWithStatus | null>(null);
+  const freelancersDirectoryRef = useRef<FreelancerWithStatus[]>([]);
+  const messageMenuRef = useRef<HTMLDivElement>(null);
+
+  const [browseFreelancers, setBrowseFreelancers] = useState<FreelancerWithStatus[]>([]);
+  const [browseLoadError, setBrowseLoadError] = useState<string | null>(null);
+
+  const loadMessagingDirectory = async (): Promise<FreelancerWithStatus[]> => {
+    if (availableFreelancers.length > 0) {
+      return availableFreelancers;
+    }
+    if (isClient) {
+      return fetchFreelancerDirectory();
+    }
+    const clients = await apiService.getClients();
+    return clients.map((c) => ({
+      ...c,
+      status: "offline" as const,
+      lastActive: undefined,
+    })) as unknown as FreelancerWithStatus[];
+  };
+
+  useEffect(() => {
+    if (availableFreelancers.length > 0) {
+      freelancersDirectoryRef.current = availableFreelancers;
+      setBrowseFreelancers([]);
+    }
+  }, [availableFreelancers, user?._id]);
+
+  useEffect(() => {
+    if (availableFreelancers.length > 0 || freelancersLoading) return;
+    if (!user?._id) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await loadMessagingDirectory();
+        if (cancelled) return;
+        freelancersDirectoryRef.current = list;
+        setBrowseFreelancers([]);
+        onFreelancersLoaded?.(list);
+        setBrowseLoadError(null);
+      } catch (error: unknown) {
+        if (!cancelled) {
+          const err = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+          setBrowseLoadError(
+            err?.response?.data?.message ||
+            (err?.response?.status === 403
+              ? isClient
+                ? "You need a client account to message freelancers."
+                : "You need a freelancer account to message clients."
+              : isClient
+                ? "Could not load freelancers. Start the backend and sign in as a client."
+                : "Could not load clients. Start the backend and sign in as a freelancer.")
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isClient, user?._id, availableFreelancers.length, freelancersLoading, onFreelancersLoaded]);
+
+  const startConversationWithFreelancer = (freelancer: FreelancerWithStatus) => {
+    if (!user?._id || freelancer._id === user._id) return;
+
+    const conversationKey = getNormalizedConversationKey(user._id, freelancer._id);
+    const conv: Conversation = {
+      id: conversationKey,
+      freelancerId: freelancer._id,
+      freelancerName: getFreelancerDisplayName(freelancer),
+      freelancerEmail: freelancer.email || "",
+      lastMessage: "",
+      lastMessageTime: new Date().toISOString(),
+      unreadCount: 0,
+      freelancer,
+    };
+
+    setConversations((prev) => {
+      const existing = prev.find((c) => c.freelancerId === freelancer._id);
+      if (existing) return prev;
+      return [conv, ...prev];
+    });
+    setSelectedConversation(conv);
+    setMessages(getStoredMessages(conversationKey));
+  };
+
+  const openFreelancerProfile = async (conversation: Conversation) => {
+    let freelancer = conversation.freelancer;
+    if (!freelancer && conversation.freelancerId) {
+      if (freelancersDirectoryRef.current.length === 0) {
+        freelancersDirectoryRef.current = await loadMessagingDirectory();
+      }
+      freelancer = await resolveFreelancerById(
+        conversation.freelancerId,
+        freelancersDirectoryRef.current
+      );
+      if (freelancer) {
+        setSelectedConversation((prev) =>
+          prev && prev.freelancerId === conversation.freelancerId
+            ? { ...prev, freelancer }
+            : prev
+        );
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.freelancerId === conversation.freelancerId ? { ...c, freelancer } : c
+          )
+        );
+      }
+    }
+    if (freelancer) {
+      setProfileFreelancer(freelancer);
+      setShowProfileModal(true);
+    } else {
+      alert("Could not load this freelancer's profile. Try again from Find Freelancers.");
+    }
+  };
+  const chatHeaderMenuRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Listen for message edit events from WebSocket (works for both sender and receiver)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageEdit = (data: StoredMessage) => {
+      console.log("📝 Received message edit event:", data);
+
+      // Check if we have a selected conversation
+      if (!selectedConversation || !user?._id) {
+        console.log("⏭️ No selected conversation, skipping edit");
+        return;
+      }
+
+      const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+      const backendConversationId = [user._id, selectedConversation.freelancerId].sort().join("_");
+
+      // Extract IDs for comparison
+      const dataSenderId = getUserId(data.senderId);
+      const dataReceiverId = getUserId(data.receiverId);
+      const dataConversationId = data.conversationId;
+
+      // Check if this edit is for the current conversation
+      const isCurrentConversation =
+        dataConversationId === backendConversationId ||
+        dataConversationId === conversationKey ||
+        (dataSenderId && dataReceiverId && (
+          (dataSenderId.toString() === user._id.toString() && dataReceiverId.toString() === selectedConversation.freelancerId.toString()) ||
+          (dataReceiverId.toString() === user._id.toString() && dataSenderId.toString() === selectedConversation.freelancerId.toString())
+        ));
+
+      if (isCurrentConversation) {
+        const editId = data.messageId || data._id || data.id;
+        console.log("✅ Updating message in current conversation:", editId, "New text:", data.message);
+
+        // Update message in state immediately (real-time)
+        setMessages((prev) => {
+          const updated = prev.map((msg) => {
+            const msgId = (msg._id || msg.id)?.toString();
+            const editIdStr = editId?.toString();
+
+            if (msgId === editIdStr) {
+              console.log("🔄 Found matching message, updating:", msgId);
+              return {
+                ...msg,
+                message: data.message,
+                editedAt: data.editedAt || new Date().toISOString(),
+                isEdited: true,
+              };
+            }
+            return msg;
+          });
+
+          // Log if message wasn't found
+          const found = updated.some((msg) => {
+            const msgId = (msg._id || msg.id)?.toString();
+            return msgId === editId?.toString();
+          });
+          if (!found) {
+            console.warn("⚠️ Message not found in current messages list:", editId);
+          }
+
+          // Update conversation list if this is the last message
+          const lastMessage = updated[updated.length - 1];
+          if (lastMessage && (lastMessage._id?.toString() === editId?.toString() || lastMessage.id?.toString() === editId?.toString())) {
+            setConversations((prevConvs) =>
+              prevConvs.map((conv) => {
+                const convKey = getConversationKey(conv);
+                if (convKey === conversationKey || convKey === backendConversationId) {
+                  return {
+                    ...conv,
+                    lastMessage: data.message,
+                  };
+                }
+                return conv;
+              })
+            );
+          }
+
+          return updated;
+        });
+
+        // Update localStorage
+        try {
+          const storedMessages = getStoredMessages(conversationKey);
+          const updatedMessages = storedMessages.map((msg) => {
+            const msgId = (msg._id || msg.id)?.toString();
+            const editIdStr = editId?.toString();
+
+            if (msgId === editIdStr) {
+              return {
+                ...msg,
+                message: data.message,
+                editedAt: data.editedAt || new Date().toISOString(),
+                isEdited: true,
+              };
+            }
+            return msg;
+          });
+          localStorage.setItem(conversationKey, JSON.stringify(updatedMessages));
+          console.log("💾 Updated localStorage");
+        } catch (error) {
+          console.error("❌ Error updating localStorage for edit:", error);
+        }
+      } else {
+        console.log("⏭️ Edit is for different conversation, skipping");
+      }
+    };
+
+    socket.on("messageEdited", handleMessageEdit);
+
+    return () => {
+      socket.off("messageEdited", handleMessageEdit);
+    };
+  }, [socket, selectedConversation, user?._id]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastProcessedFreelancerIdRef = useRef<string | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
+  const selectedConversationRef = useRef<Conversation | null>(null);
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  const userRef = useRef<typeof user>(user);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Join user to WebSocket when connected
+  useEffect(() => {
+    if (connected && user?._id) {
+      console.log("✅ Joining WebSocket room for user:", user._id);
+      joinUser(user._id);
+    }
+  }, [connected, user?._id, joinUser]);
+
+  // Listen for real-time messages - uses refs to avoid re-registration
+  useEffect(() => {
+    const handleNewMessage = (messageData: StoredMessage) => {
+      console.log("📨 MessagesTab handleNewMessage called!");
+      console.log("📨 Received message via WebSocket:", messageData);
+
+      // Get current values from refs
+      const currentUser = userRef.current;
+      const currentSelectedConv = selectedConversationRef.current;
+
+      console.log("📥 Message details:", {
+        messageId: messageData._id || messageData.id,
+        senderId: getUserId(messageData.senderId),
+        receiverId: getUserId(messageData.receiverId),
+        message: messageData.message,
+        currentUserId: currentUser?._id,
+        selectedConvFreelancerId: currentSelectedConv?.freelancerId,
+      });
+
+      // Check if this is an edit action
+      if (messageData.action === 'edit' || messageData.isEdit) {
+        console.log("📝 Received message edit event");
+        // Update existing message instead of adding new one
+        setMessages((prev) =>
+          prev.map((msg) =>
+            (msg._id || msg.id) === (messageData.messageId || messageData._id)
+              ? {
+                ...msg,
+                message: messageData.message,
+                editedAt: messageData.editedAt || new Date().toISOString(),
+                isEdited: true,
+              }
+              : msg
+          )
+        );
+
+        // Update in localStorage
+        if (currentSelectedConv && currentUser?._id) {
+          const conversationKey = getNormalizedConversationKey(currentUser._id, currentSelectedConv.freelancerId);
+          const storedMessages = getStoredMessages(conversationKey);
+          const updatedMessages = storedMessages.map((msg) =>
+            (msg._id || msg.id) === (messageData.messageId || messageData._id)
+              ? {
+                ...msg,
+                message: messageData.message,
+                editedAt: messageData.editedAt || new Date().toISOString(),
+                isEdited: true,
+              }
+              : msg
+          );
+          localStorage.setItem(conversationKey, JSON.stringify(updatedMessages));
+        }
+        return;
+      }
+
+      // Normalize conversationId format
+      const senderId = getUserId(messageData.senderId);
+      const receiverId = getUserId(messageData.receiverId);
+      const backendConversationId = messageData.conversationId || [senderId, receiverId].sort().join("_");
+      const targetFreelancerId = senderId === currentUser?._id ? receiverId : senderId;
+      const frontendConversationId = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
+
+      // Check if this is our own message (sender receiving confirmation)
+      const isOwnMessage = isSameUser(messageData.senderId, currentUser?._id);
+
+      // Check for duplicates using message ID only
+      const messageId = messageData._id || messageData.id;
+      if (messageId) {
+        if (processedMessageIdsRef.current.has(messageId)) {
+          console.log("⏭️ Duplicate message detected (ID:", messageId + "), skipping");
+          return;
+        }
+        processedMessageIdsRef.current.add(messageId);
+      }
+
+      // For sender's own messages: try to replace temp message instead of adding new one
+      if (isOwnMessage) {
+        console.log("📨 Sender receiving confirmation for own message:", {
+          messageId: messageData._id || messageData.id,
+          message: messageData.message,
+          senderId,
+          receiverId,
+        });
+
+        setMessages((prev) => {
+          console.log("🔍 Searching for temp message in state, total messages:", prev.length);
+
+          // Find temp message with matching content
+          const tempIndex = prev.findIndex((m, idx) => {
+            const mId = m._id || m.id;
+            const clientId = messageData.clientMessageId;
+            if (clientId && (mId === clientId || m.clientMessageId === clientId)) {
+              return true;
+            }
+            const isTemp = mId && String(mId).startsWith("temp_");
+            const matchesSender = isSameUser(m.senderId, senderId);
+            const matchesReceiver = isSameUser(m.receiverId, receiverId);
+            const matchesContent = m.message === messageData.message;
+
+            if (isTemp) {
+              console.log(`  Message ${idx}: temp=${isTemp}, sender=${matchesSender}, receiver=${matchesReceiver}, content=${matchesContent}`, mId);
+            }
+
+            return isTemp && matchesSender && matchesReceiver && matchesContent;
+          });
+
+          if (tempIndex !== -1) {
+            console.log("✅ Found temp message at index", tempIndex, "- replacing with confirmed message");
+            const updated = [...prev];
+            updated[tempIndex] = {
+              ...messageData,
+              files: messageData.files || [],
+              voiceData: messageData.voiceData,
+              voiceDuration: messageData.voiceDuration,
+              messageType: messageData.messageType,
+            };
+            return updated;
+          }
+
+          console.log("⚠️ No temp message found, checking if real message already exists");
+          // If no temp message found, check if real message already exists
+          const exists = prev.some(m => {
+            const mId = m._id || m.id;
+            const matches = mId === messageId;
+            if (matches) {
+              console.log("  Found existing message with ID:", mId);
+            }
+            return matches;
+          });
+
+          if (exists) {
+            console.log("⏭️ Message already exists, skipping");
+            return prev;
+          }
+
+          console.log("➕ Adding confirmed message (no temp found)");
+          return [...prev, {
+            ...messageData,
+            files: messageData.files || [],
+            voiceData: messageData.voiceData,
+            voiceDuration: messageData.voiceDuration,
+            messageType: messageData.messageType,
+          }];
+        });
+
+        // Scroll to bottom
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+
+        // Still need to persist and update conversation list, so don't return here
+        // Continue to the persistence logic below
+      }
+
+      // Check if this message belongs to the currently selected conversation
+      const isCurrentConversation = currentSelectedConv && (
+        getConversationKey(currentSelectedConv) === frontendConversationId ||
+        getConversationKey(currentSelectedConv) === backendConversationId ||
+        currentSelectedConv.freelancerId === targetFreelancerId
+      );
+
+      console.log("🔍 Message analysis:", {
+        isCurrentConversation,
+        isOwnMessage,
+        targetFreelancerId,
+        selectedConvId: currentSelectedConv?.freelancerId,
+      });
+
+      // If this message belongs to the current conversation, add/replace it in messages
+      if (isCurrentConversation) {
+        console.log("✅ Message belongs to current conversation, adding to UI");
+
+        // Show browser notification (only for received messages, not own)
+        if (!isOwnMessage && Notification.permission === "granted") {
+          new Notification("New Message", {
+            body: messageData.message,
+            icon: "/Logo.png",
+          });
+        }
+
+        // For sender's own messages: handled above (temp message replacement)
+        // For receiver's messages: add to state
+        if (!isOwnMessage) {
+          setMessages((prev) => {
+            // Check if message already exists (avoid duplicates)
+            const exists = prev.some(m =>
+              (m._id || m.id) === (messageData._id || messageData.id)
+            );
+            if (exists) {
+              console.log("⏭️ Message already exists in state, skipping");
+              return prev;
+            }
+            console.log("➕ Adding new message to current conversation");
+            return [...prev, {
+              ...messageData,
+              files: messageData.files || [],
+              voiceData: messageData.voiceData,
+              voiceDuration: messageData.voiceDuration,
+              messageType: messageData.messageType,
+            }];
+          });
+          // Scroll to bottom
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }
+      } else {
+        console.log("ℹ️ Message for different conversation, updating conversation list only");
+      }
+
+      // Persist incoming message to localStorage (always, even if not current conversation)
+      const localKey = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
+      persistMessageToLocalStorage(localKey, {
+        _id: messageData._id,
+        id: messageData.id,
+        senderId,
+        receiverId,
+        message: messageData.message,
+        messageType: messageData.messageType,
+        voiceData: messageData.voiceData,
+        voiceDuration: messageData.voiceDuration,
+        files: messageData.files || [],
+        createdAt: messageData.createdAt || new Date().toISOString(),
+        senderName: getNameFromChatUser(messageData.sender, messageData.sender?.email || ""),
+        receiverName: getNameFromChatUser(messageData.receiver, messageData.receiver?.email || ""),
+        sender: messageData.sender,
+        receiver: messageData.receiver,
+      });
+
+      // Always update conversation list (even for non-current conversations)
+      setConversations((prev) => {
+        const normalizedKey = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
+        const existingConv = prev.find(
+          (conv) => getConversationKey(conv) === normalizedKey
+        );
+
+        if (existingConv) {
+          const updated = prev.map((conv) =>
+            getConversationKey(conv) === normalizedKey
+              ? {
+                ...conv,
+                lastMessage: messageData.message,
+                lastMessageTime: messageData.createdAt || new Date().toISOString(),
+              }
+              : conv
+          );
+          // Remove duplicates
+          const seen = new Set<string>();
+          return updated.filter(conv => {
+            if (seen.has(conv.freelancerId)) return false;
+            seen.add(conv.freelancerId);
+            return true;
+          }).sort((a, b) =>
+            new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+          );
+        } else {
+          const alreadyExists = prev.some(
+            (conv) => getConversationKey(conv) === normalizedKey
+          );
+          if (alreadyExists) {
+            return prev.map((conv) =>
+              getConversationKey(conv) === normalizedKey
+                ? {
+                  ...conv,
+                  lastMessage: messageData.message,
+                  lastMessageTime: messageData.createdAt || new Date().toISOString(),
+                }
+                : conv
+            ).sort((a, b) =>
+              new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+            );
+          }
+
+          const profile = messageData.sender?.profile || {};
+          const senderName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || messageData.sender?.email || "Unknown";
+          const isSenderOwnMessage = isSameUser(messageData.senderId, currentUser?._id);
+          const fallbackName = currentSelectedConv?.freelancerName || senderName;
+          const fallbackEmail = currentSelectedConv?.freelancerEmail || messageData.sender?.email || "";
+
+          const newConv = {
+            id: normalizedKey,
+            freelancerId: targetFreelancerId,
+            freelancerName: isSenderOwnMessage ? fallbackName : senderName,
+            freelancerEmail: isSenderOwnMessage ? fallbackEmail : (messageData.sender?.email || ""),
+            lastMessage: messageData.message,
+            lastMessageTime: messageData.createdAt || new Date().toISOString(),
+            unreadCount: 0,
+          };
+
+          const seen = new Set<string>();
+          const deduplicated = prev.filter(conv => {
+            if (seen.has(conv.freelancerId)) return false;
+            seen.add(conv.freelancerId);
+            return true;
+          });
+
+          return [newConv, ...deduplicated].sort((a, b) =>
+            new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+          );
+        }
+      });
+    };
+
+    onMessage(handleNewMessage);
+    console.log("✅ WebSocket message listener registered");
+
+    return () => {
+      offMessage(handleNewMessage);
+      console.log("🔌 WebSocket message listener removed");
+    };
+  }, [user?._id, onMessage, offMessage]); // Removed selectedConversation from dependencies!
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Load conversations from localStorage
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const loadConversations = async () => {
+      if (freelancersDirectoryRef.current.length === 0) {
+        if (availableFreelancers.length > 0) {
+          freelancersDirectoryRef.current = availableFreelancers;
+        } else {
+          try {
+            freelancersDirectoryRef.current = await loadMessagingDirectory();
+          } catch (err) {
+            console.warn("Could not load messaging directory, continuing with localStorage only:", err);
+            freelancersDirectoryRef.current = [];
+          }
+        }
+      }
+      const directory = freelancersDirectoryRef.current;
+
+      const allKeys = Object.keys(localStorage);
+      const conversationKeys = allKeys.filter(
+        (key) => key.startsWith("conversation_") && key.includes(user._id)
+      );
+
+      const convs: Conversation[] = [];
+      const processedOtherIds = new Set<string>();
+
+      const mergedByKey = new Map<string, { key: string; messages: StoredMessage[]; lastMessage: StoredMessage }>();
+      const bestKeyByIdentity = new Map<string, { key: string; time: number }>();
+      const keysToRemove = new Set<string>();
+
+      for (const key of conversationKeys) {
+        const parts = key.split("_");
+        const id1 = parts[1];
+        const id2 = parts[2];
+        if (!id1 || !id2) continue;
+        // Skip self-conversations (same ID twice)
+        if (id1 === id2) {
+          localStorage.removeItem(key);
+          continue;
+        }
+        const otherId = id1 === user._id ? id2 : id1;
+        if (!otherId || otherId === user._id) continue;
+
+        const normalizedKey = getNormalizedConversationKey(user._id, otherId);
+        const conversationMessages = getStoredMessages(key);
+        // Allow conversations even if they only have a "conversation_started" message
+        if (conversationMessages.length === 0) continue;
+
+        const lastMessage = conversationMessages[conversationMessages.length - 1];
+
+        // Migrate to normalized key if needed (merge messages)
+        if (key !== normalizedKey) {
+          const existing = getStoredMessages(normalizedKey);
+          const merged = [...existing, ...conversationMessages].sort((a, b) => {
+            const aTime = a.createdAt || a.timestamp || 0;
+            const bTime = b.createdAt || b.timestamp || 0;
+            return new Date(aTime).getTime() - new Date(bTime).getTime();
+          });
+          localStorage.setItem(normalizedKey, JSON.stringify(merged));
+          localStorage.removeItem(key);
+        }
+
+        // Merge by conversation key (prefer freelancerId, then email/name)
+        const conversationKey = getConversationKeyFromData({
+          freelancerId: otherId,
+          freelancerEmail: isSameUser(lastMessage.senderId, user._id)
+            ? lastMessage.receiverEmail || lastMessage.senderEmail
+            : lastMessage.senderEmail || lastMessage.receiverEmail,
+          freelancerName: getOtherPartyNameFromMessage(lastMessage, user._id, otherId),
+        });
+        if (!conversationKey) continue;
+
+        const existingMerge = mergedByKey.get(conversationKey);
+        if (existingMerge) {
+          const mergedMessages = [...existingMerge.messages, ...conversationMessages];
+          const mergedLast = mergedMessages[mergedMessages.length - 1];
+          mergedByKey.set(conversationKey, {
+            key: normalizedKey,
+            messages: mergedMessages,
+            lastMessage: mergedLast,
+          });
+        } else {
+          mergedByKey.set(conversationKey, {
+            key: normalizedKey,
+            messages: conversationMessages,
+            lastMessage,
+          });
+        }
+
+        // Track best key per identity (email/name) to remove duplicates in localStorage
+        const identityKey =
+          normalizeEmail(lastMessage.receiverEmail || lastMessage.senderEmail) ||
+          normalizeName(lastMessage.receiverName || lastMessage.senderName) ||
+          otherId;
+        if (identityKey) {
+          const timeValue = new Date(
+            lastMessage.createdAt || lastMessage.timestamp || 0
+          ).getTime();
+          const existingBest = bestKeyByIdentity.get(identityKey);
+          if (!existingBest || timeValue >= existingBest.time) {
+            if (existingBest && existingBest.key !== normalizedKey) {
+              keysToRemove.add(existingBest.key);
+            }
+            bestKeyByIdentity.set(identityKey, { key: normalizedKey, time: timeValue });
+          } else {
+            keysToRemove.add(normalizedKey);
+          }
+        }
+
+        if (processedOtherIds.has(otherId)) continue;
+        processedOtherIds.add(otherId);
+
+        let freelancer =
+          directory.find((f: FreelancerWithStatus) => f._id === otherId) ||
+          (await resolveFreelancerById(otherId, directory));
+
+        if (freelancer && !directory.some((f) => f._id === otherId)) {
+          directory.push(freelancer);
+          freelancersDirectoryRef.current = directory;
+        }
+
+        const freelancerName = getOtherPartyNameFromMessage(
+          lastMessage,
+          user._id,
+          otherId,
+          freelancer
+        );
+
+        convs.push({
+          id: normalizedKey,
+          freelancerId: otherId,
+          freelancerName,
+          freelancerEmail:
+            freelancer?.email || lastMessage.receiverEmail || lastMessage.senderEmail || "",
+          lastMessage: lastMessage.message,
+          lastMessageTime:
+            lastMessage.timestamp || lastMessage.createdAt || new Date().toISOString(),
+          unreadCount: 0,
+          freelancer,
+        });
+      }
+
+      // Persist merged messages to normalized keys and remove duplicates
+      mergedByKey.forEach((entry) => {
+        if (!keysToRemove.has(entry.key)) {
+          localStorage.setItem(entry.key, JSON.stringify(entry.messages));
+        }
+      });
+      keysToRemove.forEach((key) => {
+        if (key.startsWith("conversation_")) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Sort by last message time
+      const deduped = dedupeConversations(convs).sort(
+        (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      );
+      conversationsRef.current = deduped;
+      setConversations(deduped);
+    };
+
+    loadConversations();
+
+    // Listen for new messages
+    const handleMessageSent = () => {
+      loadConversations();
+    };
+
+    window.addEventListener('messageSent', handleMessageSent);
+    return () => {
+      window.removeEventListener('messageSent', handleMessageSent);
+    };
+  }, [user?._id, availableFreelancers]);
+
+  const displayConversations = useMemo(
+    () =>
+      dedupeConversations(conversations).sort(
+        (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      ),
+    [conversations]
+  );
+
+  // Update conversations ref when conversations change
+  useEffect(() => {
+    if (displayConversations.length !== conversations.length) {
+      setConversations(displayConversations);
+    }
+    conversationsRef.current = displayConversations;
+  }, [conversations, displayConversations]);
+
+  // Auto-select conversation when navigating with freelancer ID
+  useEffect(() => {
+    console.log("MessagesTab: Checking location.state...", location.state);
+    const state = location.state as { freelancerId?: string; freelancer?: FreelancerWithStatus } | null;
+    const freelancerId = state?.freelancerId;
+    console.log("MessagesTab: freelancerId is", freelancerId);
+    if (freelancerId && user?._id) {
+      // Prevent messaging yourself
+      if (freelancerId === user._id) {
+        console.warn("Cannot message yourself");
+        return;
+      }
+
+      // Skip if we've already processed this freelancer ID
+      if (lastProcessedFreelancerIdRef.current === freelancerId) {
+        console.log("MessagesTab: Already processed this freelancerId", freelancerId);
+        return;
+      }
+
+      const conversationKey = getNormalizedConversationKey(user._id, freelancerId);
+      console.log("MessagesTab: conversationKey is", conversationKey);
+
+      const createAndSelectConversation = async () => {
+        // Check if conversation already exists in conversations list using ref
+        const existingConv = conversationsRef.current.find(
+          (c) => getConversationKey(c) === getNormalizedConversationKey(user._id, freelancerId)
+        );
+        if (existingConv) {
+          console.log("MessagesTab: Found existing conversation!");
+          setSelectedConversation(existingConv);
+          lastProcessedFreelancerIdRef.current = freelancerId;
+          return;
+        }
+
+        // Check localStorage for existing messages
+        const existingMessages = getStoredMessages(conversationKey);
+        console.log("MessagesTab: existingMessages in localStorage", existingMessages.length);
+        let conv: Conversation | null = null;
+
+        if (existingMessages.length > 0) {
+          // Conversation exists in localStorage, create it
+          const lastMessage = existingMessages[existingMessages.length - 1];
+          let freelancerFromStorage: FreelancerWithStatus | undefined;
+          if (freelancersDirectoryRef.current.length === 0) {
+            freelancersDirectoryRef.current =
+              availableFreelancers.length > 0
+                ? availableFreelancers
+                : await loadMessagingDirectory();
+          }
+          freelancerFromStorage = await resolveFreelancerById(
+            freelancerId,
+            freelancersDirectoryRef.current
+          );
+          conv = {
+            id: conversationKey,
+            freelancerId: freelancerId,
+            freelancerName: getFreelancerDisplayName(
+              freelancerFromStorage,
+              lastMessage.receiverName || lastMessage.senderName || "Unknown"
+            ),
+            freelancerEmail: lastMessage.receiverEmail || lastMessage.senderEmail || "",
+            lastMessage: lastMessage.message,
+            lastMessageTime: lastMessage.timestamp || lastMessage.createdAt || new Date().toISOString(),
+            unreadCount: 0,
+            freelancer: freelancerFromStorage,
+          };
+        } else {
+          // New conversation - fetch freelancer data
+          console.log("MessagesTab: Creating NEW conversation!");
+          let freelancer: FreelancerWithStatus | undefined = state?.freelancer;
+
+          // If freelancer not in state, fetch it
+          if (!freelancer) {
+            try {
+              const freelancers = await apiService.getFreelancersWithStatus();
+              freelancer = freelancers.find((f: FreelancerWithStatus) => f._id === freelancerId);
+            } catch (error) {
+              console.error("Error fetching freelancer:", error);
+            }
+          }
+          console.log("MessagesTab: Freelancer found", freelancer);
+
+          const profile = freelancer?.profile || {};
+          const fullName = freelancer
+            ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || freelancer.email
+            : "Unknown Freelancer";
+
+          conv = {
+            id: conversationKey,
+            freelancerId: freelancerId,
+            freelancerName: fullName,
+            freelancerEmail: freelancer?.email || "",
+            lastMessage: "",
+            lastMessageTime: new Date().toISOString(),
+            unreadCount: 0,
+            freelancer: freelancer,
+          };
+
+          // Save an initial empty message to localStorage so the conversation persists
+          console.log("MessagesTab: Saving initial message to localStorage");
+          const initialMessage: StoredMessage = {
+            senderId: user._id,
+            receiverId: freelancerId,
+            message: "",
+            timestamp: new Date().toISOString(),
+            action: "conversation_started"
+          };
+          localStorage.setItem(conversationKey, JSON.stringify([initialMessage]));
+        }
+
+        if (conv) {
+          console.log("MessagesTab: Adding conversation to state", conv);
+          // Add to conversations list if not already there
+          setConversations(prev => {
+            const exists = prev.some(
+              (c) => getConversationKey(c) === getConversationKey(conv!)
+            );
+            if (!exists) {
+              console.log("MessagesTab: Conversation did NOT exist in prev, adding now!");
+              return [conv!, ...prev];
+            }
+            console.log("MessagesTab: Conversation already exists in prev!");
+            return prev;
+          });
+
+          // Select the conversation
+          setSelectedConversation(conv);
+          lastProcessedFreelancerIdRef.current = freelancerId;
+        }
+      };
+
+      createAndSelectConversation();
+    }
+
+    // Reset ref when location state changes to a different freelancer
+    if (!location.state || !freelancerId) {
+      lastProcessedFreelancerIdRef.current = null;
+    }
+  }, [location.state, user?._id, availableFreelancers]);
+
+  // Load messages for selected conversation
+  useEffect(() => {
+    if (!selectedConversation || !user?._id) {
+      // Don't clear messages immediately - keep them in localStorage
+      // Only clear state if we're truly switching away
+      return;
+    }
+
+    const loadMessages = async () => {
+      const clearedKey = getConversationClearedKey(user._id, selectedConversation.freelancerId);
+      const clearedAtRaw = localStorage.getItem(clearedKey);
+      const clearedAt = clearedAtRaw ? new Date(clearedAtRaw).getTime() : null;
+
+      try {
+        // Try to load from API first
+        // Backend uses format: senderId_receiverId (sorted)
+        const backendConversationId = getNormalizedConversationKey(
+          user._id,
+          selectedConversation.freelancerId
+        ).replace("conversation_", "");
+
+        const apiMessages = await apiService.getConversationMessages(backendConversationId) as StoredMessage[];
+        if (apiMessages && Array.isArray(apiMessages) && apiMessages.length > 0) {
+          console.log("Loaded messages from API:", apiMessages.length);
+          const filteredApiMessages = clearedAt
+            ? apiMessages.filter((msg) => {
+              const timestamp = msg.createdAt || msg.timestamp || "";
+              return new Date(timestamp).getTime() > clearedAt;
+            })
+            : apiMessages;
+          setMessages(filteredApiMessages);
+          // Persist API messages locally for refresh safety
+          const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+          localStorage.setItem(conversationKey, JSON.stringify(filteredApiMessages));
+          return;
+        }
+      } catch (error) {
+        console.log("Error loading from API, trying localStorage:", error);
+      }
+
+      // Fallback to localStorage
+      const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+      const conversationMessages = getStoredMessages(conversationKey);
+      console.log("Loaded messages from localStorage:", conversationMessages.length);
+      const filteredLocalMessages = clearedAt
+        ? conversationMessages.filter((msg) => {
+          const timestamp = msg.createdAt || msg.timestamp || "";
+          return new Date(timestamp).getTime() > clearedAt;
+        })
+        : conversationMessages;
+      setMessages(filteredLocalMessages);
+
+      // If API failed but we have localStorage messages, try to sync them to API in background
+      if (filteredLocalMessages.length > 0) {
+        console.log("Messages loaded from localStorage for persistence");
+      }
+    };
+
+    loadMessages();
+  }, [selectedConversation, user?._id]);
+
+  // Backup messages to localStorage whenever they change (extra safety layer)
+  useEffect(() => {
+    if (!selectedConversation || !user?._id || messages.length === 0) {
+      return;
+    }
+
+    try {
+      const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+      const existingMessages = getStoredMessages(conversationKey);
+
+      // Only save if we have new messages or different count
+      if (messages.length !== existingMessages.length) {
+        localStorage.setItem(conversationKey, JSON.stringify(messages));
+        console.log("Backed up", messages.length, "messages to localStorage");
+      }
+    } catch (error) {
+      console.error("Failed to backup messages to localStorage:", error);
+    }
+  }, [messages, selectedConversation, user?._id]);
+
+  const handleSendMessage = async () => {
+    // Check if there's anything to send
+    const hasText = newMessage.trim().length > 0;
+    const hasVoice = audioBlob !== null;
+    const hasFiles = attachedFiles.length > 0;
+
+    if ((!hasText && !hasVoice && !hasFiles) || !selectedConversation || !user?._id || sending) return;
+
+    setSending(true);
+    const messageText = newMessage.trim();
+
+    // Handle editing existing message
+    if (editingMessageId) {
+      const updatedMessage = {
+        message: messageText,
+        editedAt: new Date().toISOString(),
+        isEdited: true,
+      };
+
+      // Update message in state
+      setMessages((prev) =>
+        prev.map((msg) =>
+          (msg._id || msg.id) === editingMessageId
+            ? { ...msg, ...updatedMessage }
+            : msg
+        )
+      );
+
+      // Update in localStorage
+      if (selectedConversation && user?._id) {
+        const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+        const storedMessages = getStoredMessages(conversationKey);
+        const updatedMessages = storedMessages.map((msg) =>
+          (msg._id || msg.id) === editingMessageId
+            ? { ...msg, ...updatedMessage }
+            : msg
+        );
+        localStorage.setItem(conversationKey, JSON.stringify(updatedMessages));
+      }
+
+      // Send edit via WebSocket if connected, otherwise use REST API
+      if (connected && socket) {
+        const backendConversationId = [user._id, selectedConversation.freelancerId].sort().join("_");
+        // Emit edit event instead of regular sendMessage to avoid creating new message
+        console.log("Sending edit via WebSocket:", {
+          senderId: user._id,
+          receiverId: selectedConversation.freelancerId,
+          message: messageText,
+          conversationId: backendConversationId,
+          messageId: editingMessageId,
+        });
+        socket.emit("editMessage", {
+          senderId: user._id,
+          receiverId: selectedConversation.freelancerId,
+          message: messageText,
+          conversationId: backendConversationId,
+          messageId: editingMessageId,
+        });
+      } else {
+        // Fallback to REST API if WebSocket not connected
+        try {
+          console.log("WebSocket not connected, using REST API to edit message");
+          await apiService.editMessage(editingMessageId, messageText);
+        } catch (error) {
+          console.error("Error editing message via API:", error);
+          setSending(false);
+          return;
+        }
+      }
+
+      // Reset edit state
+      handleCancelEdit();
+      setSending(false);
+      return;
+    }
+
+    setNewMessage("");
+    setShowEmojiPicker(false);
+
+    const conversationId = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+
+    // Build message content based on what's being sent
+    let displayMessage = messageText;
+    let messageType = 'text';
+    let voiceDataUrl: string | null = null;
+    const fileAttachments: FileAttachment[] = [];
+
+    // Handle voice recording
+    if (hasVoice && audioBlob) {
+      messageType = hasText ? 'text_and_voice' : 'voice';
+      // Convert blob to base64 for storage
+      voiceDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(audioBlob);
+      });
+      if (!hasText) {
+        displayMessage = '🎤 Voice Message';
+      }
+    }
+
+    // Handle file attachments
+    if (hasFiles) {
+      messageType = hasVoice ? 'mixed' : (hasText ? 'text_and_files' : 'files');
+      // Convert files to base64 for storage
+      for (const file of attachedFiles) {
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        fileAttachments.push({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          dataUrl
+        });
+      }
+      if (!hasText && !hasVoice) {
+        displayMessage = `📎 ${attachedFiles.length} ${attachedFiles.length === 1 ? 'file' : 'files'} attached`;
+      } else if (!hasText && hasVoice) {
+        displayMessage = `🎤 Voice + 📎 ${attachedFiles.length} ${attachedFiles.length === 1 ? 'file' : 'files'}`;
+      }
+    }
+
+    // Always add optimistic message to UI for instant feedback
+    const tempMessageId = `temp_${Date.now()}`;
+    const tempMessage: StoredMessage = {
+      _id: tempMessageId,
+      id: tempMessageId,
+      conversationId,
+      senderId: user._id,
+      receiverId: selectedConversation.freelancerId,
+      message: displayMessage,
+      messageType,
+      voiceData: voiceDataUrl,
+      voiceDuration: recordingTime,
+      files: fileAttachments,
+      createdAt: new Date().toISOString(),
+      sender: {
+        _id: user._id,
+        email: user.email,
+        profile: user.profile,
+      },
+    };
+
+    setMessages((prev) => [...prev, tempMessage]);
+
+    // Persist optimistic message to localStorage for refresh safety
+    persistMessageToLocalStorage(conversationId, {
+      id: tempMessageId,
+      senderId: user._id,
+      receiverId: selectedConversation.freelancerId,
+      message: displayMessage,
+      messageType,
+      voiceData: voiceDataUrl,
+      voiceDuration: recordingTime,
+      files: fileAttachments,
+      timestamp: tempMessage.createdAt,
+      senderName: `${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}`.trim() || user?.email,
+      receiverName: selectedConversation.freelancerName,
+    });
+
+    // Send via WebSocket if connected
+    if (connected && socket) {
+      // Use backend conversationId format: sorted IDs joined with underscore
+      const backendConversationId = [user._id, selectedConversation.freelancerId].sort().join("_");
+      console.log("Sending message via WebSocket:", {
+        senderId: user._id,
+        receiverId: selectedConversation.freelancerId,
+        conversationId: backendConversationId,
+        messageType,
+      });
+      sendMessage({
+        senderId: user._id,
+        receiverId: selectedConversation.freelancerId,
+        message: displayMessage,
+        messageType,
+        voiceData: voiceDataUrl,
+        voiceDuration: recordingTime,
+        files: fileAttachments,
+        conversationId: backendConversationId,
+        clientMessageId: tempMessageId,
+      });
+    }
+
+    // Clear reply state after sending
+    if (replyToMessage) {
+      setReplyToMessage(null);
+    }
+
+    // Clear voice recording after sending
+    if (hasVoice) {
+      setAudioBlob(null);
+      setAudioUrl(null);
+      setRecordingTime(0);
+    }
+
+    // Clear attached files after sending
+    if (hasFiles) {
+      setAttachedFiles([]);
+    }
+
+    // Update conversation list - ensure no duplicates
+    setConversations((prev) => {
+      const updated = prev.map((conv) =>
+        getConversationKey(conv) === conversationId
+          ? {
+            ...conv,
+            id: conversationId,
+            freelancerName: selectedConversation.freelancerName,
+            freelancerEmail: selectedConversation.freelancerEmail,
+            lastMessage: displayMessage,
+            lastMessageTime: new Date().toISOString(),
+          }
+          : conv
+      );
+
+      // Remove duplicates by freelancerId (keep first occurrence)
+      const seen = new Set<string>();
+      const deduplicated = updated.filter(conv => {
+        if (seen.has(conv.freelancerId)) {
+          return false;
+        }
+        seen.add(conv.freelancerId);
+        return true;
+      });
+
+      return deduplicated.sort((a, b) =>
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      );
+    });
+
+    setSending(false);
+  };
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setNewMessage((prev) => prev + emojiData.emoji);
+  };
+
+  // File attachment handlers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachedFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const getFileIcon = (file: File) => {
+    const type = file.type.toLowerCase();
+    const name = file.name.toLowerCase();
+
+    // Images
+    if (type.startsWith('image/')) return Image;
+
+    // Videos
+    if (type.startsWith('video/') || ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.flv', '.wmv'].some(ext => name.endsWith(ext))) return Film;
+
+    // Audio
+    if (type.startsWith('audio/') || ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.wma', '.m4a'].some(ext => name.endsWith(ext))) return Music;
+
+    // Documents
+    if (type.includes('pdf') || name.endsWith('.pdf')) return FileText;
+    if (type.includes('document') || type.includes('msword') || ['.doc', '.docx', '.rtf', '.odt'].some(ext => name.endsWith(ext))) return FileText;
+
+    // Spreadsheets
+    if (type.includes('spreadsheet') || type.includes('excel') || ['.xls', '.xlsx', '.csv', '.ods'].some(ext => name.endsWith(ext))) return FileSpreadsheet;
+
+    // Presentations
+    if (type.includes('presentation') || type.includes('powerpoint') || ['.ppt', '.pptx', '.odp'].some(ext => name.endsWith(ext))) return Presentation;
+
+    // Code files
+    if (['.js', '.ts', '.jsx', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.html', '.css', '.scss', '.sass', '.less', '.json', '.xml', '.yaml', '.yml', '.md', '.sql', '.sh', '.bat', '.ps1'].some(ext => name.endsWith(ext))) return Code;
+
+    // Archives
+    if (type.includes('zip') || type.includes('rar') || type.includes('tar') || type.includes('compressed') || ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso'].some(ext => name.endsWith(ext))) return Archive;
+
+    // Database
+    if (['.db', '.sqlite', '.sql', '.mdb', '.accdb'].some(ext => name.endsWith(ext))) return Database;
+
+    // Text files
+    if (type.startsWith('text/') || name.endsWith('.txt') || name.endsWith('.log')) return FileText;
+
+    // Default
+    return File;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  };
+
+  // Voice recording handlers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(audioBlob);
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start timer
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Could not access microphone. Please ensure you have granted permission.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordingTime(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+  };
+
+  const playRecording = () => {
+    if (audioUrl) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+      const audio = new Audio(audioUrl);
+      audioPlayerRef.current = audio;
+      audio.onended = () => setIsPlayingRecording(false);
+      audio.play();
+      setIsPlayingRecording(true);
+    }
+  };
+
+  const pauseRecording = () => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      setIsPlayingRecording(false);
+    }
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Video call handlers
+  const initiateVideoCall = async () => {
+    setShowVideoCallModal(true);
+    setCallStatus('calling');
+    console.log('Initiating video call with:', selectedConversation?.freelancerName);
+
+    try {
+      // Request camera and microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
+        audio: true
+      });
+
+      console.log('Got media stream:', stream.getTracks().map(t => t.kind));
+
+      setLocalStream(stream);
+      setIsVideoEnabled(true);
+      setIsAudioEnabled(true);
+
+      // Wait for next render cycle then attach stream to video element
+      setTimeout(() => {
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play().catch(err => {
+            console.log('Video play error:', err);
+          });
+          console.log('Stream attached to video element');
+        } else {
+          console.log('Video ref not available yet');
+        }
+      }, 100);
+
+      // Simulate call connecting after 2 seconds
+      setTimeout(() => {
+        setCallStatus('connected');
+        // Start call duration timer
+        callTimerRef.current = setInterval(() => {
+          setCallDuration(prev => prev + 1);
+        }, 1000);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+      alert('Could not access camera/microphone. Please ensure you have granted permission.');
+      setCallStatus('idle');
+      setShowVideoCallModal(false);
+    }
+  };
+
+  const endVideoCall = () => {
+    // Stop all tracks
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+
+    // Clear timer
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+
+    setCallStatus('ended');
+    setCallDuration(0);
+
+    // Close modal after showing "call ended" message
+    setTimeout(() => {
+      setShowVideoCallModal(false);
+      setCallStatus('idle');
+    }, 1500);
+  };
+
+  const toggleVideo = () => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoEnabled(videoTrack.enabled);
+      }
+    }
+  };
+
+  const toggleAudio = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsAudioEnabled(audioTrack.enabled);
+      }
+    }
+  };
+
+  const formatCallDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Message action handlers
+  const handleDeleteMessage = (messageId: string) => {
+    // Remove from messages state
+    setMessages(prev => prev.filter(msg => (msg._id || msg.id) !== messageId));
+
+    // Also remove from localStorage
+    if (selectedConversation && user?._id) {
+      const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+      const storedMessages = getStoredMessages(conversationKey);
+      const updatedMessages = storedMessages.filter((msg) =>
+        (msg._id || msg.id) !== messageId
+      );
+      localStorage.setItem(conversationKey, JSON.stringify(updatedMessages));
+    }
+
+    setMessageMenuOpen(null);
+  };
+
+  const handleCopyMessage = (messageText: string) => {
+    navigator.clipboard.writeText(messageText).then(() => {
+      // Could add a toast notification here
+      console.log('Message copied to clipboard');
+    }).catch(err => {
+      console.error('Failed to copy message:', err);
+    });
+    setMessageMenuOpen(null);
+  };
+
+  const handleEditMessage = (messageId: string, messageText: string) => {
+    // Double-check that this message belongs to the current user
+    const message = messages.find(msg => (msg._id || msg.id) === messageId);
+    if (!message) {
+      console.error("Message not found");
+      return;
+    }
+
+    const isOwnMessage = isSameUser(message.senderId, user?._id);
+    if (!isOwnMessage) {
+      console.error("Unauthorized: Cannot edit other user's message");
+      return;
+    }
+
+    setEditingMessageId(messageId);
+    setNewMessage(messageText);
+    setMessageMenuOpen(null);
+  };
+
+  const handleReplyToMessage = (messageId: string, messageText: string) => {
+    const previewText = messageText.length > 80 ? `${messageText.slice(0, 77)}...` : messageText;
+    setReplyToMessage({ id: messageId, text: previewText });
+    setMessageMenuOpen(null);
+  };
+
+  const handleCancelReply = () => {
+    setReplyToMessage(null);
+  };
+
+  const togglePinMessage = (messageId: string) => {
+    setPinnedMessageIds((prev) =>
+      prev.includes(messageId)
+        ? prev.filter((id) => id !== messageId)
+        : [...prev, messageId]
+    );
+    setMessageMenuOpen(null);
+  };
+
+  const handleForwardMessage = (messageText: string) => {
+    if (!messageText) {
+      setMessageMenuOpen(null);
+      return;
+    }
+    const forwardPrefix = "Fwd: ";
+    setNewMessage((prev) => {
+      if (!prev) return `${forwardPrefix}${messageText}`;
+      return `${prev}\n\n${forwardPrefix}${messageText}`;
+    });
+    setMessageMenuOpen(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setNewMessage("");
+  };
+
+  const toggleMessageMenu = (messageId: string) => {
+    setMessageMenuOpen(prev => prev === messageId ? null : messageId);
+  };
+
+  const handleClearChatHistory = () => {
+    if (!selectedConversation || !user?._id) return;
+
+    // Confirm before clearing
+    if (window.confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
+      // Clear messages from state
+      setMessages([]);
+
+      // Clear from localStorage
+      const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+      const legacyConversationKey = `conversation_${user._id}_${selectedConversation.freelancerId}`;
+      localStorage.removeItem(conversationKey);
+      localStorage.removeItem(legacyConversationKey);
+
+      // Persist a cleared timestamp so old messages don't return
+      const clearedKey = getConversationClearedKey(user._id, selectedConversation.freelancerId);
+      localStorage.setItem(clearedKey, new Date().toISOString());
+
+      // Update conversation list to remove last message
+      setConversations((prev) => {
+        return prev.map((conv) =>
+          getConversationKey(conv) === conversationKey
+            ? {
+              ...conv,
+              lastMessage: "",
+              lastMessageTime: new Date().toISOString(),
+            }
+            : conv
+        );
+      });
+
+      setChatHeaderMenuOpen(false);
+    }
+  };
+
+  // Close message menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (messageMenuRef.current && !messageMenuRef.current.contains(event.target as Node)) {
+        setMessageMenuOpen(null);
+      }
+      if (chatHeaderMenuRef.current && !chatHeaderMenuRef.current.contains(event.target as Node)) {
+        setChatHeaderMenuOpen(false);
+      }
+    };
+
+    if (messageMenuOpen || chatHeaderMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [messageMenuOpen, chatHeaderMenuOpen]);
+
+  // Cleanup video call on unmount or modal close
+  useEffect(() => {
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+      }
+    };
+  }, [localStream]);
+
+  // Update video element when stream changes
+  useEffect(() => {
+    const attachStream = () => {
+      if (localVideoRef.current && localStream) {
+        console.log('Attaching stream to video element');
+        localVideoRef.current.srcObject = localStream;
+        // Ensure video plays
+        localVideoRef.current.play().catch(err => {
+          console.log('Video autoplay was prevented:', err);
+        });
+      }
+    };
+
+    // Try immediately
+    attachStream();
+
+    // Also try after a short delay to handle race conditions
+    const timeoutId = setTimeout(attachStream, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [localStream, showVideoCallModal, callStatus]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) {
+      return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+    } else if (days === 1) {
+      return "Yesterday";
+    } else if (days < 7) {
+      return date.toLocaleDateString([], { weekday: "short" });
+    } else {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col relative overflow-hidden">
+      <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+      <style>{`
+        :root {
+          --cyan: #06f2f2;
+          --cyan-dark: #05b8b8;
+          --cyan-glow: 0 0 20px rgba(6, 242, 242, 0.3), 0 0 60px rgba(6, 242, 242, 0.1);
+          --glass-bg: rgba(255, 255, 255, 0.03);
+          --glass-border: rgba(6, 242, 242, 0.15);
+        }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes glow-pulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(6, 242, 242, 0.2); }
+          50% { box-shadow: 0 0 40px rgba(6, 242, 242, 0.4); }
+        }
+        @keyframes border-shimmer {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes bubble-rise {
+          0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes check-appear {
+          0% { opacity: 0; transform: scale(0); }
+          50% { transform: scale(1.3); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-shimmer { background-size: 200% auto; animation: shimmer 3s linear infinite; }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+        .animate-border-shimmer { background-size: 200% 200%; animation: border-shimmer 4s linear infinite; }
+        .animate-bubble-rise { animation: bubble-rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-check-appear { animation: check-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .glass-card {
+          background: var(--glass-bg);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--glass-border);
+        }
+        .cyan-gradient-text {
+          background: linear-gradient(135deg, #06f2f2 0%, #0af 50%, #06f2f2 100%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .dark .glass-card { background: rgba(0, 0, 0, 0.4); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.25); border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 242, 242, 0.4); }
+        .custom-scrollbar-chat::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar-chat::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar-chat::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.15); border-radius: 999px; }
+      `}</style>
+
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <motion.div
+          className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-cyan-500/10 blur-[120px]"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[150px]"
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/3 left-1/4 w-64 h-64 rounded-full bg-cyan-500/5 blur-[100px]"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.3, 0.2] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
+      </div>
+
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`p-4 border-b backdrop-blur-xl relative z-10 ${darkMode
+          ? "bg-black/40 border-cyan-500/30"
+          : "bg-white/60 border-cyan-200"
+          }`}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <motion.div
+              className={`p-2.5 rounded-xl ${darkMode
+                ? "bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30"
+                : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
+                }`}
+              whileHover={{ scale: 1.05, rotate: -5 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              <MessageSquare className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                }`} />
+            </motion.div>
+            <div>
+              <h2 className="text-xl font-bold font-display cyan-gradient-text">
+                Messages
+              </h2>
+              <p className={`text-xs font-body ${darkMode ? "text-gray-400" : "text-gray-600"
+                }`}>
+                {displayConversations.length} {displayConversations.length === 1 ? "conversation" : "conversations"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Conversations List */}
+        <div
+          className={`w-full md:w-96 border-r-2 overflow-y-auto custom-scrollbar ${darkMode
+            ? "border-cyan-500/30 bg-black/20 backdrop-blur-xl"
+            : "border-cyan-200 bg-gray-50/50 backdrop-blur-xl"
+            } ${selectedConversation ? "hidden md:block" : ""}`}
+        >
+          {displayConversations.length === 0 ? (
+            <div className="p-4 h-full flex flex-col">
+              <p className={`text-sm font-semibold mb-1 font-display ${darkMode ? "text-gray-200" : "text-gray-800"}`}>
+                No messages yet
+              </p>
+              <p className={`text-xs mb-4 font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                {isClient ? "Go to Find Freelancers to start a conversation" : "Go to Find Jobs to start a conversation"}
+              </p>
+
+              {freelancersLoading ? (
+                <p className={`text-sm font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>{isClient ? "Loading freelancers..." : "Loading clients..."}</p>
+              ) : browseLoadError ? (
+                <div className="space-y-3">
+                  <p className={`text-sm font-body ${darkMode ? "text-red-400" : "text-red-600"}`}>{browseLoadError}</p>
+                  {onGoToFindFreelancers && (
+                    <button
+                      type="button"
+                      onClick={onGoToFindFreelancers}
+                      className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold font-body hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/20"
+                    >
+                      Open Find Freelancers
+                    </button>
+                  )}
+                </div>
+              ) : browseFreelancers.length === 0 ? (
+                <div className="space-y-3 text-center">
+                  <p className={`text-sm font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                    {isClient ? "No freelancers registered yet." : "No clients registered yet."}
+                  </p>
+                  {onGoToFindFreelancers && (
+                    <button
+                      type="button"
+                      onClick={onGoToFindFreelancers}
+                      className="w-full py-2 rounded-lg glass-card border-2 border-cyan-500/50 text-cyan-500 text-sm font-bold font-body hover:bg-cyan-500/10 hover:shadow-[0_0_20px_rgba(6,242,242,0.15)]"
+                    >
+                      Browse Find Freelancers
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar min-h-0">
+                  {browseFreelancers.map((freelancer) => {
+                    const profile = freelancer.profile || {};
+                    const name = getFreelancerDisplayName(freelancer);
+                    const skill = profile.primarySkill || profile.skills?.[0] || "Freelancer";
+                    return (
+                      <button
+                        key={freelancer._id}
+                        type="button"
+                        onClick={() => startConversationWithFreelancer(freelancer)}
+                        className={`w-full text-left p-3 rounded-xl border transition-colors glass-card ${darkMode
+                          ? "bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 hover:bg-gray-800"
+                          : "bg-white border-gray-200 hover:border-cyan-400 hover:bg-cyan-50/50"
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 font-display ${darkMode ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-100 text-cyan-700"
+                              }`}
+                          >
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`font-semibold text-sm truncate font-display ${darkMode ? "text-white" : "text-gray-900"}`}>
+                              {name}
+                            </p>
+                            <p className={`text-xs truncate font-body ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                              {skill}
+                            </p>
+                          </div>
+                          <span className="text-xs font-medium text-cyan-500 shrink-0 font-body">Message</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-cyan-500/10 dark:divide-cyan-500/20">
+              {displayConversations.map((conv, index) => (
+                <motion.div
+                  key={conv.id}
+                  initial={{ opacity: 0, x: -24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.04, type: "spring", stiffness: 200, damping: 25 }}
+                  onClick={() => setSelectedConversation(conv)}
+                  className={`p-3.5 cursor-pointer transition-all duration-300 relative group glass-card ${selectedConversation?.id === conv.id
+                    ? darkMode
+                      ? "bg-gradient-to-r from-cyan-500/20 via-blue-500/10 to-cyan-500/20 border-l-[3px] border-cyan-400 shadow-lg shadow-cyan-500/15"
+                      : "bg-gradient-to-r from-cyan-50 via-blue-50/50 to-cyan-50 border-l-[3px] border-cyan-500 shadow-md shadow-cyan-500/10"
+                    : darkMode
+                      ? "hover:bg-white/[0.03] hover:border-l-[3px] hover:border-cyan-500/40 hover:shadow-sm hover:shadow-cyan-500/5"
+                      : "hover:bg-cyan-50/30 hover:border-l-[3px] hover:border-cyan-400/60 hover:shadow-sm"
+                    }`}
+                  whileHover={{ x: 3, scale: 1.005 }}
+                  whileTap={{ scale: 0.995 }}
+                >
+                  {conv.unreadCount > 0 && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 z-10 min-w-[18px] h-[18px] rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[9px] font-bold font-body flex items-center justify-center px-1 shadow-lg shadow-cyan-500/30"
+                    >
+                      {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                    </motion.div>
+                  )}
+                  <div className="flex items-start gap-3">
+                    <div className="relative flex-shrink-0">
+                      <motion.div
+                        className={`w-11 h-11 rounded-xl ${darkMode
+                          ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
+                          : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-300"
+                          } flex items-center justify-center shadow-sm`}
+                        whileHover={{ scale: 1.05, rotate: -5 }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                      >
+                        <span className={`text-base font-bold font-display ${darkMode ? "text-cyan-300" : "text-cyan-700"
+                          }`}>
+                          {conv.freelancerName.charAt(0).toUpperCase()}
+                        </span>
+                      </motion.div>
+                      <motion.div
+                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 ${darkMode ? "border-gray-900" : "border-white"} bg-green-500`}
+                        animate={{ scale: [1, 1.15, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <h3 className={`font-bold text-sm truncate font-display ${darkMode ? "text-white" : "text-gray-900"
+                          }`}>
+                          {conv.freelancerName}
+                        </h3>
+                        <motion.span
+                          className={`text-[9px] font-medium flex-shrink-0 ml-2 px-1.5 py-0.5 rounded-full font-body ${darkMode
+                            ? "bg-white/10 text-gray-400"
+                            : "bg-gray-200/80 text-gray-600"
+                            }`}
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          {formatTime(conv.lastMessageTime)}
+                        </motion.span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {conv.unreadCount > 0 && (
+                          <span className="text-cyan-400 text-xs font-semibold">•</span>
+                        )}
+                        <p className={`text-xs truncate font-body ${conv.unreadCount > 0
+                          ? darkMode ? "text-white font-medium" : "text-gray-900 font-medium"
+                          : darkMode ? "text-gray-400" : "text-gray-600"
+                          }`}>
+                          {conv.lastMessage || "Start a conversation..."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Chat Area */}
+        <AnimatePresence>
+          {selectedConversation ? (
+            <motion.div
+              key={selectedConversation.id}
+              initial={{ opacity: 0, x: 30, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -30, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="flex-1 flex flex-col relative"
+            >
+              {/* Chat Header */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-3 border-b backdrop-blur-xl flex items-center justify-between relative z-30 ${darkMode
+                  ? "bg-black/40 border-cyan-500/30"
+                  : "bg-white/60 border-cyan-200"
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  {/* Mobile back button — returns to conversations list */}
+                  <motion.button
+                    className={`md:hidden p-2 rounded-lg mr-0.5 glass-card ${darkMode ? "text-gray-300 hover:bg-white/10" : "text-gray-600 hover:bg-gray-100"}`}
+                    onClick={() => setSelectedConversation(null)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    title="Back to conversations"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </motion.button>
+                  <div className="relative flex-shrink-0">
+                    <motion.div
+                      className={`w-10 h-10 rounded-xl ${darkMode
+                        ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border border-cyan-500/50"
+                        : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-200"
+                        } flex items-center justify-center shadow-sm cursor-pointer`}
+                      whileHover={{ scale: 1.05, rotate: -5 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                      onClick={() => openFreelancerProfile(selectedConversation)}
+                    >
+                      <span className={`text-base font-bold font-display ${darkMode ? "text-cyan-300" : "text-cyan-700"
+                        }`}>
+                        {selectedConversation.freelancerName.charAt(0).toUpperCase()}
+                      </span>
+                    </motion.div>
+                    <motion.div
+                      className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-900 bg-green-500"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </div>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => openFreelancerProfile(selectedConversation)}
+                  >
+                    <h3 className={`font-bold text-base mb-0.5 hover:underline font-display ${darkMode ? "text-white" : "text-gray-900"
+                      }`}>
+                      {selectedConversation.freelancerName}
+                    </h3>
+                    <p className={`text-xs font-body flex items-center gap-1.5 ${darkMode ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                      <motion.span
+                        className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"
+                        animate={{ opacity: [1, 0.4, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      Online
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 relative">
+                  {/* WebSocket Connection Status */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs glass-card"
+                    title={connected ? "Real-time messaging active" : "Connecting..."}
+                    style={{
+                      background: connected
+                        ? darkMode ? "rgba(34,197,94,0.1)" : "rgba(34,197,94,0.08)"
+                        : darkMode ? "rgba(234,179,8,0.1)" : "rgba(234,179,8,0.08)"
+                    }}
+                  >
+                    <motion.div
+                      className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-yellow-500"}`}
+                      animate={connected
+                        ? { scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }
+                        : { scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }
+                      }
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    <span className={`text-[10px] font-medium font-body ${connected
+                      ? darkMode ? "text-green-400" : "text-green-600"
+                      : darkMode ? "text-yellow-400" : "text-yellow-600"
+                      }`}>
+                      {connected ? "Live" : "Connecting"}
+                    </span>
+                  </div>
+
+                  {/* Video Call Button */}
+                  <motion.button
+                    onClick={initiateVideoCall}
+                    whileHover={{ scale: 1.05, rotate: -3 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`p-2 rounded-lg transition-all glass-card ${darkMode
+                      ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/30 hover:to-emerald-500/30 text-green-400 border border-green-500/30"
+                      : "bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-600 border border-green-200"
+                      }`}
+                    title="Start Video Call"
+                  >
+                    <Video className="w-4 h-4" />
+                  </motion.button>
+
+                  {/* 3-Dot Menu Button */}
+                  <div className="relative z-50">
+                    <motion.button
+                      onClick={() => setChatHeaderMenuOpen(!chatHeaderMenuOpen)}
+                      whileHover={{ scale: 1.05, rotate: 90 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`p-2 rounded-lg transition-all glass-card ${darkMode
+                        ? "bg-white/10 hover:bg-white/20 text-gray-300"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                        }`}
+                      title="More options"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </motion.button>
+
+                    {/* Dropdown Menu */}
+                    <AnimatePresence>
+                      {chatHeaderMenuOpen && (
+                        <motion.div
+                          ref={chatHeaderMenuRef}
+                          initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                          className={`absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-xl shadow-2xl overflow-hidden glass-card ${darkMode
+                            ? "bg-gray-900/90 border border-cyan-500/20 backdrop-blur-2xl"
+                            : "bg-white/90 border border-cyan-200/60 backdrop-blur-2xl"
+                            }`}
+                          style={{
+                            boxShadow: darkMode
+                              ? "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(6,242,242,0.08)"
+                              : "0 20px 60px rgba(0,0,0,0.12), 0 0 40px rgba(6,242,242,0.06)"
+                          }}
+                        >
+
+                          {/* View Profile Option */}
+                          <button
+                            onClick={() => {
+                              if (selectedConversation) {
+                                openFreelancerProfile(selectedConversation);
+                              }
+                              setChatHeaderMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                              ? "text-gray-300 hover:bg-white/10"
+                              : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                          >
+                            <User className="w-4 h-4" />
+                            View Profile
+                          </button>
+
+                          {/* Clear Chat History Option */}
+                          <button
+                            onClick={handleClearChatHistory}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                              ? "text-red-400 hover:bg-red-500/20"
+                              : "text-red-500 hover:bg-red-50"
+                              }`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Clear Chat History
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <motion.button
+                    onClick={() => setSelectedConversation(null)}
+                    whileHover={{ scale: 1.05, rotate: 90 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`md:hidden p-2 rounded-lg transition-all ${darkMode
+                      ? "bg-white/10 hover:bg-white/20 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-black"
+                      }`}
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              {/* Messages */}
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-visible p-4 pb-12 space-y-3 custom-scrollbar-chat bg-gradient-to-b from-transparent via-transparent to-transparent">
+                {messages.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center justify-center h-full"
+                  >
+                  <div className="text-center px-8">
+                    <motion.div
+                      className={`w-24 h-24 rounded-2xl mx-auto mb-5 relative overflow-hidden ${darkMode
+                        ? "bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-cyan-500/20"
+                        : "bg-gradient-to-br from-gray-100/80 to-gray-200/80 border-2 border-cyan-200/60"
+                        } flex items-center justify-center`}
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10`} />
+                      <MessageSquare className={`w-12 h-12 relative z-10 ${darkMode ? "text-cyan-400/50" : "text-cyan-500/50"
+                        }`} />
+                      <motion.div
+                        className="absolute -bottom-8 -right-8 w-16 h-16 rounded-full bg-cyan-500/20 blur-xl"
+                        animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.5, 0.2] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                      />
+                    </motion.div>
+                    <p className={`text-xl font-bold font-display mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                      No messages yet
+                    </p>
+                    <p className={`text-sm font-body ${darkMode ? "text-gray-500" : "text-gray-500"
+                      }`}>
+                      Start the conversation!
+                    </p>
+                  </div>
+                  </motion.div>
+                ) : (
+                  messages.map((msg, index) => {
+                    const isOwnMessage = isSameUser(msg.senderId, user?._id);
+                    const messageId = msg._id || msg.id || `msg_${msg.createdAt}_${getUserId(msg.senderId)}`;
+                    const avatarInitial = getMessageAvatarInitial(
+                      msg,
+                      isOwnMessage,
+                      user,
+                      selectedConversation.freelancerName
+                    );
+                    // Show edited text in real-time if this message is being edited
+                    const messageText = editingMessageId === messageId ? newMessage : msg.message;
+                    const timestamp = msg.createdAt || msg.timestamp || new Date().toISOString();
+                    const hasVoice = msg.voiceData;
+                    const hasFiles = msg.files && msg.files.length > 0;
+                    const voiceDuration = msg.voiceDuration || 0;
+                    const isPinned = pinnedMessageIds.includes(messageId);
+
+                    return (
+                      <motion.div
+                        key={messageId}
+                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ delay: index * 0.02 }}
+                        className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} items-end gap-1.5`}
+                      >
+                        {!isOwnMessage && (
+                          <motion.div
+                            className={`w-6 h-6 rounded-full ${darkMode
+                              ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30"
+                              : "bg-gradient-to-br from-cyan-100 to-blue-100"
+                              } flex items-center justify-center flex-shrink-0`}
+                            whileHover={{ scale: 1.05 }}
+                          >
+                            <span className={`text-[10px] font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
+                              }`}>
+                              {avatarInitial}
+                            </span>
+                          </motion.div>
+                        )}
+                        {/* Message Container with Options Menu */}
+                        <div className="relative group max-w-[75%]">
+                          {/* 3-Dot Options Menu Button */}
+                          <div className={`absolute ${isOwnMessage ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
+                            <motion.button
+                              onClick={() => toggleMessageMenu(messageId)}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className={`p-1.5 rounded-full ${darkMode
+                                ? "bg-gray-700/80 hover:bg-gray-600 text-gray-300"
+                                : "bg-gray-200/80 hover:bg-gray-300 text-gray-600"
+                                }`}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+
+                          {/* Options Dropdown Menu */}
+                          <AnimatePresence>
+                            {messageMenuOpen === messageId && (
+                              <motion.div
+                                ref={messageMenuRef}
+                                initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                                className={`absolute ${isOwnMessage ? 'right-0' : 'left-0'} top-2 z-20 min-w-[160px] rounded-xl shadow-xl overflow-hidden glass-card ${darkMode
+                                  ? "bg-gray-800 border border-gray-700"
+                                  : "bg-white border border-gray-200"
+                                  }`}
+                              >
+                                {/* Reply Option */}
+                                {messageText && (
+                                  <button
+                                    onClick={() => handleReplyToMessage(messageId, messageText || '')}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                                      ? "text-gray-300 hover:bg-gray-700"
+                                      : "text-gray-700 hover:bg-gray-100"
+                                      }`}
+                                  >
+                                    <Reply className="w-4 h-4" />
+                                    Reply
+                                  </button>
+                                )}
+
+                                {/* Forward Option */}
+                                {messageText && (
+                                  <button
+                                    onClick={() => handleForwardMessage(messageText || '')}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                                      ? "text-gray-300 hover:bg-gray-700"
+                                      : "text-gray-700 hover:bg-gray-100"
+                                      }`}
+                                  >
+                                    <Forward className="w-4 h-4" />
+                                    Forward
+                                  </button>
+                                )}
+
+                                {/* Pin / Unpin Option */}
+                                <button
+                                  onClick={() => togglePinMessage(messageId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                                    ? "text-yellow-300 hover:bg-yellow-500/10"
+                                    : "text-yellow-700 hover:bg-yellow-50"
+                                    }`}
+                                >
+                                  <Pin className="w-4 h-4" />
+                                  {pinnedMessageIds.includes(messageId) ? "Unpin" : "Pin"}
+                                </button>
+
+                                {/* Copy Option */}
+                                <button
+                                  onClick={() => handleCopyMessage(messageText || '')}
+                                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                                    ? "text-gray-300 hover:bg-gray-700"
+                                    : "text-gray-700 hover:bg-gray-100"
+                                    }`}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                  Copy
+                                </button>
+
+                                {/* Edit Option - Only for own messages */}
+                                {isOwnMessage && messageText && !hasVoice && !hasFiles && (
+                                  <button
+                                    onClick={() => handleEditMessage(messageId, messageText)}
+                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                                      ? "text-cyan-400 hover:bg-cyan-500/20"
+                                      : "text-cyan-600 hover:bg-cyan-50"
+                                      }`}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                    Edit
+                                  </button>
+                                )}
+
+                                {/* Delete Option */}
+                                <button
+                                  onClick={() => handleDeleteMessage(messageId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${darkMode
+                                    ? "text-red-400 hover:bg-red-500/20"
+                                    : "text-red-500 hover:bg-red-50"
+                                    }`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          <motion.div
+                            className={`min-w-[140px] rounded-xl px-4 py-3 shadow-sm ${hasVoice ? "w-[220px] sm:w-[260px]" : "w-fit"
+                              } ${isOwnMessage
+                                ? darkMode
+                                  ? "bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 text-white animate-border-shimmer"
+                                  : "bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 text-white animate-border-shimmer"
+                                : darkMode
+                                  ? "glass-card bg-gray-800/60 backdrop-blur-xl text-white border border-white/10"
+                                  : "glass-card bg-white/80 backdrop-blur-xl text-black border border-gray-200"
+                              } ${isPinned ? (isOwnMessage ? "ring-2 ring-yellow-300/80 shadow-lg shadow-yellow-300/20" : "ring-2 ring-yellow-400/80 shadow-lg shadow-yellow-400/20") : ""}`}
+                            whileHover={{ scale: 1.015 }}
+                            transition={{ type: "spring", stiffness: 400 }}
+                            style={{
+                              minHeight: 'min-content',
+                              boxShadow: isOwnMessage
+                                ? darkMode
+                                  ? "0 4px 24px rgba(6, 242, 242, 0.25), inset 0 1px 0 rgba(255,255,255,0.2)"
+                                  : "0 4px 24px rgba(6, 242, 242, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)"
+                                : darkMode
+                                  ? "0 4px 16px rgba(0,0,0,0.2)"
+                                  : "0 2px 12px rgba(0,0,0,0.06)"
+                            }}
+                          >
+                            {isPinned && (
+                              <div className="flex items-center gap-1 mb-1 text-[10px] text-yellow-100/90 dark:text-yellow-200/90">
+                                <Pin className="w-3 h-3" />
+                                <span>Pinned message</span>
+                              </div>
+                            )}
+                            {/* Voice Message Player */}
+                            {hasVoice && (
+                              <div className={`mb-1.5 p-2 rounded-xl border ${isOwnMessage
+                                ? "bg-white/20 border-white/20"
+                                : darkMode
+                                  ? "bg-white/10 border-white/10"
+                                  : "bg-gray-100 border-gray-200"
+                                }`}>
+                                <div className="flex items-center gap-2 justify-between w-full">
+                                  <VoicePlayer
+                                    src={msg.voiceData || ""}
+                                    duration={voiceDuration}
+                                    isOwnMessage={isOwnMessage}
+                                    darkMode={darkMode}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!msg.voiceData) return;
+                                      try {
+                                        const link = document.createElement('a');
+                                        link.href = msg.voiceData;
+                                        link.download = `voice-message-${messageId}.webm`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                      } catch (e) {
+                                        console.error("Failed to download voice message:", e);
+                                      }
+                                    }}
+                                    className={`p-1.5 rounded-full flex-shrink-0 ${isOwnMessage
+                                      ? "bg-white/30 hover:bg-white/40 text-white"
+                                      : darkMode
+                                        ? "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300"
+                                        : "bg-cyan-100 hover:bg-cyan-200 text-cyan-700"
+                                      }`}
+                                    title="Download voice message"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* File Attachments */}
+                            {hasFiles && (
+                              <div className="mb-1.5 space-y-1.5">
+                                {(msg.files ?? []).map((file, fileIndex) => {
+                                  const FileIcon = (() => {
+                                    const type = file.type?.toLowerCase() || '';
+                                    const name = file.name?.toLowerCase() || '';
+                                    if (type.startsWith('image/')) return Image;
+                                    if (type.startsWith('video/')) return Film;
+                                    if (type.startsWith('audio/')) return Music;
+                                    if (type.includes('pdf')) return FileText;
+                                    if (type.includes('zip') || type.includes('rar')) return Archive;
+                                    if (['.js', '.ts', '.py', '.java', '.html', '.css'].some(ext => name.endsWith(ext))) return Code;
+                                    return File;
+                                  })();
+
+                                  return (
+                                    <div
+                                      key={fileIndex}
+                                      className={`flex items-center gap-1.5 p-1.5 rounded ${isOwnMessage
+                                        ? "bg-white/20 hover:bg-white/30"
+                                        : darkMode
+                                          ? "bg-white/10 hover:bg-white/20"
+                                          : "bg-gray-100 hover:bg-gray-200"
+                                        } cursor-pointer transition-all`}
+                                      onClick={() => {
+                                        // Download file
+                                        const link = document.createElement('a');
+                                        link.href = file.dataUrl;
+                                        link.download = file.name;
+                                        link.click();
+                                      }}
+                                    >
+                                      <FileIcon className={`w-3 h-3 flex-shrink-0 ${isOwnMessage ? "text-white" : darkMode ? "text-cyan-400" : "text-cyan-600"
+                                        }`} />
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`text-[10px] font-medium truncate ${isOwnMessage ? "text-white" : darkMode ? "text-white" : "text-gray-900"
+                                          }`}>
+                                          {file.name}
+                                        </p>
+                                        <p className={`text-[10px] ${isOwnMessage ? "text-white/70" : darkMode ? "text-gray-400" : "text-gray-500"
+                                          }`}>
+                                          {formatFileSize(file.size)}
+                                        </p>
+                                      </div>
+                                      <span className={`text-[10px] ${isOwnMessage ? "text-white/70" : darkMode ? "text-cyan-400" : "text-cyan-600"
+                                        }`}>
+                                        Download
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Text Message */}
+                            {messageText && !messageText.startsWith('🎤') && !messageText.startsWith('📎') && (
+                              <div className="flex items-start gap-1">
+                                <p className="text-xs whitespace-pre-wrap break-words font-medium leading-snug flex-1 font-body">
+                                  {messageText}
+                                </p>
+                                {msg.isEdited && (
+                                  <span className={`text-[9px] flex-shrink-0 font-body ${isOwnMessage ? "text-cyan-100/60" : darkMode ? "text-gray-500" : "text-gray-400"}`} title="Edited">
+                                    (edited)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-end gap-1.5 mt-2 pt-1 w-full">
+                              <p className={`text-[10px] whitespace-nowrap flex-shrink-0 px-2 py-0.5 rounded-full font-body ${isOwnMessage
+                                ? "text-cyan-100/90 bg-white/15"
+                                : darkMode
+                                  ? "text-gray-300 bg-white/10"
+                                  : "text-gray-600 bg-gray-100"
+                                }`}>
+                                {formatTime(timestamp)}
+                              </p>
+                              {isOwnMessage && (
+                                <CheckCircle2 className={`w-2.5 h-2.5 flex-shrink-0 ${darkMode ? "text-cyan-200/80" : "text-cyan-100/80"
+                                  }`} />
+                              )}
+                            </div>
+                          </motion.div>
+                        </div>
+                        {isOwnMessage && (
+                          <motion.div
+                            className={`w-6 h-6 rounded-full ${darkMode
+                              ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30"
+                              : "bg-gradient-to-br from-cyan-100 to-blue-100"
+                              } flex items-center justify-center flex-shrink-0`}
+                            whileHover={{ scale: 1.05 }}
+                          >
+                            <span className={`text-[10px] font-bold ${darkMode ? "text-cyan-300" : "text-cyan-700"
+                              }`}>
+                              {avatarInitial}
+                            </span>
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-3 border-t backdrop-blur-xl glass-card ${darkMode
+                  ? "bg-black/40 border-cyan-500/30"
+                  : "bg-white/60 border-cyan-200"
+                  }`}
+              >
+                {/* Edit Mode Indicator */}
+                {editingMessageId && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`mb-2 flex items-center justify-between px-3 py-2 rounded-lg ${darkMode
+                      ? "bg-cyan-500/20 border border-cyan-500/30"
+                      : "bg-cyan-50 border border-cyan-200"
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Pencil className={`w-4 h-4 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
+                      <span className={`text-sm font-medium font-body ${darkMode ? "text-cyan-300" : "text-cyan-700"}`}>
+                        Editing message
+                      </span>
+                    </div>
+                    <motion.button
+                      onClick={handleCancelEdit}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`p-1 rounded-lg ${darkMode ? "hover:bg-cyan-500/30 text-cyan-400" : "hover:bg-cyan-100 text-cyan-600"}`}
+                      title="Cancel editing"
+                    >
+                      <X className="w-4 h-4" />
+                    </motion.button>
+                  </motion.div>
+                )}
+                {replyToMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`mb-2 flex items-center justify-between px-3 py-2 rounded-lg ${darkMode
+                      ? "bg-purple-500/15 border border-purple-500/40"
+                      : "bg-purple-50 border border-purple-300"
+                      }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Reply className={`w-4 h-4 ${darkMode ? "text-purple-300" : "text-purple-600"}`} />
+                      <div className="min-w-0">
+                        <span className={`text-xs font-semibold block font-body ${darkMode ? "text-purple-200" : "text-purple-700"}`}>
+                          Replying to
+                        </span>
+                        <span className={`text-xs truncate block font-body ${darkMode ? "text-gray-200" : "text-gray-700"}`}>
+                          {replyToMessage.text}
+                        </span>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={handleCancelReply}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`p-1 rounded-lg ${darkMode ? "hover:bg-purple-500/25 text-purple-200" : "hover:bg-purple-100 text-purple-700"}`}
+                      title="Cancel reply"
+                    >
+                      <X className="w-4 h-4" />
+                    </motion.button>
+                  </motion.div>
+                )}
+                {/* Attached Files Preview */}
+                <AnimatePresence>
+                  {attachedFiles.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-2"
+                    >
+                      {/* Files Header with Count and Clear All */}
+                      <div className={`flex items-center justify-between mb-2 px-2 ${darkMode ? "text-gray-300" : "text-gray-700"
+                        }`}>
+                        <div className="flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          <span className="text-sm font-medium font-body">
+                            {attachedFiles.length} {attachedFiles.length === 1 ? 'file' : 'files'} attached
+                          </span>
+                          <span className={`text-xs font-body ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
+                            ({formatFileSize(attachedFiles.reduce((acc, f) => acc + f.size, 0))} total)
+                          </span>
+                        </div>
+                        <motion.button
+                          onClick={() => setAttachedFiles([])}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`text-xs font-medium px-2 py-1 rounded-lg ${darkMode
+                            ? "text-red-400 hover:bg-red-500/20"
+                            : "text-red-500 hover:bg-red-50"
+                            }`}
+                        >
+                          Clear All
+                        </motion.button>
+                      </div>
+
+                      {/* Scrollable Files Container */}
+                      <div className={`flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar p-1 rounded-xl ${darkMode ? "bg-white/5" : "bg-gray-50"
+                        }`}>
+                        {attachedFiles.map((file, index) => {
+                          const FileIcon = getFileIcon(file);
+                          return (
+                            <motion.div
+                              key={`${file.name}-${index}`}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl ${darkMode
+                                ? "bg-white/10 border border-white/20"
+                                : "bg-white border border-gray-200 shadow-sm"
+                                }`}
+                            >
+                              <FileIcon className={`w-4 h-4 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
+                              <div className="flex flex-col min-w-0">
+                                <span className={`text-xs font-medium truncate max-w-[100px] ${darkMode ? "text-white" : "text-gray-900"
+                                  }`} title={file.name}>
+                                  {file.name}
+                                </span>
+                                <span className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                                  {formatFileSize(file.size)}
+                                </span>
+                              </div>
+                              <motion.button
+                                onClick={() => removeAttachedFile(index)}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className={`p-1 rounded-full flex-shrink-0 ${darkMode ? "hover:bg-red-500/30 text-gray-400 hover:text-red-400" : "hover:bg-red-100 text-gray-500 hover:text-red-500"
+                                  }`}
+                              >
+                                <X className="w-3 h-3" />
+
+
+                              </motion.button>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Voice Recording Preview */}
+                <AnimatePresence>
+                  {(isRecording || audioBlob) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-2"
+                    >
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isRecording
+                        ? darkMode
+                          ? "bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30"
+                          : "bg-gradient-to-r from-red-50 to-orange-50 border border-red-200"
+                        : darkMode
+                          ? "bg-gradient-to-r from-green-500/20 to-cyan-500/20 border border-green-500/30"
+                          : "bg-gradient-to-r from-green-50 to-cyan-50 border border-green-200"
+                        }`}>
+                        {isRecording ? (
+                          <>
+                            <motion.div
+                              className="w-2 h-2 rounded-full bg-red-500"
+                              animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
+                              transition={{ duration: 1, repeat: Infinity }}
+                            />
+                            <span className={`text-sm font-body ${darkMode ? "text-white" : "text-gray-900"}`}>
+                              Recording... {formatRecordingTime(recordingTime)}
+                            </span>
+                            <div className="flex-1" />
+                            <motion.button
+                              onClick={stopRecording}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`p-1.5 rounded-lg ${darkMode
+                                ? "bg-red-500/30 hover:bg-red-500/50 text-red-400"
+                                : "bg-red-100 hover:bg-red-200 text-red-600"
+                                }`}
+                              title="Stop Recording"
+                            >
+                              <Square className="w-3.5 h-3.5" />
+                            </motion.button>
+                            <motion.button
+                              onClick={cancelRecording}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`p-1.5 rounded-lg ${darkMode
+                                ? "bg-gray-500/30 hover:bg-gray-500/50 text-gray-400"
+                                : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                                }`}
+                              title="Cancel"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </motion.button>
+                          </>
+                        ) : (
+                          <>
+                            <motion.div
+                              className={`p-1.5 rounded-full ${darkMode ? "bg-green-500/30" : "bg-green-100"
+                                }`}
+                            >
+                              <Mic className={`w-3.5 h-3.5 ${darkMode ? "text-green-400" : "text-green-600"}`} />
+                            </motion.div>
+                            <span className={`text-sm font-body ${darkMode ? "text-white" : "text-gray-900"}`}>
+                              Voice • {formatRecordingTime(recordingTime)}
+                            </span>
+                            <div className="flex-1" />
+                            <motion.button
+                              onClick={isPlayingRecording ? pauseRecording : playRecording}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`p-1.5 rounded-lg ${darkMode
+                                ? "bg-cyan-500/30 hover:bg-cyan-500/50 text-cyan-400"
+                                : "bg-cyan-100 hover:bg-cyan-200 text-cyan-600"
+                                }`}
+                              title={isPlayingRecording ? "Pause" : "Play"}
+                            >
+                              {isPlayingRecording ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                            </motion.button>
+                            <motion.button
+                              onClick={cancelRecording}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`p-1.5 rounded-lg ${darkMode
+                                ? "bg-red-500/30 hover:bg-red-500/50 text-red-400"
+                                : "bg-red-100 hover:bg-red-200 text-red-600"
+                                }`}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </motion.button>
+                            {/* Send Voice Message Button */}
+                            <motion.button
+                              onClick={handleSendMessage}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              disabled={sending}
+                              className={`p-1.5 rounded-lg ${darkMode
+                                ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-sm"
+                                : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-sm"
+                                }`}
+                              title="Send Voice Message"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                            </motion.button>
+                          </>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex items-center gap-2 relative">
+                  {/* Hidden File Input - Accepts ALL file types with no limits */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+
+                  {/* Emoji Picker Button */}
+                  <motion.button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={`p-2 rounded-lg transition-all glass-card ${showEmojiPicker
+                      ? darkMode
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20"
+                        : "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20"
+                      : darkMode
+                        ? "bg-white/10 hover:bg-white/20 text-gray-300"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                      }`}
+                    whileHover={{ scale: 1.05, rotate: 10 }}
+                    whileTap={{ scale: 0.95 }}
+                    title="Add Emoji"
+                  >
+                    <Smile className="w-4 h-4" />
+                  </motion.button>
+
+                  {/* File Attachment Button */}
+                  <div className="relative">
+                    <motion.button
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`p-2 rounded-lg transition-all glass-card ${attachedFiles.length > 0
+                        ? darkMode
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-500/20"
+                          : "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md shadow-purple-500/20"
+                        : darkMode
+                          ? "bg-white/10 hover:bg-white/20 text-gray-300"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                        }`}
+                      whileHover={{ scale: 1.05, rotate: -10 }}
+                      whileTap={{ scale: 0.95 }}
+                      title={`Attach Files (${attachedFiles.length} attached)`}
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </motion.button>
+                    {/* File Count Badge */}
+                    {attachedFiles.length > 0 && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-bold flex items-center justify-center shadow-lg shadow-red-500/30"
+                      >
+                        {attachedFiles.length > 99 ? '99+' : attachedFiles.length}
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Voice Recording Button */}
+                  <motion.button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`p-2 rounded-lg transition-all glass-card ${isRecording
+                      ? darkMode
+                        ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md shadow-red-500/20"
+                        : "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md shadow-red-500/20"
+                      : audioBlob
+                        ? darkMode
+                          ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-500/20"
+                          : "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-500/20"
+                        : darkMode
+                          ? "bg-white/10 hover:bg-white/20 text-gray-300"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                      }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    title={isRecording ? "Stop Recording" : "Start Voice Recording"}
+                  >
+                    {isRecording ? (
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.5, repeat: Infinity }}
+                      >
+                        <MicOff className="w-4 h-4" />
+                      </motion.div>
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                  </motion.button>
+
+                  {/* Emoji Picker */}
+                  <AnimatePresence>
+                    {showEmojiPicker && (
+                      <motion.div
+                        ref={emojiPickerRef}
+                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                        className="absolute bottom-full left-0 mb-3 z-50 max-w-[calc(100vw-2rem)]"
+                      >
+                        <div className={`rounded-2xl overflow-hidden shadow-2xl glass-card ${darkMode
+                          ? "bg-gray-900/95 border-2 border-cyan-500/30 backdrop-blur-2xl"
+                          : "bg-white/95 border-2 border-cyan-200 backdrop-blur-2xl"
+                          }`}
+                          style={{
+                            boxShadow: darkMode
+                              ? "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(6,242,242,0.1)"
+                              : "0 20px 60px rgba(0,0,0,0.12), 0 0 40px rgba(6,242,242,0.06)"
+                          }}
+                        >
+                          <EmojiPicker
+                            onEmojiClick={handleEmojiClick}
+                            theme={darkMode ? Theme.DARK : Theme.LIGHT}
+                            width="100%"
+                            height={350}
+                            style={{ width: '100%', maxWidth: '350px', maxHeight: '400px' }}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    placeholder="Type your message..."
+                    className={`flex-1 px-4 py-2.5 rounded-xl border text-sm backdrop-blur-xl transition-all font-body ${darkMode
+                      ? "bg-white/[0.04] border-cyan-500/30 text-white placeholder-gray-500 focus:border-cyan-400 focus:bg-white/[0.08]"
+                      : "bg-white/80 border-cyan-200 text-black placeholder-gray-500 focus:border-cyan-400 focus:bg-white"
+                      } focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:shadow-[0_0_20px_rgba(6,242,242,0.08)]`}
+                    style={{
+                      boxShadow: darkMode
+                        ? "inset 0 2px 4px rgba(0,0,0,0.2)"
+                        : "inset 0 1px 3px rgba(0,0,0,0.04)"
+                    }}
+                  />
+                  <motion.button
+                    onClick={handleSendMessage}
+                    disabled={(!newMessage.trim() && attachedFiles.length === 0 && !audioBlob) || sending}
+                    className={`p-2.5 rounded-xl transition-all relative overflow-hidden ${(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending
+                      ? darkMode
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25"
+                        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg shadow-cyan-500/25"
+                      : darkMode
+                        ? "bg-white/10 text-gray-500 cursor-not-allowed"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      }`}
+                    whileHover={(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending ? { scale: 1.05 } : {}}
+                    whileTap={(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending ? { scale: 0.95 } : {}}
+                    title={editingMessageId ? "Save changes" : "Send message"}
+                  >
+                    {(newMessage.trim() || attachedFiles.length > 0 || audioBlob) && !sending && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        animate={{ x: ["-200%", "200%"] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                      />
+                    )}
+                    {sending ? (
+                      <motion.div
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                    ) : (
+                      <Send className="w-4 h-4 relative z-10" />
+                    )}
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex-1 flex items-center justify-center"
+            >
+              <div className="text-center px-6">
+                <motion.div
+                  className={`w-36 h-36 rounded-2xl mx-auto mb-6 ${darkMode
+                    ? "bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-cyan-500/20"
+                    : "bg-gradient-to-br from-gray-100/80 to-gray-200/80 border-2 border-cyan-200"
+                    } flex items-center justify-center shadow-2xl relative overflow-hidden`}
+                  animate={{ scale: [1, 1.08, 1], rotate: [0, 3, -3, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  style={{
+                    boxShadow: darkMode
+                      ? "0 0 60px rgba(6, 242, 242, 0.08)"
+                      : "0 0 60px rgba(6, 242, 242, 0.06)"
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10" />
+                  <MessageSquare className={`w-16 h-16 relative z-10 ${darkMode ? "text-cyan-400/60" : "text-cyan-500/60"
+                    }`} />
+                  <motion.div
+                    className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-cyan-500/20 blur-xl"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                </motion.div>
+                <motion.p
+                  className={`text-2xl font-bold mb-3 font-display ${darkMode ? "text-gray-200" : "text-gray-800"
+                    }`}
+                  animate={{ opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  Select a conversation
+                </motion.p>
+                <p className={`text-sm font-body max-w-xs mx-auto leading-relaxed ${darkMode ? "text-gray-500" : "text-gray-500"
+                  }`}>
+                  Choose a conversation from the list to start chatting
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Video Call Modal */}
+      <AnimatePresence>
+        {showVideoCallModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center"
+          >
+            {/* Full Screen Video Call Interface */}
+            <div className="absolute inset-0 bg-gray-900">
+              {/* Remote Video (placeholder - shows avatar) */}
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                {callStatus === 'connected' ? (
+                  <div className="text-center">
+                    <motion.div
+                      className="w-32 h-32 rounded-full mx-auto mb-4 bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-4 border-cyan-500/50 flex items-center justify-center"
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <span className="text-5xl font-bold text-cyan-300">
+                        {selectedConversation?.freelancerName?.charAt(0)?.toUpperCase() || "?"}
+                      </span>
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      {selectedConversation?.freelancerName}
+                    </h3>
+                    <p className="text-gray-400 text-sm">
+                      Waiting for {selectedConversation?.freelancerName} to join...
+                    </p>
+                  </div>
+                ) : callStatus === 'calling' ? (
+                  <div className="text-center">
+                    <motion.div
+                      className="w-32 h-32 rounded-full mx-auto mb-4 bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-4 border-cyan-500/50 flex items-center justify-center"
+                      animate={{
+                        scale: [1, 1.1, 1],
+                        boxShadow: [
+                          "0 0 0 0 rgba(6, 182, 212, 0.4)",
+                          "0 0 0 30px rgba(6, 182, 212, 0)",
+                          "0 0 0 0 rgba(6, 182, 212, 0)"
+                        ]
+                      }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <span className="text-5xl font-bold text-cyan-300">
+                        {selectedConversation?.freelancerName?.charAt(0)?.toUpperCase() || "?"}
+                      </span>
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      {selectedConversation?.freelancerName}
+                    </h3>
+                    <motion.p
+                      className="text-cyan-400 text-lg font-medium"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      Calling...
+                    </motion.p>
+                  </div>
+                ) : callStatus === 'ended' ? (
+                  <div className="text-center">
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="w-32 h-32 rounded-full mx-auto mb-4 bg-red-500/20 border-4 border-red-500/50 flex items-center justify-center"
+                    >
+                      <X className="w-16 h-16 text-red-400" />
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Call Ended
+                    </h3>
+                    <p className="text-gray-400">
+                      Duration: {formatCallDuration(callDuration)}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Local Video Preview */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, x: 20, y: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                className="absolute bottom-32 right-6 w-48 h-36 rounded-2xl overflow-hidden border-2 border-cyan-500/50 shadow-2xl bg-gray-800"
+              >
+                {/* Always render video element so ref is available */}
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={`w-full h-full object-cover transform scale-x-[-1] ${isVideoEnabled && localStream ? 'block' : 'hidden'
+                    }`}
+                />
+                {/* Show avatar when video is off */}
+                {(!isVideoEnabled || !localStream) && (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-2">
+                        <span className="text-lg font-bold text-gray-400">
+                          {user?.profile?.firstName?.charAt(0)?.toUpperCase() || "U"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">Camera Off</p>
+                    </div>
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/50 text-xs text-white">
+                  You
+                </div>
+              </motion.div>
+
+              {/* Call Duration */}
+              {callStatus === 'connected' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute top-6 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/30"
+                >
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      className="w-2 h-2 rounded-full bg-green-500"
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                    <span className="text-green-400 font-mono font-medium">
+                      {formatCallDuration(callDuration)}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Top Bar */}
+              <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent">
+                <div className="flex items-center gap-3">
+                  <Video className="w-5 h-5 text-green-400" />
+                  <span className="text-white font-medium">Video Call</span>
+                </div>
+                <motion.button
+                  onClick={endVideoCall}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
+              </div>
+
+              {/* Bottom Controls */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent"
+              >
+                <div className="flex items-center justify-center gap-4">
+                  {/* Mute Audio Button */}
+                  <motion.button
+                    onClick={toggleAudio}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-4 rounded-full transition-all ${isAudioEnabled
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-red-500 hover:bg-red-400 text-white"
+                      }`}
+                    title={isAudioEnabled ? "Mute" : "Unmute"}
+                  >
+                    {isAudioEnabled ? (
+                      <Mic className="w-6 h-6" />
+                    ) : (
+                      <MicOff className="w-6 h-6" />
+                    )}
+                  </motion.button>
+
+                  {/* Toggle Video Button */}
+                  <motion.button
+                    onClick={toggleVideo}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`p-4 rounded-full transition-all ${isVideoEnabled
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-red-500 hover:bg-red-400 text-white"
+                      }`}
+                    title={isVideoEnabled ? "Turn Off Camera" : "Turn On Camera"}
+                  >
+                    {isVideoEnabled ? (
+                      <Video className="w-6 h-6" />
+                    ) : (
+                      <X className="w-6 h-6" />
+                    )}
+                  </motion.button>
+
+                  {/* End Call Button */}
+                  <motion.button
+                    onClick={endVideoCall}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-5 rounded-full bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/50"
+                    title="End Call"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
+                      <line x1="23" y1="1" x2="1" y2="23" />
+                    </svg>
+                  </motion.button>
+                </div>
+
+                {/* Call Info */}
+                <div className="mt-4 text-center">
+                  <p className="text-white font-medium">{selectedConversation?.freelancerName}</p>
+                  <p className="text-gray-400 text-sm">
+                    {callStatus === 'calling' ? 'Ringing...' :
+                      callStatus === 'connected' ? 'Connected' :
+                        callStatus === 'ended' ? 'Call Ended' : ''}
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Profile Modal */}
+      {showProfileModal && profileFreelancer && (
+        <FreelancerProfileModal
+          freelancer={profileFreelancer}
+          onClose={() => {
+            setShowProfileModal(false);
+            setProfileFreelancer(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default MessagesTab;

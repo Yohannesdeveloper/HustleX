@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Homepage - Highest Priority -->
+  <url>
+    <loc>https://hustlex.com/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://hustlex.com/Logo.png</image:loc>
+      <image:title>HustleX Logo</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://hustlex.com/og-image-home.jpg</image:loc>
+      <image:title>HustleX - Hire Elite Freelancers Worldwide</image:title>
+    </image:image>
+  </url>
+
+  <!-- Core Service Pages - High Priority -->
+  <url>
+    <loc>https://hustlex.com/post-job</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://hustlex.com/og-image-hire.jpg</image:loc>
+      <image:title>Hire Elite Freelancers on HustleX</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.95</priority>
+    <image:image>
+      <image:loc>https://hustlex.com/og-image-jobs.jpg</image:loc>
+      <image:title>Browse Freelance Jobs on HustleX</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/signup</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.90</priority>
+    <image:image>
+      <image:loc>https://hustlex.com/og-image-freelancer.jpg</image:loc>
+      <image:title>Become a Freelancer on HustleX</image:title>
+    </image:image>
+  </url>
+
+  <!-- Information Pages - Medium-High Priority -->
+  <url>
+    <loc>https://hustlex.com/about-us</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/HowItWorks</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/pricing</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/faq</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/help-center</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/contact-us</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- Content Pages - Medium Priority -->
+  <url>
+    <loc>https://hustlex.com/blog</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- Service Category Landing Pages -->
+  <url>
+    <loc>https://hustlex.com/job-listings?category=web-development</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings?category=mern-stack</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings?category=ui-ux-design</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings?category=graphic-design</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings?category=video-editing</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings?category=digital-marketing</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlex.com/job-listings?category=ai-services</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Alternative URLs (for internationalization if needed later) -->
+  <!--
+  <url>
+    <loc>https://hustlex.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://hustlex.com/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hustlex.com/"/>
+  </url>
+  -->
+
+</urlset>

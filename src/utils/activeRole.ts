@@ -1,0 +1,125 @@
+import type { User } from "../store/authSlice";
+
+const STORAGE_KEY = "hustlex_active_role";
+
+export type ActiveRole = "freelancer" | "client" | "admin";
+
+export function getActiveRole(user: User | null | undefined): ActiveRole | null {
+  if (!user) return null;
+  const role = user.currentRole || user.role;
+  if (role === "client" || role === "freelancer" || role === "admin") return role;
+  return null;
+}
+
+export function isClientMode(user: User | null | undefined): boolean {
+  return getActiveRole(user) === "client";
+}
+
+export function isFreelancerMode(user: User | null | undefined): boolean {
+  return getActiveRole(user) === "freelancer";
+}
+
+export function isAdminMode(user: User | null | undefined): boolean {
+  return getActiveRole(user) === "admin";
+}
+
+export function persistActiveRole(role: ActiveRole): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, role);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function readPersistedActiveRole(): ActiveRole | null {
+  try {
+    const value = localStorage.getItem(STORAGE_KEY);
+    if (value === "freelancer" || value === "client" || value === "admin") return value;
+  } catch {
+    // ignore storage errors
+  }
+  return null;
+}
+
+export function clearPersistedActiveRole(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function dashboardPathForRole(role: ActiveRole): string {
+  if (role === "admin") return "/admin/dashboard";
+  return role === "client" ? "/dashboard/hiring" : "/dashboard/freelancer";
+}
+
+export function isFreelancerProfileComplete(user: { profile?: any } | null | undefined): boolean {
+  if (!user?.profile) return false;
+  return user.profile.isProfileComplete || 
+    (user.profile.skills && Array.isArray(user.profile.skills) && user.profile.skills.length > 0);
+}
+
+const PENDING_JOB_KEY = "pendingJobRedirect";
+
+export function getPendingJobRedirect(pathname?: string, search = ""): string | null {
+  try {
+    const stored = sessionStorage.getItem(PENDING_JOB_KEY);
+    if (stored) return stored;
+  } catch {
+    /* ignore */
+  }
+  if (pathname?.startsWith("/job-details/")) {
+    return pathname + search;
+  }
+  return null;
+}
+
+export function setPendingJobRedirect(redirect: string): void {
+  try {
+    sessionStorage.setItem(PENDING_JOB_KEY, redirect);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearPendingJobRedirect(): void {
+  try {
+    sessionStorage.removeItem(PENDING_JOB_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function freelancerProfileSetupPath(redirect?: string | null): string {
+  if (redirect) {
+    return `/freelancer-profile-setup?redirect=${encodeURIComponent(redirect)}`;
+  }
+  return "/freelancer-profile-setup";
+}
+
+export function needsFreelancerProfileSetup(user: User | null | undefined): boolean {
+  if (!user?.roles?.includes("freelancer")) return false;
+  return !isFreelancerProfileComplete(user);
+}
+
+/** Single destination resolver for Telegram job-apply deep links */
+export function resolveApplyFlowPath(
+  isAuthenticated: boolean,
+  user: User | null | undefined,
+  redirect: string | null | undefined
+): string {
+  const effectiveRedirect = redirect || null;
+
+  if (isAuthenticated && user) {
+    if (isFreelancerProfileComplete(user)) {
+      return effectiveRedirect || "/dashboard/freelancer";
+    }
+    return freelancerProfileSetupPath(effectiveRedirect);
+  }
+
+  if (effectiveRedirect) {
+    return `/Register?redirect=${encodeURIComponent(effectiveRedirect)}`;
+  }
+  return "/Register";
+}

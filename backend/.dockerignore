@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Logs
+logs
+*.log
+
+# Uploads (will be mounted as volume)
+uploads
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+*.md
+SECURITY_AUDIT.md
+
+# Scripts (not needed in production)
+scripts
+*.bat
+*.sh
+
+# Test files
+test-*.js
+check-*.js
+clear-*.js
+create-*.js
+delete-*.js
+seed-*.js

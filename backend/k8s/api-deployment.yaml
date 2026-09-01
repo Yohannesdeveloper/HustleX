@@ -1,0 +1,215 @@
+# API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hustlex-api
+  namespace: hustlex
+  labels:
+    app: hustlex-api
+    version: v1
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: hustlex-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 10%
+  template:
+    metadata:
+      labels:
+        app: hustlex-api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Affinity for multi-AZ deployment
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - hustlex-api
+                topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: eks.amazonaws.com/nodegroup
+                    operator: In
+                    values:
+                      - hustlex-api-nodes
+      
+      # Topology spread for multi-AZ
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: hustlex-api
+      
+      containers:
+        - name: api
+          image: hustlex-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+              name: http
+              protocol: TCP
+          
+          # Resource limits and requests
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          
+          # Environment variables
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: hustlex-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: hustlex-config
+                  key: PORT
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: hustlex-secrets
+                  key: MONGODB_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: hustlex-secrets
+                  key: JWT_SECRET
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hustlex-secrets
+                  key: REDIS_PASSWORD
+          
+          # Health checks
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /api/health/detailed
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          # Volume mounts
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+            - name: logs
+              mountPath: /app/logs
+      
+      # Volumes
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: hustlex-uploads-pvc
+        - name: logs
+          emptyDir: {}
+      
+      # Service account
+      serviceAccountName: hustlex-api-sa
+      
+      # Image pull secrets
+      imagePullSecrets:
+        - name: ecr-credentials
+
+---
+# API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: hustlex-api
+  namespace: hustlex
+  labels:
+    app: hustlex-api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: hustlex-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP
+  sessionAffinity: None
+
+---
+# Persistent Volume Claim for uploads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hustlex-uploads-pvc
+  namespace: hustlex
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# Ingress (for internal routing)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hustlex-api-ingress
+  namespace: hustlex
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - api.hustlex.com
+      secretName: hustlex-api-tls
+  rules:
+    - host: api.hustlex.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hustlex-api
+                port:
+                  number: 80

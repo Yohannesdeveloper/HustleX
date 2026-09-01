@@ -1,0 +1,180 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HustleX — Local Development Stack
+#
+# Services:
+#   api       — Node/Express backend (hot-reload via nodemon)
+#   frontend  — Vite dev server (HMR)
+#   redis     — Redis 7 (cache, Socket.IO adapter, rate-limit store)
+#   mongo     — MongoDB 7 (local replica-set-like single node)
+#
+# Usage:
+#   docker compose up            # Start all services
+#   docker compose up api redis  # Backend only
+#   docker compose logs -f api   # Tail backend logs
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-common-env: &common-env
+  NODE_ENV: development
+  TZ: UTC
+
+services:
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: hustlex-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      <<: *common-env
+      MONGO_INITDB_DATABASE: hustlex
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - hustle
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping').ok", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hustlex-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # Enable persistence + LRU eviction + password
+    command: >
+      redis-server
+        --appendonly yes
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --requirepass ${REDIS_PASSWORD:-devpassword}
+    volumes:
+      - redis-data:/data
+    networks:
+      - hustle
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-devpassword}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Queue worker (email, messages, Telegram) ────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: deps
+    container_name: hustlex-worker
+    restart: unless-stopped
+    command: npm run worker
+    env_file:
+      - .env
+    environment:
+      <<: *common-env
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379
+      REDIS_ENABLED: "true"
+      QUEUE_ENABLED: "true"
+      MESSAGE_ASYNC: "true"
+      MONGODB_URI: mongodb://mongo:27017/hustlex
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hustle
+
+  # ── Backend API ───────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: deps          # Use the deps stage (has dev tools) for local dev
+    container_name: hustlex-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    env_file:
+      - .env
+    environment:
+      <<: *common-env
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/hustlex
+      REDIS_URL: redis://:${REDIS_PASSWORD:-devpassword}@redis:6379
+      REDIS_ENABLED: "true"
+      QUEUE_ENABLED: "true"
+      MESSAGE_ASYNC: "true"
+      CLIENT_URL: "http://localhost:5173"
+      # Skip TLS cert validation in dev (Windows AV/SSL inspection workaround)
+      MONGODB_TLS_INSECURE: "true"
+    volumes:
+      # Mount source for hot-reload (nodemon watches for changes)
+      - ./backend:/app
+      - /app/node_modules        # Anonymous volume prevents host override of node_modules
+      - api-uploads:/app/uploads
+      - api-logs:/app/logs
+    command: ["npx", "nodemon", "server.js"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hustle
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:5000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: builder        # Use builder stage so Vite dev server is available
+    container_name: hustlex-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      <<: *common-env
+      VITE_API_URL: "http://localhost:${PORT:-5000}"
+      VITE_SOCKET_URL: "http://localhost:${PORT:-5000}"
+    volumes:
+      # Mount source + node_modules for HMR
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+    command: ["npx", "vite", "--host", "0.0.0.0"]
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - hustle
+
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local
+  redis-data:
+    driver: local
+  api-uploads:
+    driver: local
+  api-logs:
+    driver: local
+
+networks:
+  hustle:
+    driver: bridge

@@ -1,0 +1,1887 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import Footer from "../components/Footer";
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Clock,
+  User,
+  GraduationCap,
+  Briefcase,
+  Users,
+  Share2,
+  Heart,
+  Bookmark,
+  Send,
+  Building,
+  Mail,
+  Phone,
+  Globe,
+  CheckCircle,
+  Star,
+  Award,
+  Target,
+  Zap,
+  X,
+  UserCheck,
+  Building2,
+  DollarSign,
+  ExternalLink,
+  Layers,
+  Eye,
+  Lock,
+  AlertTriangle,
+} from "lucide-react";
+import apiService from "../services/api";
+import { useAppSelector } from "../store/hooks";
+import { useAuth } from "../store/hooks";
+import { useWebSocket } from "../context/WebSocketContext";
+import ApplicationSuccessAnimation from "../components/ApplicationSuccessAnimation";
+import SEO from "../components/SEO";
+import { isFreelancerProfileComplete, setPendingJobRedirect, freelancerProfileSetupPath } from "../utils/activeRole";
+
+// Role Switcher Component
+const RoleSwitcher: React.FC<{
+  currentRole: string;
+  onSwitchRole: (role: "freelancer" | "client") => void;
+  darkMode: boolean;
+}> = ({ currentRole, onSwitchRole, darkMode }) => {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <span className={`text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+        Current Role:
+      </span>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onSwitchRole("freelancer")}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${currentRole === "freelancer"
+            ? "bg-blue-500 text-white"
+            : darkMode
+              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+            }`}
+        >
+          Freelancer
+        </button>
+        <button
+          onClick={() => onSwitchRole("client")}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${currentRole === "client"
+            ? "bg-green-500 text-white"
+            : darkMode
+              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+            }`}
+        >
+          Client
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface JobPost {
+  _id: string;
+  title: string;
+  description: string;
+  company?: string;
+  budget: string;
+  duration?: string;
+  category: string;
+  jobType?: string;
+  workLocation?: string;
+  experience?: string;
+  education?: string;
+  gender?: string;
+  vacancies?: number;
+  skills?: string[];
+  requirements?: string[];
+  benefits?: string[];
+  contactEmail?: string;
+  contactPhone?: string;
+  companyWebsite?: string;
+  createdAt?: string;
+  postedBy?: {
+    _id: string;
+    email: string;
+    profile: any;
+  };
+  jobSite?: string;
+  jobSector?: string;
+  compensationType?: string;
+  compensationAmount?: string;
+  currency?: string;
+  deadline?: string;
+  address?: string;
+  country?: string;
+  city?: string;
+  jobLink?: string;
+  visibility?: string;
+  similarJobs?: {
+    _id: string;
+    title: string;
+    workLocation?: string;
+    jobType?: string;
+    budget: string;
+  }[];
+}
+
+interface AppUser {
+  id: string;
+  email: string;
+  role: string;
+  profile: any;
+}
+
+interface ApplicationResponse {
+  hasApplied: boolean;
+}
+
+interface UploadResponse {
+  fileUrl: string;
+}
+
+function getCachedJob(jobId: string | undefined): JobPost | null {
+  if (!jobId) return null;
+  try {
+    const raw = localStorage.getItem(`jc_${jobId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts > 5 * 60 * 1000) return null;
+    return parsed.data as JobPost;
+  } catch { return null; }
+}
+
+function setCachedJob(jobId: string, data: JobPost): void {
+  try {
+    localStorage.setItem(`jc_${jobId}`, JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
+
+const JobDetailsMongo: React.FC = () => {
+  const { jobId } = useParams<{ jobId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  console.log('[JobDetailsMongo] render - jobId:', jobId, 'pathname:', location.pathname);
+
+  const darkMode = useAppSelector((s) => s.theme.darkMode);
+  const { onNewApplication, offNewApplication } = useWebSocket();
+  const cachedJob = getCachedJob(jobId);
+  const [job, setJob] = useState<JobPost | null>(cachedJob);
+  const [loading, setLoading] = useState(!cachedJob);
+  const [error, setError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [portfolioLink, setPortfolioLink] = useState("");
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [userRole, setUserRole] = useState<"freelancer" | "client" | "guest">("guest");
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const formRef = useRef<HTMLDivElement | null>(null);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [checkingApplication, setCheckingApplication] = useState(false);
+  const isTelegramMiniApp = !!window.Telegram?.WebApp;
+
+  const authCheckedRef = useRef(false);
+
+  useEffect(() => {
+    if (authCheckedRef.current) return;
+    authCheckedRef.current = true;
+    let cancelled = false;
+    const checkAuth = async () => {
+      if (apiService.isAuthenticated()) {
+        try {
+          const userFromApi = await apiService.getCurrentUser();
+          if (cancelled) return;
+          const user: AppUser = {
+            id: userFromApi._id,
+            email: userFromApi.email,
+            role: userFromApi.currentRole,
+            profile: userFromApi.profile || {
+              firstName: "",
+              lastName: "",
+              phone: "",
+              skills: [],
+              experience: "",
+              education: "",
+            },
+          };
+          setCurrentUser(user);
+          setUserRoles(userFromApi.roles || []);
+          setUserRole(userFromApi.currentRole as "freelancer" | "client");
+        } catch (error) {
+          if (cancelled) return;
+          console.error("Auth check failed:", error);
+          apiService.logout();
+        }
+      } else {
+        if (cancelled) return;
+        setUserRole("guest");
+      }
+    };
+    checkAuth();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!jobId) {
+      setError("No job ID provided");
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const fetchJob = async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        const jobData = (await apiService.getJob(jobId)) as JobPost;
+        if (cancelled) return;
+        if (!jobData) {
+          setError("Job not found");
+          setLoading(false);
+          return;
+        }
+        const enrichedJob = {
+          ...jobData,
+          duration: jobData.duration || "Flexible",
+          jobType: jobData.jobType || "Contract",
+          workLocation: jobData.workLocation || "Remote",
+        };
+        setJob(enrichedJob);
+        if (jobId) setCachedJob(jobId, enrichedJob);
+        setError(null);
+      } catch (error: any) {
+        if (cancelled) return;
+        const errorMessage = error?.response?.data?.message ||
+          error?.message ||
+          "Failed to load job details. Please try again.";
+        setError(errorMessage);
+        setJob(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchJob();
+    return () => { cancelled = true; };
+  }, [jobId]);
+
+  useEffect(() => {
+    if (!currentUser || !job || checkingApplication) return;
+    let cancelled = false;
+    const checkApplication = async () => {
+      setCheckingApplication(true);
+      try {
+        const response: ApplicationResponse = await apiService.checkApplication(
+          job._id
+        );
+        if (!cancelled) setApplied(response.hasApplied);
+      } catch (error) {
+        if (!cancelled) console.error("Error checking application:", error);
+      } finally {
+        if (!cancelled) setCheckingApplication(false);
+      }
+    };
+    checkApplication();
+    return () => { cancelled = true; };
+  }, [currentUser, job]);
+
+  // Listen for real-time application submission events
+  useEffect(() => {
+    if (!onNewApplication || !offNewApplication) return;
+
+    const handleApplicationSubmitted = (data: any) => {
+      if (data.application && data.application.jobId === job?._id) {
+        setApplied(true);
+        setShowApplicationForm(false);
+        setCoverLetter("");
+        setCvFile(null);
+        setPortfolioLink("");
+      }
+    };
+
+    onNewApplication(handleApplicationSubmitted);
+
+    return () => {
+      offNewApplication(handleApplicationSubmitted);
+    };
+  }, [job?._id, onNewApplication, offNewApplication]);
+
+  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setCvFile(e.target.files[0]);
+    }
+  };
+
+  const isValidUrl = (string: string) => {
+    try {
+      // Add protocol if missing
+      let url = string.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      new URL(url);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const handleApply = async () => {
+    console.log('[handleApply] Starting - userRole:', userRole, 'currentUser:', !!currentUser);
+    
+    if (!job) {
+      alert("Job information not available. Please refresh the page.");
+      return;
+    }
+
+    if (userRole === "guest" || !currentUser) {
+      console.log('[handleApply] Navigating to signup');
+      navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
+      return;
+    }
+
+    // Check if user needs to complete freelancer profile before allowing apply
+    const profileComplete = isFreelancerProfileComplete({ profile: currentUser.profile });
+    console.log('[handleApply] Profile complete:', profileComplete);
+    
+    if (!profileComplete) {
+      console.log('[handleApply] Profile incomplete, navigating to setup');
+      const redirect = location.pathname + location.search;
+      setPendingJobRedirect(redirect);
+      navigate(freelancerProfileSetupPath(redirect), { replace: true });
+      return;
+    }
+
+    if (currentUser && job.postedBy?._id === currentUser.id) {
+      alert("You cannot apply to your own job posting.");
+      return;
+    }
+
+    // Auto-populate portfolio link and CV from freelancer profile
+    if (currentUser?.profile) {
+      // Set portfolio link from profile (inherit from profile wizard)
+      if (currentUser.profile.portfolioUrl || currentUser.profile.portfolio) {
+        setPortfolioLink(currentUser.profile.portfolioUrl || currentUser.profile.portfolio);
+      }
+
+      // Note: CV from profile will be handled in the application submission
+      // The user can choose to upload a new CV or use their existing one
+      // CV is inherited from profile wizard via cvUrl field
+    }
+
+    console.log('[handleApply] Showing application form');
+    setShowApplicationForm(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!job) {
+      alert("Job information not available. Please refresh the page.");
+      return;
+    }
+
+    // Validate required fields
+    if (!coverLetter.trim()) {
+      alert("Please provide a cover letter.");
+      return;
+    }
+
+    if (!cvFile) {
+      alert("Please upload a CV.");
+      return;
+    }
+
+    setApplying(true);
+    try {
+      let cvUrl = "";
+
+      // Handle CV upload
+      if (cvFile) {
+        if (cvFile.size > 5 * 1024 * 1024) {
+          alert("CV file size must be less than 5MB.");
+          setApplying(false);
+          return;
+        }
+        const allowedTypes = [
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ];
+        if (!allowedTypes.includes(cvFile.type)) {
+          alert("Only PDF, DOC, and DOCX files are allowed for CV.");
+          setApplying(false);
+          return;
+        }
+        try {
+          const uploadResponse = (await apiService.uploadCV(
+            cvFile
+          )) as UploadResponse;
+          cvUrl = apiService.getFileUrl(uploadResponse.fileUrl);
+        } catch (uploadError: any) {
+          console.error("CV upload error:", uploadError);
+          alert(
+            uploadError.message || "Failed to upload CV. Please try again."
+          );
+          setApplying(false);
+          return;
+        }
+      }
+
+      // Process portfolio link if provided
+      let processedPortfolioUrl = "";
+      if (portfolioLink.trim()) {
+        if (!isValidUrl(portfolioLink.trim())) {
+          alert("Please enter a valid portfolio URL (e.g., https://example.com)");
+          setApplying(false);
+          return;
+        }
+        // Add protocol if missing
+        let url = portfolioLink.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        processedPortfolioUrl = url;
+      }
+
+      const payload: any = {
+        jobId: job._id,
+        coverLetter: coverLetter.trim(),
+      };
+
+      // Only include cvUrl if it's a valid non-empty string
+      if (cvUrl && cvUrl.trim() !== "") {
+        payload.cvUrl = cvUrl;
+      }
+
+      // Only include portfolioUrl if it's a valid non-empty string
+      if (processedPortfolioUrl) {
+        payload.portfolioUrl = processedPortfolioUrl;
+      }
+
+      console.log("Submitting application with payload:", payload);
+      const application = await apiService.submitApplication(payload);
+      console.log("Application submitted successfully:", application);
+      setApplied(true);
+      setCoverLetter("");
+      setCvFile(null);
+      setPortfolioLink("");
+      setShowApplicationForm(false);
+      setShowSuccessAnimation(true);
+    } catch (error: any) {
+      console.error("Full error object:", error);
+      if (error.response) {
+        console.error("Backend rejected request:", error.response.data);
+        console.error("Response status:", error.response.status);
+        const errorMessage = error.response.data.errors?.[0]?.message ||
+          error.response.data.message ||
+          error.response.data.error ||
+          "Server error";
+        alert(`Failed to apply: ${errorMessage}`);
+      } else {
+        console.error("Error applying to job:", error);
+        alert(
+          error.message ||
+          "An error occurred while submitting your application. Please try again."
+        );
+      }
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Recently posted";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+
+  if (loading && !job) {
+    return (
+      <div className={`min-h-screen ${darkMode ? "bg-black" : "bg-white"} p-6`}>
+        <div className="max-w-6xl mx-auto">
+          {/* Skeleton header */}
+          <div className={`h-10 w-32 rounded-xl mb-8 animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              <div className={`h-64 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+              <div className={`h-48 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+            </div>
+            <div className="space-y-4">
+              <div className={`h-40 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+              <div className={`h-56 rounded-3xl animate-pulse ${darkMode ? "bg-gray-800" : "bg-gray-200"}`} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div
+        className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-black" : "bg-white"
+          } flex items-center justify-center`}
+      >
+
+        <div
+          className={`relative z-10 text-center space-y-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+            ? "bg-black/40 border-cyan-500/20"
+            : "bg-white/40 border-cyan-500/10"
+            } backdrop-blur-xl border rounded-3xl p-8`}
+        >
+          <div
+            className={`w-16 h-16 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? "text-white" : "text-black"
+              }`}
+          >
+            <Briefcase className="w-8 h-8" />
+          </div>
+          <p
+            className={`text-xl font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+              } mb-2`}
+          >
+            {error || "Job not found. It may have been removed or doesn't exist."}
+          </p>
+          {jobId && (
+            <p
+              className={`text-sm font-inter mb-4 ${darkMode ? "text-gray-400" : "text-gray-500"
+                }`}
+            >
+              Job ID: {jobId}
+            </p>
+          )}
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => navigate("/job-listings")}
+              className={`px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 font-bold rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-cyan-500/25 hover:shadow-cyan-400/40 hover:scale-105 font-inter ${darkMode ? "text-white" : "text-black"
+                }`}
+            >
+              Back to Jobs
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className={`px-6 py-3 font-medium rounded-xl hover:scale-105 transition-all duration-300 font-inter border shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                ? "bg-black/50 text-gray-300 border-gray-700/50 hover:bg-gray-700/50"
+                : "bg-white/50 text-gray-600 border-gray-300/50 hover:bg-gray-200/50"
+                }`}
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // TypeScript assertion: job is guaranteed non-null here due to early returns above
+  if (!job) return null; // Extra safety check for TypeScript
+
+  const cleanSnippet = job.description.replace(/<[^>]*>/g, "").substring(0, 160);
+  const canonicalUrl = `https://hustlex.com/job-details/${job._id}`;
+  const jobDate = job.createdAt
+    ? typeof job.createdAt === "string"
+      ? new Date(job.createdAt).toISOString()
+      : new Date((job.createdAt as any).seconds * 1000).toISOString()
+    : new Date().toISOString();
+
+  const jobPostingSchema = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": job.description,
+    "datePosted": jobDate,
+    "validThrough": job.deadline ? new Date(job.deadline).toISOString() : undefined,
+    "employmentType": "CONTRACTOR",
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.company || "HustleX Client",
+      "sameAs": job.companyWebsite || "https://hustlex.com"
+    },
+    "jobLocationType": "TELECOMMUTE",
+    "applicantLocationRequirements": {
+      "@type": "Country",
+      "name": "Worldwide"
+    },
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": {
+        "@type": "QuantitativeValue",
+        "value": job.budget,
+        "unitText": "Project"
+      }
+    }
+  };
+
+  const breadcrumbsSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://hustlex.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Jobs",
+        "item": "https://hustlex.com/job-listings"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": job.title,
+        "item": canonicalUrl
+      }
+    ]
+  };
+
+  return (
+    <div
+      className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-black" : "bg-white"
+        }`}
+    >
+      <SEO
+        title={`${job.title} | ${job.company || "HustleX"} | Freelance Jobs`}
+        description={cleanSnippet}
+        keywords={job.skills || []}
+        canonical={canonicalUrl}
+        ogTitle={job.title}
+        ogDescription={cleanSnippet}
+        ogImage="https://hustlex.com/og-image-jobs.jpg"
+        structuredData={[jobPostingSchema, breadcrumbsSchema]}
+      />
+
+
+      <div className="relative z-10">
+        <header
+          className={`border-b ${darkMode
+            ? "border-cyan-500/20 bg-black/20"
+            : "border-cyan-500/10 bg-white/20"
+            } backdrop-blur-xl shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+        >
+          <div className="max-w-6xl mx-auto px-6 py-6">
+            <div className="flex items-center justify-between">
+              {!isTelegramMiniApp && (
+                <button
+                  onClick={() => navigate("/job-listings")}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl font-inter transition-all duration-300 border shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                    ? "bg-black/40 text-cyan-400 border-cyan-500/20 hover:text-cyan-300 hover:border-cyan-400/40"
+                    : "bg-white/40 text-cyan-600 border-cyan-500/10 hover:text-cyan-500 hover:border-cyan-400/20"
+                    }`}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  Back to Jobs
+                </button>
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setLiked(!liked)}
+                  aria-label={liked ? "Unlike job" : "Like job"}
+                  className={`p-3 rounded-xl transition-all duration-300 font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${liked
+                    ? darkMode
+                      ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                      : "bg-red-500/10 text-red-600 border border-red-500/20"
+                    : darkMode
+                      ? "bg-black/40 text-gray-400 border border-gray-700/50 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30"
+                      : "bg-white/40 text-gray-600 border border-gray-300/50 hover:bg-red-500/5 hover:text-red-600 hover:border-red-500/20"
+                    }`}
+                >
+                  <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
+                </button>
+                <button
+                  onClick={() => setBookmarked(!bookmarked)}
+                  aria-label={bookmarked ? "Remove bookmark" : "Bookmark job"}
+                  className={`p-3 rounded-xl transition-all duration-300 font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${bookmarked
+                    ? darkMode
+                      ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                      : "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20"
+                    : darkMode
+                      ? "bg-black/40 text-gray-400 border border-gray-700/50 hover:bg-yellow-500/10 hover:text-yellow-400 hover:border-yellow-500/30"
+                      : "bg-white/40 text-gray-600 border border-gray-300/50 hover:bg-yellow-500/5 hover:text-yellow-600 hover:border-yellow-500/20"
+                    }`}
+                >
+                  <Bookmark
+                    className={`w-5 h-5 ${bookmarked ? "fill-current" : ""}`}
+                  />
+                </button>
+                <button
+                  aria-label="Copy job link"
+                  onClick={async () => {
+                    const jobUrl = `${window.location.origin}/job-details/${job._id}`;
+                    try {
+                      await navigator.clipboard.writeText(jobUrl);
+                      alert("Job link copied to clipboard!");
+                    } catch {
+                      window.prompt("Copy this job link:", jobUrl);
+                    }
+                  }}
+                  className={`p-3 rounded-xl font-inter transition-all duration-300 border shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                    ? "bg-black/40 text-gray-400 border-gray-700/50 hover:bg-cyan-500/10 hover:text-cyan-400 hover:border-cyan-500/30"
+                    : "bg-white/40 text-gray-600 border-gray-300/50 hover:bg-cyan-500/5 hover:text-cyan-600 hover:border-cyan-500/20"
+                    }`}
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-6xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <motion.div
+                className={`${darkMode
+                  ? "bg-black/40 border-cyan-500/20"
+                  : "bg-white/40 border-cyan-500/10"
+                  } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex-1">
+                    <div className="flex flex-col items-start gap-3 mb-3">
+                      <h1
+                        className={`text-2xl sm:text-3xl md:text-4xl font-bold drop-shadow-lg font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                          }`}
+                      >
+                        {job.title}
+                      </h1>
+                      {job.visibility && (
+                        <div
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] whitespace-nowrap ${job.visibility === "public"
+                            ? darkMode
+                              ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                              : "bg-green-500/10 text-green-700 border border-green-500/20"
+                            : darkMode
+                              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                              : "bg-purple-500/10 text-purple-700 border border-purple-500/20"
+                            }`}
+                        >
+                          {job.visibility === "public" ? (
+                            <>
+                              <Eye className="w-4 h-4" />
+                              <span>Public Job</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-4 h-4" />
+                              <span>Private Job</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {job.company && (
+                      <div
+                        className={`flex items-center gap-2 text-xl mb-4 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                          }`}
+                      >
+                        <Building
+                          className={`w-6 h-6 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                            }`}
+                        />
+                        {job.company}
+                      </div>
+                    )}
+                    <div
+                      className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      {job.createdAt ? (
+                        <span>Posted {formatDate(job.createdAt)}</span>
+                      ) : (
+                        <span>Recently posted</span>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className={`bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-3 rounded-2xl font-bold text-lg shadow-cyan-500/25 font-inter ${darkMode ? "text-white" : "text-black"
+                      }`}
+                  >
+                    {job.compensationAmount && job.currency
+                      ? `${job.compensationAmount} ${job.currency}`
+                      : job.budget || "Not specified"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div
+                    className={`${darkMode
+                      ? "bg-gray-900/50 border-gray-700/50"
+                      : "bg-gray-100/50 border-gray-300/50"
+                      } border rounded-xl p-4 text-center font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  >
+                    <MapPin
+                      className={`w-6 h-6 mx-auto mb-2 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    />
+                    <p
+                      className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      Location
+                    </p>
+                    <p
+                      className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.workLocation || "Remote"}
+                    </p>
+                  </div>
+                  <div
+                    className={`${darkMode
+                      ? "bg-gray-900/50 border-gray-700/50"
+                      : "bg-gray-100/50 border-gray-300/50"
+                      } border rounded-xl p-4 text-center font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  >
+                    <Clock
+                      className={`w-6 h-6 mx-auto mb-2 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    />
+                    <p
+                      className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      Duration
+                    </p>
+                    <p
+                      className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.duration || "Flexible"}
+                    </p>
+                  </div>
+                  <div
+                    className={`${darkMode
+                      ? "bg-gray-900/50 border-gray-700/50"
+                      : "bg-gray-100/50 border-gray-300/50"
+                      } border rounded-xl p-4 text-center font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  >
+                    <Briefcase
+                      className={`w-6 h-6 mx-auto mb-2 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    />
+                    <p
+                      className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      Type
+                    </p>
+                    <p
+                      className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.jobType || "Contract"}
+                    </p>
+                  </div>
+                  <div
+                    className={`${darkMode
+                      ? "bg-gray-900/50 border-gray-700/50"
+                      : "bg-gray-100/50 border-gray-300/50"
+                      } border rounded-xl p-4 text-center font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  >
+                    <Users
+                      className={`w-6 h-6 mx-auto mb-2 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    />
+                    <p
+                      className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      Positions
+                    </p>
+                    <p
+                      className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.vacancies || 1}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Additional Job Information */}
+                {(job.jobSite || job.jobSector || job.deadline || job.compensationType || job.address || job.country || job.city || job.jobLink) && (
+                  <div className="mt-6 space-y-4">
+                    <h3
+                      className={`text-xl font-bold mb-4 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    >
+                      Additional Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {job.jobSite && (
+                        <div
+                          className={`flex items-center gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <Globe
+                            className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Job Site
+                            </p>
+                            <p
+                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                                }`}
+                            >
+                              {job.jobSite}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.jobSector && (
+                        <div
+                          className={`flex items-center gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <Layers
+                            className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Job Sector
+                            </p>
+                            <p
+                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                                }`}
+                            >
+                              {job.jobSector}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.deadline && (
+                        <div
+                          className={`flex items-center gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <Calendar
+                            className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Application Deadline
+                            </p>
+                            <p
+                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                                }`}
+                            >
+                              {formatDate(job.deadline)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.compensationType && (
+                        <div
+                          className={`flex items-center gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <DollarSign
+                            className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Compensation Type
+                            </p>
+                            <p
+                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                                }`}
+                            >
+                              {job.compensationType}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.address && (
+                        <div
+                          className={`flex items-start gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <MapPin
+                            className={`w-5 h-5 flex-shrink-0 mt-0.5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Work Address
+                            </p>
+                            <p
+                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                                }`}
+                            >
+                              {job.address}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {(job.country || job.city) && (
+                        <div
+                          className={`flex items-center gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <MapPin
+                            className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Location Details
+                            </p>
+                            <p
+                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                                }`}
+                            >
+                              {[job.city, job.country].filter(Boolean).join(", ") || "Not specified"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.jobLink && (
+                        <div
+                          className={`flex items-center gap-3 p-4 rounded-xl border font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                            ? "bg-gray-900/50 border-gray-700/50"
+                            : "bg-gray-100/50 border-gray-300/50"
+                            }`}
+                        >
+                          <ExternalLink
+                            className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                              }`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                                }`}
+                            >
+                              Job Link
+                            </p>
+                            <a
+                              href={
+                                /^https?:\/\//i.test(job.jobLink)
+                                  ? job.jobLink
+                                  : `https://${job.jobLink}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`font-semibold truncate block hover:underline ${darkMode
+                                ? "text-cyan-400 hover:text-cyan-300"
+                                : "text-cyan-600 hover:text-cyan-700"
+                                }`}
+                            >
+                              {job.jobLink}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
+              <motion.div
+                className={`${darkMode
+                  ? "bg-black/40 border-cyan-500/20"
+                  : "bg-white/40 border-cyan-500/10"
+                  } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <h2
+                  className={`text-2xl font-bold mb-4 flex items-center gap-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                    }`}
+                >
+                  <Target className="w-6 h-6" />
+                  Job Description
+                </h2>
+                <div className="prose max-w-none overflow-hidden">
+                  <p
+                    className={`leading-relaxed text-lg whitespace-pre-line break-words font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                  >
+                    {job.description}
+                  </p>
+                </div>
+              </motion.div>
+
+              {job.requirements && job.requirements.length > 0 && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <h2
+                    className={`text-2xl font-bold mb-4 flex items-center gap-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    <CheckCircle className="w-6 h-6" />
+                    Requirements
+                  </h2>
+                  <ul className="space-y-3">
+                    {job.requirements.map((req, index) => (
+                      <li
+                        key={index}
+                        className={`flex items-start gap-3 font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${darkMode ? "bg-cyan-400" : "bg-cyan-600"
+                            }`}
+                        />
+                        <span className="text-lg">{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+
+              {job.skills && job.skills.length > 0 && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <h2
+                    className={`text-2xl font-bold mb-4 flex items-center gap-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    <Zap className="w-6 h-6" />
+                    Required Skills
+                  </h2>
+                  <div className="flex flex-wrap gap-3">
+                    {job.skills.map((skill, index) => (
+                      <span
+                        key={index}
+                        className={`px-4 py-2 rounded-xl font-medium font-inter border shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                          ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30"
+                          : "bg-cyan-500/10 text-cyan-600 border-cyan-500/20"
+                          }`}
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {job.benefits && job.benefits.length > 0 && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                >
+                  <h2
+                    className={`text-2xl font-bold mb-4 flex items-center gap-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    <Award className="w-6 h-6" />
+                    Benefits & Perks
+                  </h2>
+                  <ul className="space-y-3">
+                    {job.benefits.map((benefit, index) => (
+                      <li
+                        key={index}
+                        className={`flex items-start gap-3 font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                      >
+                        <Star
+                          className={`w-5 h-5 mt-0.5 flex-shrink-0 ${darkMode ? "text-yellow-400" : "text-yellow-600"
+                            }`}
+                        />
+                        <span className="text-lg">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <motion.div
+                className={`${darkMode
+                  ? "bg-black/40 border-cyan-500/20"
+                  : "bg-white/40 border-cyan-500/10"
+                  } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                {applied ? (
+                  <div className="text-center">
+                    <CheckCircle
+                      className={`w-12 h-12 mx-auto mb-4 ${darkMode ? "text-green-400" : "text-green-600"
+                        }`}
+                    />
+                    <h3
+                      className={`text-xl font-bold mb-2 font-inter ${darkMode ? "text-green-400" : "text-green-600"
+                        }`}
+                    >
+                      Application Sent!
+                    </h3>
+                    <p
+                      className={`mb-4 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                    >
+                      We'll be in touch soon.
+                    </p>
+                    <button
+                      onClick={() => navigate("/job-listings")}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode
+                        ? "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+                        : "bg-gray-200/50 text-gray-600 hover:bg-gray-300/50"
+                        }`}
+                    >
+                      Browse More Jobs
+                    </button>
+                  </div>
+                ) : job.postedBy?._id === currentUser?.id ? (
+                  <div className="text-center space-y-4">
+                    <Briefcase
+                      className={`w-12 h-12 mx-auto mb-4 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    />
+                    <h3
+                      className={`text-xl font-bold mb-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                        }`}
+                    >
+                      {userRole === "client" ? "Your Job Posting" : "Cannot Apply to Your Own Job"}
+                    </h3>
+                    <p
+                      className={`mb-4 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                    >
+                      {userRole === "client"
+                        ? "This is your own job posting."
+                        : "You cannot apply to your own job posting. Switch to client mode to manage this job."
+                      }
+                    </p>
+                    <div className="space-y-3">
+                      {userRole === "client" ? (
+                        <>
+                          <button
+                            onClick={() => navigate("/dashboard/hiring")}
+                            className={`w-full px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 font-medium rounded-lg hover:from-cyan-400 hover:to-blue-400 transition-all text-sm font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode ? "text-white" : "text-black"
+                              }`}
+                          >
+                            Manage Applications
+                          </button>
+                          <button
+                            onClick={() => navigate(`/edit-job/${job._id}`)}
+                            className={`w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all text-sm font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] text-white`}
+                          >
+                            Edit Job
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => navigate("/job-listings")}
+                          className={`w-full px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 font-medium rounded-lg hover:from-cyan-400 hover:to-blue-400 transition-all text-sm font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${darkMode ? "text-white" : "text-black"
+                            }`}
+                        >
+                          Browse Other Jobs
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : userRole === "client" ? (
+                  <div className="space-y-4 text-center">
+                    <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center ${
+                      darkMode ? "bg-amber-500/20" : "bg-amber-100"
+                    }`}>
+                      <AlertTriangle className={`w-7 h-7 ${darkMode ? "text-amber-400" : "text-amber-600"}`} />
+                    </div>
+                    <h3
+                      className={`text-lg font-bold font-inter ${
+                        darkMode ? "text-amber-400" : "text-amber-600"
+                      }`}
+                    >
+                      Freelancer Account Required
+                    </h3>
+                    <p
+                      className={`text-sm font-inter ${
+                        darkMode ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    >
+                      You're currently signed in as a <strong>Client</strong>. To apply for jobs, you need a freelancer account.
+                    </p>
+                    <button
+                      onClick={() =>
+                        navigate(
+                          "/signup?redirect=" +
+                          encodeURIComponent(location.pathname)
+                        )
+                      }
+                      className={`w-full bg-gradient-to-r from-amber-500 to-orange-500 font-bold py-4 px-6 rounded-xl hover:from-amber-400 hover:to-orange-400 transition-all duration-300 shadow-amber-500/25 hover:shadow-amber-400/40 hover:scale-105 text-lg font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] text-white`}
+                    >
+                      Sign In as a Freelancer
+                    </button>
+                    <p
+                      className={`text-xs font-inter ${
+                        darkMode ? "text-gray-500" : "text-gray-400"
+                      }`}
+                    >
+                      {userRoles.includes("freelancer")
+                        ? "Switch to your freelancer role to apply"
+                        : "Create a freelancer account to start applying"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <button
+                      onClick={handleApply}
+                      disabled={applied}
+                      className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg text-lg font-inter shadow-[0_4px_6px_rgba(0,0,0,0.3)] ${
+                        applied
+                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white cursor-not-allowed"
+                          : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 hover:scale-105 shadow-cyan-500/25 hover:shadow-cyan-400/40"
+                      } ${darkMode ? "text-white" : "text-black"}`}
+                    >
+                      {applied ? "Application Sent" : userRole === "guest" ? "Sign in to Apply" : "Apply Now"}
+                    </button>
+                    <p
+                      className={`text-center text-sm font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      {applied ? "Your application has been submitted successfully" : "Join thousands of successful applicants"}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+
+              <motion.div
+                className={`${darkMode
+                  ? "bg-black/40 border-cyan-500/20"
+                  : "bg-white/40 border-cyan-500/10"
+                  } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <h3
+                  className={`text-xl font-bold mb-4 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                    }`}
+                >
+                  Job Overview
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Experience</span>
+                    </div>
+                    <span
+                      className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.experience || "Any Level"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      <GraduationCap className="w-4 h-4" />
+                      <span>Education</span>
+                    </div>
+                    <span
+                      className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.education || "Any"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>Gender</span>
+                    </div>
+                    <span
+                      className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.gender || "Any"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}
+                    >
+                      <Briefcase className="w-4 h-4" />
+                      <span>Category</span>
+                    </div>
+                    <span
+                      className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        }`}
+                    >
+                      {job.category}
+                    </span>
+                  </div>
+                  {job.jobSite && (
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}
+                      >
+                        <Globe className="w-4 h-4" />
+                        <span>Job Site</span>
+                      </div>
+                      <span
+                        className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                          }`}
+                      >
+                        {job.jobSite}
+                      </span>
+                    </div>
+                  )}
+                  {job.jobSector && (
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}
+                      >
+                        <Layers className="w-4 h-4" />
+                        <span>Job Sector</span>
+                      </div>
+                      <span
+                        className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                          }`}
+                      >
+                        {job.jobSector}
+                      </span>
+                    </div>
+                  )}
+                  {job.deadline && (
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span>Deadline</span>
+                      </div>
+                      <span
+                        className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                          }`}
+                      >
+                        {formatDate(job.deadline)}
+                      </span>
+                    </div>
+                  )}
+                  {job.compensationType && (
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}
+                      >
+                        <DollarSign className="w-4 h-4" />
+                        <span>Compensation</span>
+                      </div>
+                      <span
+                        className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                          }`}
+                      >
+                        {job.compensationType}
+                        {job.compensationAmount && job.currency
+                          ? ` (${job.compensationAmount} ${job.currency})`
+                          : ""}
+                      </span>
+                    </div>
+                  )}
+                  {job.visibility && (
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`flex items-center gap-2 font-inter ${darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}
+                      >
+                        {job.visibility === "public" ? (
+                          <Eye className="w-4 h-4" />
+                        ) : (
+                          <Lock className="w-4 h-4" />
+                        )}
+                        <span>Visibility</span>
+                      </div>
+                      <span
+                        className={`font-medium font-inter ${darkMode ? "text-white" : "text-gray-800"
+                          }`}
+                      >
+                        {job.visibility === "public" ? "Public Job" : "Private Job"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              {(job.contactEmail || job.contactPhone || job.companyWebsite) && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <h3
+                    className={`text-xl font-bold mb-4 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    Contact Information
+                  </h3>
+                  <div className="space-y-3">
+                    {job.contactEmail && (
+                      <div className="flex items-center gap-3">
+                        <Mail
+                          className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                            }`}
+                        />
+                        <a
+                          href={`mailto:${job.contactEmail}`}
+                          className={`transition-colors font-inter ${darkMode
+                            ? "text-gray-300 hover:text-cyan-400"
+                            : "text-gray-600 hover:text-cyan-600"
+                            }`}
+                        >
+                          {job.contactEmail}
+                        </a>
+                      </div>
+                    )}
+                    {job.contactPhone && (
+                      <div className="flex items-center gap-3">
+                        <Phone
+                          className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                            }`}
+                        />
+                        <a
+                          href={`tel:${job.contactPhone}`}
+                          className={`transition-colors font-inter ${darkMode
+                            ? "text-gray-300 hover:text-cyan-400"
+                            : "text-gray-600 hover:text-cyan-600"
+                            }`}
+                        >
+                          {job.contactPhone}
+                        </a>
+                      </div>
+                    )}
+                    {job.companyWebsite && (
+                      <div className="flex items-center gap-3">
+                        <Globe
+                          className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                            }`}
+                        />
+                        <a
+                          href={
+                            /^https?:\/\//i.test(job.companyWebsite)
+                              ? job.companyWebsite
+                              : `https://${job.companyWebsite}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`transition-colors font-inter ${darkMode
+                            ? "text-gray-300 hover:text-cyan-400"
+                            : "text-gray-600 hover:text-cyan-600"
+                            }`}
+                        >
+                          Company Website
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {job.similarJobs && job.similarJobs.length > 0 && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <h3
+                    className={`text-xl font-bold mb-4 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    Similar Gigs
+                  </h3>
+                  <div className="space-y-3">
+                    {job.similarJobs.map((sj: any) => (
+                      <Link
+                        key={sj._id}
+                        to={`/job-details/${sj._id}`}
+                        className={`block p-3.5 rounded-xl border transition-all ${
+                          darkMode ? "bg-gray-950/40 border-gray-800 hover:border-cyan-500/30" : "bg-gray-50 border-gray-200 hover:border-cyan-400/50"
+                        } hover:shadow-sm`}
+                      >
+                        <h4 className={`font-bold text-sm truncate ${darkMode ? "text-white" : "text-gray-900"}`}>
+                          {sj.title}
+                        </h4>
+                        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                          <span>{sj.workLocation} ({sj.jobType})</span>
+                          <span className="font-bold text-cyan-500">{sj.budget} ETB</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </div>
+
+          {/* Application Modal */}
+          {showApplicationForm && job && (
+            <motion.div
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className={`w-full max-w-2xl rounded-3xl p-6 md:p-8 shadow-2xl border my-8 ${darkMode
+                  ? "bg-black/90 border-cyan-500/20 text-white"
+                  : "bg-white/90 border-cyan-500/10 text-black"
+                  }`}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2
+                    className={`text-2xl font-bold font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    Apply for {(job as JobPost).title}
+                  </h2>
+                  <button
+                    onClick={() => setShowApplicationForm(false)}
+                    className={`p-2 rounded-xl transition-all font-inter ${darkMode
+                      ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400"
+                      : "bg-black/10 text-black hover:bg-red-500/20 hover:text-red-600"
+                      }`}
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                    >
+                      Cover Letter <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={coverLetter}
+                      onChange={(e) => setCoverLetter(e.target.value)}
+                      rows={8}
+                      maxLength={2000}
+                      className={`w-full px-4 py-3 rounded-xl placeholder:font-inter focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 resize-none font-inter ${darkMode
+                        ? "bg-gray-900/60 text-white border border-gray-700/50 placeholder:text-gray-400"
+                        : "bg-gray-100 text-gray-800 border border-gray-300/60 placeholder:text-gray-500"
+                        }`}
+                      placeholder="Tell us why you're perfect for this role..."
+                    />
+                    <p
+                      className={`mt-1 text-xs font-inter ${darkMode ? "text-gray-500" : "text-gray-400"
+                        }`}
+                    >
+                      {coverLetter.length}/2000 characters
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                    >
+                      Upload CV (PDF, DOC, DOCX — max 5MB) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleCvChange}
+                      className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 font-inter file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:font-medium ${darkMode
+                        ? "bg-gray-900/60 text-white border border-gray-700/50 file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30"
+                        : "bg-gray-100 text-gray-800 border border-gray-300/60 file:bg-cyan-500/10 file:text-cyan-600 hover:file:bg-cyan-500/20"
+                        }`}
+                    />
+                    {cvFile && (
+                      <div
+                        className={`mt-2 p-3 rounded-lg font-inter ${darkMode ? "bg-gray-800/50" : "bg-gray-200/50"
+                          }`}
+                      >
+                        <p
+                          className={`text-sm font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                            }`}
+                        >
+                          <span className="font-medium">Selected:</span>{" "}
+                          {(cvFile as File).name}
+                        </p>
+                        <p
+                          className={`text-xs font-inter ${darkMode ? "text-gray-500" : "text-gray-400"
+                            }`}
+                        >
+                          Size:{" "}
+                          {((cvFile as File).size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 font-inter ${darkMode ? "text-gray-300" : "text-gray-600"
+                        }`}
+                    >
+                      Portfolio Link (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={portfolioLink}
+                      onChange={(e) => setPortfolioLink(e.target.value)}
+                      placeholder="https://your-portfolio.com or https://github.com/yourusername"
+                      className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-300 font-inter ${darkMode
+                        ? "bg-gray-900/60 text-white border border-gray-700/50 placeholder:text-gray-400"
+                        : "bg-gray-100 text-gray-800 border border-gray-300/60 placeholder:text-gray-500"
+                        }`}
+                    />
+                    <p
+                      className={`mt-1 text-xs font-inter ${darkMode ? "text-gray-500" : "text-gray-400"
+                        }`}
+                    >
+                      Share your portfolio, GitHub, Behance, or any relevant work samples
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowApplicationForm(false)}
+                    className={`px-6 py-2 font-medium rounded-xl transition-all font-inter border ${darkMode
+                      ? "bg-gray-800/60 text-gray-300 border-gray-700/60 hover:bg-gray-700/60"
+                      : "bg-gray-100 text-gray-700 border-gray-300/60 hover:bg-gray-200"
+                      }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitApplication}
+                    disabled={applying}
+                    className={`px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 font-bold rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-inter ${darkMode ? "text-white" : "text-black"
+                      }`}
+                  >
+                    {applying ? (
+                      <>
+                        <div
+                          className={`w-4 h-4 border-2 rounded-full animate-spin ${darkMode
+                            ? "border-white/30 border-t-white"
+                            : "border-black/30 border-t-black"
+                            }`}
+                        />
+                        Applying...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Submit Application
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </main>
+      </div>
+      <ApplicationSuccessAnimation
+        isVisible={showSuccessAnimation}
+        darkMode={darkMode}
+        onComplete={() => {
+          setShowSuccessAnimation(false);
+          // Stay on job details page instead of navigating to dashboard
+        }}
+      />
+      {!isTelegramMiniApp && <Footer />}
+    </div>
+  );
+};
+
+export default JobDetailsMongo;

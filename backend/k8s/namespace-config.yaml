@@ -1,0 +1,107 @@
+# Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hustlex
+  labels:
+    name: hustlex-production
+
+---
+# ConfigMap - Environment Variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hustlex-config
+  namespace: hustlex
+data:
+  NODE_ENV: "production"
+  PORT: "5000"
+  REDIS_ENABLED: "true"
+  REDIS_HOST: "redis-cluster.hustlex.svc.cluster.local"
+  REDIS_PORT: "6379"
+  MONGO_READ_PREF: "primaryPreferred"
+  MONGO_MAX_POOL_SIZE: "100"
+  MONGO_MIN_POOL_SIZE: "10"
+  LOG_LEVEL: "info"
+  CDN_ENABLED: "true"
+  AWS_REGION: "us-east-1"
+
+---
+# Secret - Sensitive Data
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hustlex-secrets
+  namespace: hustlex
+type: Opaque
+data:
+  # Base64 encoded values
+  MONGODB_URI: bW9uZ29kYitzcnY6Ly91c2VyOnBhc3NAY2x1c3Rlci5tb25nb2RiLm5ldC9odXN0bGV4
+  JWT_SECRET: eW91ci1zdXBlci1zZWNyZXQtand0LWtleQ==
+  REDIS_PASSWORD: cmVkaXMtcGFzc3dvcmQ=
+  EMAIL_USER: eW91ci1lbWFpbEBnbWFpbC5jb20=
+  EMAIL_PASS: eW91ci1hcHAtcGFzc3dvcmQ=
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hustlex-api-hpa
+  namespace: hustlex
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hustlex-api
+  minReplicas: 10
+  maxReplicas: 100
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 10
+          periodSeconds: 60
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 5
+          periodSeconds: 120
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: hustlex-api-pdb
+  namespace: hustlex
+spec:
+  minAvailable: 5
+  selector:
+    matchLabels:
+      app: hustlex-api

@@ -1,0 +1,296 @@
+# AWS Infrastructure Configuration for HustleX
+# This file contains Terraform-like configuration for AWS services
+
+# ==========================================
+# AUTO-SCALING CONFIGURATION
+# ==========================================
+
+# Application Load Balancer (ALB)
+# - Distributes traffic across multiple API servers
+# - Health checks every 30 seconds
+# - Sticky sessions disabled (stateless API)
+
+ALB Configuration:
+  Name: hustlex-api-alb
+  Scheme: internet-facing
+  Type: application
+  Subnets: [subnet-us-east-1a, subnet-us-east-1b, subnet-us-east-1c]
+  SecurityGroups: [sg-alb-public]
+  
+  Listeners:
+    - Port: 80
+      Protocol: HTTP
+      Action: redirect-to-https
+    
+    - Port: 443
+      Protocol: HTTPS
+      SSLCertificate: arn:aws:acm:us-east-1:xxxxx:certificate/xxxxx
+      Action: forward-to-target-group
+  
+  TargetGroup:
+    Name: hustlex-api-tg
+    Protocol: HTTP
+    Port: 5000
+    HealthCheck:
+      Path: /api/health/detailed
+      Interval: 30 seconds
+      Timeout: 10 seconds
+      HealthyThreshold: 2
+      UnhealthyThreshold: 3
+      Matcher: "200-299"
+
+# Auto Scaling Group (ASG)
+# - Minimum 3 instances (high availability)
+# - Maximum 50 instances (handle traffic spikes)
+# - Scale based on CPU and request count
+
+AutoScalingGroup:
+  Name: hustlex-api-asg
+  LaunchTemplate:
+    Name: hustlex-api-lt
+    InstanceType: t3.large (2 vCPU, 8GB RAM)
+    AMI: Amazon Linux 2
+    SecurityGroups: [sg-api-internal]
+    KeyPair: hustlex-key
+    UserData: |
+      #!/bin/bash
+      yum update -y
+      yum install -y docker
+      systemctl start docker
+      systemctl enable docker
+      docker pull hustlex-api:latest
+      docker run -d --name hustlex-api \
+        --restart always \
+        -p 5000:5000 \
+        --env-file /etc/hustlex.env \
+        hustlex-api:latest
+  
+  MinSize: 3
+  MaxSize: 50
+  DesiredCapacity: 5
+  AvailabilityZones: [us-east-1a, us-east-1b, us-east-1c]
+  
+  ScalingPolicies:
+    - Name: CPU-Based-Scaling
+      Type: TargetTrackingScaling
+      TargetValue: 70.0 # 70% CPU utilization
+      ScaleInCooldown: 300 seconds
+      ScaleOutCooldown: 60 seconds
+    
+    - Name: RequestCount-Scaling
+      Type: StepScaling
+      Metric: ALBRequestCountPerTarget
+      Steps:
+        - If > 1000 req/s per target: Add 2 instances
+        - If > 2000 req/s per target: Add 5 instances
+        - If > 5000 req/s per target: Add 10 instances
+    
+    - Name: Memory-Based-Scaling
+      Type: TargetTrackingScaling
+      TargetValue: 80.0 # 80% memory utilization
+      ScaleInCooldown: 300 seconds
+      ScaleOutCooldown: 60 seconds
+  
+  ScheduledActions:
+    - Name: PeakHours-Scaling
+      MinSize: 10
+      MaxSize: 50
+      Recurrence: "0 9 * * MON-FRI" # 9 AM UTC, Monday-Friday
+    
+    - Name: OffPeak-Scaling
+      MinSize: 3
+      MaxSize: 20
+      Recurrence: "0 18 * * MON-FRI" # 6 PM UTC, Monday-Friday
+
+# ==========================================
+# DATABASE CONFIGURATION
+# ==========================================
+
+# MongoDB Atlas (Managed Service)
+# - M50 cluster for 100K users
+# - 3-node replica set
+# - Automated backups
+
+MongoDBAtlas:
+  Provider: AWS (us-east-1)
+  ClusterTier: M50
+  InstanceSize: 3 nodes (1 primary, 2 secondary)
+  RAM: 16 GB per node
+  Storage: 500 GB SSD
+  Backup:
+    Frequency: Every 6 hours
+    Retention: 30 days
+    PointInTimeRecovery: enabled
+  ReadReplicas:
+    - Region: us-west-2 (Oregon)
+    - Region: eu-west-1 (Ireland)
+  Security:
+    IPWhitelist: [ALB-Security-Group]
+    EncryptionAtRest: enabled
+    EncryptionInTransit: enabled
+
+# Redis ElastiCache
+# - Cluster mode enabled
+# - 3 shards, 2 replicas each
+
+RedisElastiCache:
+  Engine: Redis 7.x
+  NodeType: cache.r6g.xlarge
+  NumCacheClusters: 6 (3 shards × 2 replicas)
+  AutoMinorVersionUpgrade: true
+  AutomaticFailover: enabled
+  MultiAZ: enabled
+  Backup:
+    Enabled: true
+    Retention: 7 days
+  Security:
+    SecurityGroups: [sg-redis-internal]
+    TransitEncryption: enabled
+    AuthToken: ${REDIS_PASSWORD}
+
+# ==========================================
+# CDN CONFIGURATION
+# ==========================================
+
+# CloudFront Distribution
+# - 200+ edge locations globally
+# - Caching for static assets and API responses
+
+CloudFront:
+  Origins:
+    - Id: api-server
+      DomainName: hustlex-api-alb.amazonaws.com
+      ProtocolPolicy: https-only
+    
+    - Id: s3-bucket
+      DomainName: hustlex-uploads.s3.amazonaws.com
+      ProtocolPolicy: https-only
+  
+  CacheBehaviors:
+    - PathPattern: /static/*
+      TTL: 31536000 (1 year)
+      Compress: true
+      AllowedMethods: [GET, HEAD]
+    
+    - PathPattern: /uploads/*
+      TTL: 604800 (1 week)
+      Compress: true
+      AllowedMethods: [GET, HEAD]
+    
+    - PathPattern: /api/jobs
+      TTL: 300 (5 minutes)
+      Compress: true
+      AllowedMethods: [GET, HEAD, OPTIONS]
+      CacheQueryString: true
+    
+    - PathPattern: /api/blogs
+      TTL: 3600 (1 hour)
+      Compress: true
+      AllowedMethods: [GET, HEAD, OPTIONS]
+    
+    - PathPattern: /api/auth/*
+      TTL: 0 (no caching)
+      Compress: true
+      AllowedMethods: [ALL]
+    
+    - PathPattern: /api/chat/*
+      TTL: 0 (no caching)
+      Compress: true
+      AllowedMethods: [ALL]
+  
+  Security:
+    WAF: enabled
+    Shield: advanced
+    GeoRestriction: none (or whitelist/blacklist countries)
+    SSL: ACM certificate
+    CustomDomain: cdn.hustlex.com
+
+# ==========================================
+# MONITORING & LOGGING
+# ==========================================
+
+CloudWatch:
+  Alarms:
+    - Name: HighCPUUtilization
+      Metric: CPUUtilization
+      Threshold: > 80% for 5 minutes
+      Action: SNS → Auto-scale + Slack notification
+    
+    - Name: HighErrorRate
+      Metric: HTTPCode_ELB_5XX_Count
+      Threshold: > 10 errors in 5 minutes
+      Action: SNS → PagerDuty
+    
+    - Name: HighLatency
+      Metric: TargetResponseTime
+      Threshold: > 2 seconds for 5 minutes
+      Action: SNS → Slack
+    
+    - Name: LowCacheHitRate
+      Metric: CacheHits / (CacheHits + CacheMisses)
+      Threshold: < 70% for 15 minutes
+      Action: SNS → Slack
+    
+    - Name: DatabaseConnectionExhaustion
+      Metric: DatabaseConnections
+      Threshold: > 80% of max pool
+      Action: SNS → Slack + Auto-increase pool size
+  
+  Dashboards:
+    - Name: HustleX-Production
+      Widgets:
+        - Request rate (per minute)
+        - Response time (p50, p95, p99)
+        - Error rate (4xx, 5xx)
+        - Active instances
+        - CPU utilization
+        - Memory utilization
+        - Cache hit rate
+        - Database query time
+
+# ==========================================
+# SECURITY CONFIGURATION
+# ==========================================
+
+WAF (Web Application Firewall):
+  Rules:
+    - Name: RateLimit
+      Type: RateBasedRule
+      Limit: 2000 requests per 5 minutes per IP
+      Action: Block
+    
+    - Name: SQLInjectionProtection
+      Type: SQLInjectionMatchRule
+      Action: Block
+    
+    - Name: XSSProtection
+      Type: XssMatchRule
+      Action: Block
+    
+    - Name: GeoBlock
+      Type: GeoMatchRule
+      Countries: [] # Add countries to block if needed
+      Action: Block
+    
+    - Name: BotControl
+      Type: ManagedRule (AWS-AWSBotControl)
+      Action: Block malicious bots
+
+# ==========================================
+# COST ESTIMATION (Monthly)
+# ==========================================
+
+EstimatedCosts:
+  EC2 Instances (5 × t3.large): $600
+  ALB: $50
+  MongoDB Atlas M50: $1,200
+  Redis ElastiCache (6 nodes): $800
+  CloudFront: $200 (depends on traffic)
+  S3 Storage: $50
+  CloudWatch: $100
+  WAF + Shield: $30 (WAF) + $3,000 (Shield Advanced, optional)
+  
+  Total (without Shield Advanced): ~$3,000/month
+  Total (with Shield Advanced): ~$6,000/month
+  
+  Note: Costs scale with traffic. Auto-scaling keeps costs optimized.
