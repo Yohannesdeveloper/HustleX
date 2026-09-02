@@ -1,0 +1,62 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+port.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Expo
+.expo/
+*.expo*
+
+# Android
+android/build/
+android/app/build/
+android/.gradle/
+*.keystore
+!android/app/debug.keystore
+
+# iOS
+ios/build/
+ios/Pods/
+*.xcworkspace
+
+# Environment files
+.env
+.env.*
+backend/.env
+
+# Project-specific
+.history/
+.qoder/
+.cursor/
+*.txt
+*.bat
+scripts/
+git_status_output.txt
+remotes.txt
+status.txt
+status_after.txt
+git_add_error.txt
+git_add_error_utf8.txt
+echo_test.txt
+log.txt

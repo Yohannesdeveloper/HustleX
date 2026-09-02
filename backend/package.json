@@ -1,0 +1,48 @@
+{
+  "name": "hustlex-backend",
+  "version": "1.0.0",
+  "description": "Backend API for HustleX platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "dev:watch": "nodemon --watch server.js --watch routes --watch models --watch config --watch middleware",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
+    "bottleneck": "^2.19.5",
+    "cors": "^2.8.5",
+    "detect-port": "^2.1.0",
+    "dotenv": "^16.3.1",
+    "emoji-picker-react": "^4.16.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.10.0",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
+    "ioredis": "^5.9.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.19.0",
+    "mongoose": "^7.5.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cache": "^5.1.2",
+    "nodemailer": "^7.0.6",
+    "p-queue": "^8.1.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "freelance",
+    "jobs",
+    "api",
+    "mongodb"
+  ],
+  "author": "HustleX Team",
+  "license": "MIT"
+}
