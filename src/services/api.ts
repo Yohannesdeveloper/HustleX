@@ -392,30 +392,60 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     };
   }
 
-  async getRecommendations(limit?: number): Promise<{
+  async getRecommendations(limit?: number, refresh?: boolean): Promise<{
     recommendations: Array<{
       job: Job;
       score: number;
+      matchScore?: number;
       semanticSimilarity: number;
       skillSimilarity: number;
       matchedSkills: string[];
+      missingSkills?: string[];
     }>;
     total: number;
+    profileVectorized?: boolean;
+    hasCv?: boolean;
   }> {
     const response = await axios.get(`${this.baseUrl}/recommendations/jobs`, {
-      params: limit ? { limit } : {},
+      params: {
+        ...(limit ? { limit } : {}),
+        ...(refresh ? { refresh: "true" } : {})
+      },
       headers: this.token ? { Authorization: `Bearer ${this.token}` } : {}
     });
     return response.data as {
       recommendations: Array<{
         job: Job;
         score: number;
+        matchScore?: number;
         semanticSimilarity: number;
         skillSimilarity: number;
         matchedSkills: string[];
+        missingSkills?: string[];
       }>;
       total: number;
+      profileVectorized?: boolean;
+      hasCv?: boolean;
     };
+  }
+
+  async getJobMatch(jobId: string): Promise<{
+    jobId: string;
+    matchScore: number;
+    semanticSimilarity: number;
+    skillSimilarity: number;
+    matchedSkills: string[];
+    missingSkills: string[];
+    recommendation: string;
+    hasCV: boolean;
+    hasSkills: boolean;
+    skillsCount: number;
+  }> {
+    const response = await axios.get(
+      `${this.baseUrl}/recommendations/match/${jobId}`,
+      { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} }
+    );
+    return response.data;
   }
 
   async getRecommendationProfileStrength(): Promise<{
@@ -424,6 +454,8 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     hasEmbedding: boolean;
     readyForRecommendations: boolean;
     message: string;
+    strengthScore?: number;
+    skillsCount?: number;
   }> {
     const response = await axios.get(
       `${this.baseUrl}/recommendations/profile-strength`,
@@ -435,6 +467,8 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
       hasEmbedding: boolean;
       readyForRecommendations: boolean;
       message: string;
+      strengthScore?: number;
+      skillsCount?: number;
     };
   }
 

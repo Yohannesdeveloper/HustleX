@@ -33,6 +33,7 @@ import {
   Eye,
   Lock,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import apiService from "../services/api";
 import { useAppSelector } from "../store/hooks";
@@ -289,6 +290,40 @@ const JobDetailsMongo: React.FC = () => {
     checkApplication();
     return () => { cancelled = true; };
   }, [currentUser, job]);
+
+  // AI Fit & Vector Match Analysis for Freelancers
+  const [aiMatch, setAiMatch] = useState<{
+    matchScore: number;
+    semanticSimilarity: number;
+    skillSimilarity: number;
+    matchedSkills: string[];
+    missingSkills: string[];
+    recommendation: string;
+    hasCV: boolean;
+    hasSkills: boolean;
+    skillsCount: number;
+  } | null>(null);
+  const [loadingAiMatch, setLoadingAiMatch] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!currentUser || userRole !== "freelancer" || !job?._id) return;
+    let cancelled = false;
+    const fetchAiMatch = async () => {
+      setLoadingAiMatch(true);
+      try {
+        const matchData = await apiService.getJobMatch(job._id);
+        if (!cancelled && matchData) {
+          setAiMatch(matchData);
+        }
+      } catch (err) {
+        // fail silently if not available
+      } finally {
+        if (!cancelled) setLoadingAiMatch(false);
+      }
+    };
+    fetchAiMatch();
+    return () => { cancelled = true; };
+  }, [currentUser, userRole, job?._id]);
 
   // Listen for real-time application submission events
   useEffect(() => {
@@ -1264,6 +1299,134 @@ const JobDetailsMongo: React.FC = () => {
             </div>
 
             <div className="space-y-6">
+              {/* AI Match & Vector Fit Card (Freelancer View) */}
+              {userRole === "freelancer" && (
+                <motion.div
+                  className={`${
+                    darkMode
+                      ? "bg-gradient-to-br from-cyan-950/40 via-black/50 to-blue-950/30 border-cyan-500/30 shadow-cyan-950/20"
+                      : "bg-gradient-to-br from-cyan-50 via-white to-blue-50 border-cyan-300/80 shadow-cyan-100/40"
+                  } backdrop-blur-xl border rounded-3xl p-6 shadow-xl relative overflow-hidden`}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      AI Vector Match Analysis
+                    </span>
+                    {aiMatch && (
+                      <span className={`text-base sm:text-lg font-extrabold ${
+                        aiMatch.matchScore >= 75
+                          ? "text-green-500"
+                          : aiMatch.matchScore >= 50
+                            ? "text-cyan-500"
+                            : "text-yellow-500"
+                      }`}>
+                        {aiMatch.matchScore}% Match
+                      </span>
+                    )}
+                  </div>
+
+                  {loadingAiMatch ? (
+                    <div className="py-6 text-center space-y-2">
+                      <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                      <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                        Analyzing your CV and skills against this job...
+                      </p>
+                    </div>
+                  ) : aiMatch ? (
+                    <div className="space-y-3.5">
+                      {/* Match Score Bar */}
+                      <div>
+                        <div className="flex justify-between text-xs mb-1 font-medium">
+                          <span className={darkMode ? "text-gray-300" : "text-gray-600"}>Word2Vec Semantic & Skill Fit</span>
+                          <span className="font-bold text-cyan-500">{aiMatch.matchScore}%</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${aiMatch.matchScore}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* AI Recommendation Message */}
+                      <div className={`p-3 rounded-xl text-xs font-medium ${
+                        darkMode ? "bg-cyan-950/40 text-cyan-200 border border-cyan-800/40" : "bg-cyan-50 text-cyan-900 border border-cyan-200"
+                      }`}>
+                        {aiMatch.recommendation}
+                      </div>
+
+                      {/* Matched Skills */}
+                      {aiMatch.matchedSkills && aiMatch.matchedSkills.length > 0 && (
+                        <div>
+                          <p className={`text-xs font-semibold mb-1.5 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                            Your Matching Skills:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {aiMatch.matchedSkills.map((s) => (
+                              <span
+                                key={s}
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                  darkMode ? "bg-green-500/15 text-green-400 border border-green-500/20" : "bg-green-100 text-green-800 border border-green-200"
+                                }`}
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Missing Skills Tips */}
+                      {aiMatch.missingSkills && aiMatch.missingSkills.length > 0 && (
+                        <div>
+                          <p className={`text-xs font-semibold mb-1.5 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                            Skills to Address in Your Proposal:
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {aiMatch.missingSkills.slice(0, 4).map((s) => (
+                              <span
+                                key={s}
+                                className={`px-2 py-0.5 rounded-md text-xs ${
+                                  darkMode ? "bg-gray-800 text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600 border border-gray-200"
+                                }`}
+                              >
+                                + {s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-cyan-500/20 flex items-center justify-between text-[11px]">
+                        <span className={darkMode ? "text-gray-400" : "text-gray-500"}>Word-Vector Engine</span>
+                        <Link to="/freelancer-profile-setup" className="text-cyan-500 hover:underline font-medium">
+                          Update CV / Skills
+                        </Link>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-3 space-y-2">
+                      <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                        Upload your CV to unlock instant Word2Vec match scoring for this job.
+                      </p>
+                      <Link
+                        to="/freelancer-profile-setup"
+                        className="inline-block px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg hover:from-cyan-500 hover:to-blue-500 transition shadow"
+                      >
+                        Upload CV & Skills
+                      </Link>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
               <motion.div
                 className={`${darkMode
                   ? "bg-black/40 border-cyan-500/20"

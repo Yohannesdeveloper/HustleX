@@ -35,6 +35,8 @@ import {
   Layers,
   Zap,
   Globe,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 
 // Mock data as a fallback
@@ -231,6 +233,58 @@ const JobListings: React.FC = () => {
     visibility: false,
     jobSector: false,
   });
+
+  // AI Recommendation & Word2Vec Match State
+  const [aiMatchOnly, setAiMatchOnly] = useState<boolean>(false);
+  const [aiMatchMap, setAiMatchMap] = useState<Map<string, any>>(new Map());
+  const [loadingAi, setLoadingAi] = useState<boolean>(false);
+  const [aiProfileStrength, setAiProfileStrength] = useState<any>(null);
+
+  const loadAiMatches = async () => {
+    if (!isAuthenticated) return;
+    try {
+      setLoadingAi(true);
+      const [recRes, strengthRes] = await Promise.allSettled([
+        apiService.getRecommendations(50),
+        apiService.getRecommendationProfileStrength(),
+      ]);
+
+      if (recRes.status === "fulfilled" && recRes.value?.recommendations) {
+        const map = new Map<string, any>();
+        recRes.value.recommendations.forEach((r: any) => {
+          const jId = r.job?._id || r.job?.id;
+          if (jId) {
+            const score = typeof r.matchScore === "number"
+              ? (r.matchScore > 1 ? Math.round(r.matchScore) : Math.round(r.matchScore * 100))
+              : typeof r.score === "number"
+                ? (r.score > 1 ? Math.round(r.score) : Math.round(r.score * 100))
+                : 0;
+            map.set(String(jId), {
+              matchScore: score,
+              matchedSkills: r.matchedSkills || [],
+              missingSkills: r.missingSkills || [],
+              semanticSimilarity: r.semanticSimilarity,
+            });
+          }
+        });
+        setAiMatchMap(map);
+      }
+
+      if (strengthRes.status === "fulfilled") {
+        setAiProfileStrength(strengthRes.value);
+      }
+    } catch (err) {
+      console.warn("AI recommendations fetch notice:", err);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && userRole === "freelancer") {
+      loadAiMatches();
+    }
+  }, [isAuthenticated, userRole]);
 
   // Font Import
   useEffect(() => {
@@ -475,23 +529,37 @@ const JobListings: React.FC = () => {
       );
     }
 
-    filtered.sort((a, b) => {
-      if (sortBy === "newest") {
-        const aTime = a.createdAt?.seconds || 0;
-        const bTime = b.createdAt?.seconds || 0;
-        return bTime - aTime;
-      }
-      if (sortBy === "oldest") {
-        const aTime = a.createdAt?.seconds || 0;
-        const bTime = b.createdAt?.seconds || 0;
-        return aTime - bTime;
-      }
-      if (sortBy === "budgetLow")
-        return Number(a.budget || 0) - Number(b.budget || 0);
-      if (sortBy === "budgetHigh")
-        return Number(b.budget || 0) - Number(a.budget || 0);
-      return 0;
-    });
+    if (aiMatchOnly) {
+      filtered = filtered
+        .map((job) => {
+          const matchInfo = aiMatchMap.get(String(job.id)) || aiMatchMap.get(String(job.jobId));
+          return {
+            ...job,
+            _aiScore: matchInfo ? matchInfo.matchScore : 0,
+          };
+        })
+        .filter((job: any) => job._aiScore > 0);
+
+      filtered.sort((a: any, b: any) => (b._aiScore || 0) - (a._aiScore || 0));
+    } else {
+      filtered.sort((a, b) => {
+        if (sortBy === "newest") {
+          const aTime = a.createdAt?.seconds || 0;
+          const bTime = b.createdAt?.seconds || 0;
+          return bTime - aTime;
+        }
+        if (sortBy === "oldest") {
+          const aTime = a.createdAt?.seconds || 0;
+          const bTime = b.createdAt?.seconds || 0;
+          return aTime - bTime;
+        }
+        if (sortBy === "budgetLow")
+          return Number(a.budget || 0) - Number(b.budget || 0);
+        if (sortBy === "budgetHigh")
+          return Number(b.budget || 0) - Number(a.budget || 0);
+        return 0;
+      });
+    }
 
     console.log("Filtered jobs:", filtered);
     setPage(1);
@@ -511,6 +579,8 @@ const JobListings: React.FC = () => {
     selectedGenders,
     selectedVisibility,
     sortBy,
+    aiMatchOnly,
+    aiMatchMap,
   ]);
 
   // Handle job expansion toggle
@@ -937,6 +1007,68 @@ const JobListings: React.FC = () => {
             </div>
           </div>
 
+          {/* AI Recommendations Mode Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-2 rounded-2xl border border-white/10 dark:border-white/10 bg-white/40 dark:bg-black/40 backdrop-blur-md">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setAiMatchOnly(false)}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                  !aiMatchOnly
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20"
+                    : darkMode
+                      ? "text-gray-400 hover:text-white hover:bg-white/5"
+                      : "text-gray-600 hover:text-black hover:bg-black/5"
+                }`}
+              >
+                All Jobs ({jobs.length})
+              </button>
+              <button
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    navigate("/login?redirect=/job-listings?ai=true");
+                    return;
+                  }
+                  setAiMatchOnly(true);
+                  if (aiMatchMap.size === 0) {
+                    loadAiMatches();
+                  }
+                }}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  aiMatchOnly
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md shadow-cyan-500/20"
+                    : darkMode
+                      ? "text-cyan-400 bg-cyan-950/30 border border-cyan-800/40 hover:bg-cyan-900/40"
+                      : "text-cyan-700 bg-cyan-50 border border-cyan-200 hover:bg-cyan-100"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <span>AI Recommended for You</span>
+                {aiMatchMap.size > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-500/20 text-cyan-300 font-bold">
+                    {aiMatchMap.size}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {aiMatchOnly && (
+              <div className="flex items-center gap-2 px-2">
+                <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-cyan-400" />
+                  Word2Vec Vector Fit
+                </span>
+                <button
+                  onClick={loadAiMatches}
+                  disabled={loadingAi}
+                  title="Recalculate AI match scores"
+                  className="p-1 rounded-lg hover:bg-white/10 text-cyan-400 transition"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingAi ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Filter Dropdown */}
           <div className="mb-6 relative" ref={filterDropdownRef}>
             <button
@@ -1136,19 +1268,46 @@ const JobListings: React.FC = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="text-6xl sm:text-8xl mb-4">🔍</div>
-                <h3
-                  className={`text-xl sm:text-2xl font-bold font-inter mb-2 ${darkMode ? "text-white" : "text-black"
-                    }`}
-                >
-                  No jobs found
-                </h3>
-                <p
-                  className={`text-sm sm:text-lg font-inter ${darkMode ? "text-white/80" : "text-black/70"
-                    }`}
-                >
-                  Try adjusting your filters or search terms
-                </p>
+                {aiMatchOnly ? (
+                  <div className="py-8 space-y-3">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/15 flex items-center justify-center border border-cyan-500/30">
+                      <Sparkles className="w-8 h-8 text-cyan-400" />
+                    </div>
+                    <h3
+                      className={`text-xl sm:text-2xl font-bold font-inter ${darkMode ? "text-white" : "text-black"}`}
+                    >
+                      No AI Matches Found Yet
+                    </h3>
+                    <p
+                      className={`text-sm sm:text-base font-inter max-w-md mx-auto ${darkMode ? "text-white/80" : "text-black/70"}`}
+                    >
+                      Upload your CV or add skills to your profile so our Word2Vec semantic matcher can suggest suitable jobs.
+                    </p>
+                    <button
+                      onClick={() => navigate("/freelancer-profile-setup")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold rounded-xl hover:from-cyan-400 hover:to-blue-400 transition shadow-lg shadow-cyan-500/25"
+                    >
+                      <User className="w-4 h-4" />
+                      Complete Profile & Upload CV
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-6xl sm:text-8xl mb-4">🔍</div>
+                    <h3
+                      className={`text-xl sm:text-2xl font-bold font-inter mb-2 ${darkMode ? "text-white" : "text-black"
+                        }`}
+                    >
+                      No jobs found
+                    </h3>
+                    <p
+                      className={`text-sm sm:text-lg font-inter ${darkMode ? "text-white/80" : "text-black/70"
+                        }`}
+                    >
+                      Try adjusting your filters or search terms
+                    </p>
+                  </>
+                )}
               </motion.div>
             ) : (
               filteredJobs.map((job: JobType, index: number) => (
@@ -1269,6 +1428,30 @@ const JobListings: React.FC = () => {
                   {/* Job Header Section */}
                   <div className="mb-1.5 sm:mb-2 pr-12 sm:pr-16">
                     <div className="flex flex-col gap-1 sm:gap-1.5">
+                      {/* AI Word2Vec Match Score Badge */}
+                      {(() => {
+                        const match = aiMatchMap.get(String(job.id)) || aiMatchMap.get(String(job.jobId));
+                        if (!match || !match.matchScore) return null;
+                        return (
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                              match.matchScore >= 75
+                                ? "bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30"
+                                : match.matchScore >= 50
+                                  ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30"
+                                  : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30"
+                            }`}>
+                              <Sparkles className="w-3 h-3" />
+                              {match.matchScore}% AI Vector Match
+                            </span>
+                            {match.matchedSkills && match.matchedSkills.length > 0 && (
+                              <span className="text-[11px] text-gray-500 dark:text-gray-400 hidden sm:inline">
+                                • {match.matchedSkills.slice(0, 2).join(", ")} matched
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <h3
                         className={`text-base sm:text-lg md:text-xl font-bold font-inter leading-tight ${darkMode ? "text-white" : "text-black"
                           }`}
