@@ -1,69 +1,54 @@
-# React + TypeScript + Vite
+# HustleX — Ethiopia's #1 Freelance Marketplace
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Official Website: **[https://hustlexet.com](https://hustlexet.com)**
 
-Currently, two official plugins are available:
+[![Live Site](https://img.shields.io/badge/Live%20Website-hustlexet.com-0ea5e9?style=for-the-badge&logo=google-chrome&logoColor=white)](https://hustlexet.com)
+[![Status](https://img.shields.io/badge/Status-Live%20%26%20Active-success?style=for-the-badge)](https://hustlexet.com)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**HustleX** is the premier Ethiopian freelance marketplace connecting businesses, startups, and clients with top-tier freelance professionals in web development, mobile apps, UI/UX design, AI solutions, digital marketing, and creative writing.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🌟 Key Features
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **AI-Powered Word2Vec Recommendation Engine**: Intelligent job suggestions for freelancers based on CV semantic embeddings and skill analysis.
+- **Top Freelancers in Ethiopia**: Verified developers (MERN, React, TypeScript, Python, Flutter), designers, and digital specialists.
+- **Escrow & Secure Payments**: Integrated milestone payments with local (Chapa, Telebirr, CBE) and international payment channels.
+- **Real-Time Communication**: In-app live chat and WebSocket notifications between clients and freelancers.
+- **Multi-Role Profiles**: Switch seamlessly between Client (Hiring) and Freelancer (Working) modes.
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🚀 Quick Start
+
+### Frontend (React + Vite + TypeScript)
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Backend (Node.js + Express + MongoDB)
+```bash
+cd backend
+npm install
+npm run dev
 ```
+
+---
+
+## 🌐 Official Links
+
+- **Website**: [https://hustlexet.com](https://hustlexet.com)
+- **Browse Jobs**: [https://hustlexet.com/job-listings](https://hustlexet.com/job-listings)
+- **Hire Freelancers**: [https://hustlexet.com/freelancers](https://hustlexet.com/freelancers)
+- **Telegram Bot**: [@HustleX_bot](https://t.me/HustleX_bot)
+
+---
+
+© 2026 **HustleX** (hustlexet.com). All rights reserved.

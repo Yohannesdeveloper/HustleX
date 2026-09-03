@@ -124,6 +124,7 @@
     "url": "https://hustlexet.com",
     "logo": "https://hustlexet.com/Logo.png",
     "sameAs": [
+      "https://github.com/Yohannesdeveloper/HustleX",
       "https://t.me/HustleX_bot",
       "https://twitter.com/HustleX",
       "https://www.linkedin.com/company/hustlex"
@@ -218,7 +219,43 @@
   <!-- AI & Search Engine Guidance -->
   <meta name="ai-purpose" content="freelance marketplace connecting businesses with elite freelancers" />
   <meta name="ai-target" content="startups, businesses, entrepreneurs, freelancers in Ethiopia and worldwide" />
-  <meta name="ai-services" content="web development, MERN stack, UI/UX design, graphic design, video editing, digital marketing, AI services" />
+  <!-- Structured Data: Site Navigation for Google Sitelinks -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": [
+      {
+        "@type": "SiteNavigationElement",
+        "position": 1,
+        "name": "Find Jobs",
+        "description": "Browse active freelance jobs and remote opportunities on HustleX",
+        "url": "https://hustlexet.com/job-listings"
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 2,
+        "name": "Hire Freelancers",
+        "description": "Hire verified Ethiopian software developers, designers, and marketers",
+        "url": "https://hustlexet.com/freelancers"
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 3,
+        "name": "How It Works",
+        "description": "Learn how HustleX connects clients with top talent securely",
+        "url": "https://hustlexet.com/how-it-works"
+      },
+      {
+        "@type": "SiteNavigationElement",
+        "position": 4,
+        "name": "About HustleX",
+        "description": "About HustleX - Ethiopia's premier freelance platform",
+        "url": "https://hustlexet.com/about"
+      }
+    ]
+  }
+  </script>
   <script type="module" src="/src/main.tsx"></script>
 </head>
 
@@ -257,6 +294,22 @@
       <div id="splash-bar"><div id="splash-bar-inner"></div></div>
     </div>
   </div>
+  <noscript>
+    <div style="padding:2rem;font-family:sans-serif;max-width:800px;margin:0 auto;color:#e5e7eb;">
+      <h1>HustleX — Ethiopia's #1 Freelance Marketplace</h1>
+      <p>
+        <strong>HustleX</strong> (hustlexet.com) is Ethiopia's premier freelance platform connecting businesses, startups, and clients with top-rated freelance software developers, UI/UX designers, and digital professionals in Addis Ababa and across the globe.
+      </p>
+      <h2>Explore HustleX Services</h2>
+      <ul>
+        <li><a href="/job-listings" style="color:#0ea5e9;">Browse Freelance Jobs on HustleX</a></li>
+        <li><a href="/freelancers" style="color:#0ea5e9;">Hire Top Ethiopian Freelancers</a></li>
+        <li><a href="/login" style="color:#0ea5e9;">Sign In to HustleX Account</a></li>
+        <li><a href="/signup" style="color:#0ea5e9;">Register as Freelancer or Client on HustleX</a></li>
+      </ul>
+      <p>Official Website: <a href="https://hustlexet.com" style="color:#0ea5e9;">https://hustlexet.com</a></p>
+    </div>
+  </noscript>
   <script>
     // Unregister any stale Service Worker from a previous broken build
     if ('serviceWorker' in navigator) {
