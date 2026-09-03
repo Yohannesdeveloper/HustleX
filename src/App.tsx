@@ -252,8 +252,10 @@ function AppContent() {
           } />
           <Route path="/blog" element={<PageLayout><Blog /></PageLayout>} />
           <Route path="/blog/:id" element={<PageLayout><BlogPostView /></PageLayout>} />
-          <Route path="/blog/edit/:id" element={<PageLayout><EditBlog /></PageLayout>} />
-          <Route path="/HowItWorks" element={<PageLayout><HowItWorks /></PageLayout>} />
+          <Route path="/how-it-works" element={<PageLayout><HowItWorks /></PageLayout>} />
+          <Route path="/HowItWorks" element={<Navigate to="/how-it-works" replace />} />
+          <Route path="/howitworks" element={<Navigate to="/how-it-works" replace />} />
+          <Route path="/about" element={<Navigate to="/about-us" replace />} />
           <Route path="/about-us" element={<PageLayout><AboutUs /></PageLayout>} />
           <Route path="/contact-us" element={<PageLayout><ContactUs /></PageLayout>} />
           <Route path="/faq" element={<PageLayout><FAQ /></PageLayout>} />

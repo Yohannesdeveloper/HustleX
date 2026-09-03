@@ -123,7 +123,7 @@ const HomeNavbar: React.FC = () => {
                   { to: "/pricing", label: t.nav.pricing, shortLabel: t.nav.pricing, icon: null },
                   { to: "/blog", label: t.nav.blog, shortLabel: t.nav.blog, icon: null },
                   { to: "/faq", label: t.nav.faq, shortLabel: t.nav.faq, icon: null },
-                  { to: "/HowItWorks", label: t.nav.howItWorks, shortLabel: t.nav.howItWorks, icon: null },
+                  { to: "/how-it-works", label: t.nav.howItWorks, shortLabel: t.nav.howItWorks, icon: null },
                   { to: "/contact-us", label: t.nav.contact, shortLabel: t.nav.contact, icon: null },
                 ].map((link, idx) => (
                   <motion.div
@@ -335,7 +335,7 @@ const HomeNavbar: React.FC = () => {
                     { to: "/contact-us", label: t.nav.contact },
                     { to: "/faq", label: t.nav.faq },
                     {
-                      to: "/HowItWorks",
+                      to: "/how-it-works",
                       label: t.nav.howItWorks,
                       icon: null,
                     },

@@ -4,11 +4,13 @@
  * Optimized for Google, Bing, AI Search, ChatGPT Search, and Voice Search
  */
 
+export const SITE_URL = "https://hustlexet.com";
+
 export const siteConfig = {
   name: "HustleX",
   tagline: "Hire Elite Freelancers Worldwide",
-  url: "https://hustlexet.com",
-  logo: "https://hustlexet.com/Logo.png",
+  url: SITE_URL,
+  logo: `${SITE_URL}/Logo.png`,
   favicon: "/Logo.png",
   locale: "en_US",
   twitterHandle: "@HustleX",
@@ -150,9 +152,7 @@ export const structuredData = {
     url: "https://hustlexet.com",
     logo: "https://hustlexet.com/Logo.png",
     sameAs: [
-      "https://t.me/HustleX_bot",
-      "https://twitter.com/HustleX",
-      "https://www.linkedin.com/company/hustlex"
+      "https://github.com/Yohannesdeveloper/HustleX"
     ],
     contactPoint: {
       "@type": "ContactPoint",
@@ -276,7 +276,7 @@ export const pageSEO = {
     title: "HustleX — Hire Elite Freelancers Worldwide | Premium Marketplace",
     description: "Hire top 1% freelancers in web development, MERN stack, UI/UX design & AI services. Trusted by startups & Fortune 500. Get started in minutes.",
     keywords: homepageSEO.keywords,
-    canonical: "https://hustlex.com/",
+    canonical: `${SITE_URL}/`,
   },
 
   // Hire Freelancer Page (/post-job)
@@ -297,7 +297,7 @@ export const pageSEO = {
       "hire app developer",
       "hire software engineer",
     ],
-    canonical: "https://hustlex.com/post-job",
+    canonical: `${SITE_URL}/post-job`,
   },
 
   // Become Freelancer Page (/signup with freelancer intent)
@@ -316,7 +316,7 @@ export const pageSEO = {
       "join freelance platform",
       "start freelancing",
     ],
-    canonical: "https://hustlex.com/signup",
+    canonical: `${SITE_URL}/signup`,
   },
 
   // Login Page
@@ -330,7 +330,7 @@ export const pageSEO = {
       "client login",
       "account access",
     ],
-    canonical: "https://hustlex.com/login",
+    canonical: `${SITE_URL}/login`,
     robots: "noindex, follow", // Don't index login page
   },
 
@@ -346,7 +346,7 @@ export const pageSEO = {
       "freelancer signup",
       "client signup",
     ],
-    canonical: "https://hustlex.com/signup",
+    canonical: `${SITE_URL}/signup`,
   },
 
   // Job Listings Page
@@ -365,7 +365,7 @@ export const pageSEO = {
       "contract jobs",
       "gig economy jobs",
     ],
-    canonical: "https://hustlex.com/job-listings",
+    canonical: `${SITE_URL}/job-listings`,
   },
 
   // About Us Page
@@ -379,7 +379,7 @@ export const pageSEO = {
       "company values",
       "about us",
     ],
-    canonical: "https://hustlex.com/about-us",
+    canonical: `${SITE_URL}/about-us`,
   },
 
   // Contact Us Page
@@ -393,7 +393,7 @@ export const pageSEO = {
       "customer service",
       "contact us",
     ],
-    canonical: "https://hustlex.com/contact-us",
+    canonical: `${SITE_URL}/contact-us`,
   },
 
   // FAQ Page
@@ -408,7 +408,7 @@ export const pageSEO = {
       "how to get paid",
       "support",
     ],
-    canonical: "https://hustlex.com/faq",
+    canonical: `${SITE_URL}/faq`,
   },
 
   // Pricing Page
@@ -422,7 +422,7 @@ export const pageSEO = {
       "pricing plans",
       "subscription",
     ],
-    canonical: "https://hustlex.com/pricing",
+    canonical: `${SITE_URL}/pricing`,
   },
 
   // Blog Page
@@ -436,7 +436,7 @@ export const pageSEO = {
       "remote work",
       "business growth",
     ],
-    canonical: "https://hustlex.com/blog",
+    canonical: `${SITE_URL}/blog`,
   },
 
   // How It Works Page
@@ -450,7 +450,7 @@ export const pageSEO = {
       "getting started",
       "platform guide",
     ],
-    canonical: "https://hustlex.com/HowItWorks",
+    canonical: `${SITE_URL}/how-it-works`,
   },
 
   // Help Center Page
@@ -464,7 +464,7 @@ export const pageSEO = {
       "guides",
       "tutorials",
     ],
-    canonical: "https://hustlex.com/help-center",
+    canonical: `${SITE_URL}/help-center`,
   },
 
   // Dashboard Pages
@@ -472,7 +472,7 @@ export const pageSEO = {
     title: "Hiring Dashboard | Manage Your Projects — HustleX",
     description: "Manage your projects, review proposals, and communicate with freelancers. Your central hub for hiring on HustleX.",
     keywords: ["hiring dashboard", "project management", "client dashboard"],
-    canonical: "https://hustlex.com/dashboard/hiring",
+    canonical: `${SITE_URL}/dashboard/hiring`,
     robots: "noindex, nofollow", // Private page
   },
 
@@ -480,7 +480,7 @@ export const pageSEO = {
     title: "Freelancer Dashboard | Manage Your Work — HustleX",
     description: "View job opportunities, submit proposals, track earnings, and manage your freelance business on HustleX.",
     keywords: ["freelancer dashboard", "my jobs", "earnings", "proposals"],
-    canonical: "https://hustlex.com/dashboard/freelancer",
+    canonical: `${SITE_URL}/dashboard/freelancer`,
     robots: "noindex, nofollow", // Private page
   },
 };

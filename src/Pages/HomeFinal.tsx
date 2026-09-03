@@ -1386,14 +1386,14 @@ const Home = () => {
                       {
                         title: t.footer.forClients,
                         links: [
-                          { text: t.footer.howToHire, href: "HowItWorks" },
+                          { text: t.footer.howToHire, href: "/how-it-works" },
 
                         ],
                       },
                       {
                         title: t.footer.forFreelancers,
                         links: [
-                          { text: t.footer.howToFindWork, href: "/HowItWorks" },
+                          { text: t.footer.howToFindWork, href: "/how-it-works" },
                           { text: t.footer.freelanceJobs, href: "/job-listings" },
                         ],
                       },

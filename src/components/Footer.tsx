@@ -35,14 +35,14 @@ const Footer: React.FC = () => {
             {
               title: t.footer.forClients,
               links: [
-                { text: t.footer.howToHire, href: "/HowItWorks" },
+                { text: t.footer.howToHire, href: "/how-it-works" },
                 { text: t.footer.talentMarketplace, href: "#" },
               ],
             },
             {
               title: t.footer.forFreelancers,
               links: [
-                { text: t.footer.howToFindWork, href: "/HowItWorks" },
+                { text: t.footer.howToFindWork, href: "/how-it-works" },
                 { text: t.footer.freelanceJobs, href: "/job-listings" },
               ],
             },

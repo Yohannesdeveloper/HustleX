@@ -11,6 +11,21 @@
       ],
       "destination": "https://hustlexet.com/:path*",
       "permanent": true
+    },
+    {
+      "source": "/HowItWorks",
+      "destination": "/how-it-works",
+      "permanent": true
+    },
+    {
+      "source": "/howitworks",
+      "destination": "/how-it-works",
+      "permanent": true
+    },
+    {
+      "source": "/about",
+      "destination": "/about-us",
+      "permanent": true
     }
   ],
   "rewrites": [

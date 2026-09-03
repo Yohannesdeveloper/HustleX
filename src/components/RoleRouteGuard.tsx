@@ -37,10 +37,12 @@ const RoleRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) =
     currentPath === "/home" ||
     currentPath === "/homefinal" ||
     currentPath === "/about-us" ||
+    currentPath === "/about" ||
     currentPath === "/contact-us" ||
     currentPath === "/faq" ||
     currentPath === "/help-center" ||
     currentPath === "/pricing" ||
+    currentPath === "/how-it-works" ||
     currentPath === "/HowItWorks" ||
     currentPath === "/blog" ||
     currentPath.startsWith("/blog/") ||

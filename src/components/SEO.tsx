@@ -7,6 +7,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import {
+  SITE_URL,
   siteConfig,
   openGraph,
   twitterCard,
@@ -17,6 +18,8 @@ import {
   generateKeywordsString,
   generateStructuredDataScript,
 } from "../utils/seoConfig";
+
+export { SITE_URL };
 
 // SEO Props Interface
 interface SEOProps {
