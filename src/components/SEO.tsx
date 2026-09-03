@@ -153,9 +153,10 @@ const SEO: React.FC<SEOProps> = ({
       <meta name="language" content="English" />
 
       {/* Geo Tags */}
-      <meta name="geo.region" content="US" />
-      <meta name="geo.placename" content="United States" />
-      <meta name="ICBM" content="37.7749, -122.4194" />
+      <meta name="geo.region" content="ET" />
+      <meta name="geo.placename" content="Addis Ababa, Ethiopia" />
+      <meta name="geo.position" content="9.0245;38.7468" />
+      <meta name="ICBM" content="9.0245, 38.7468" />
 
       {/* Open Graph Meta Tags */}
       <meta property="og:title" content={ogTitle || title} />
@@ -205,8 +206,8 @@ const SEO: React.FC<SEOProps> = ({
       <meta name="msapplication-TileColor" content={siteConfig.themeColor} />
       <meta name="msapplication-TileImage" content={siteConfig.logo} />
 
-      {/* Verification Tags (placeholder - add actual verification codes) */}
-      {/* <meta name="google-site-verification" content="YOUR_GOOGLE_CODE" /> */}
+      {/* Verification Tags */}
+      <meta name="google-site-verification" content="b1b916ceb07e5572" />
       {/* <meta name="msvalidate.01" content="YOUR_BING_CODE" /> */}
       {/* <meta name="facebook-domain-verification" content="YOUR_FB_CODE" /> */}
 

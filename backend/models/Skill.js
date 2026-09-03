@@ -48,7 +48,7 @@ skillSchema.pre("save", async function (next) {
           : `Hire top remote ${this.name} freelancers on HustleX. Review portfolios, rates, and hire verified experts in 24 hours.`;
       }
       if (!this.seo.canonicalUrl) {
-        this.seo.canonicalUrl = `https://hustlex.com/skills/${this.slug}`;
+        this.seo.canonicalUrl = `https://hustlexet.com/skills/${this.slug}`;
       }
     } catch (err) {
       return next(err);

@@ -44,6 +44,8 @@ backend/.env.*.local
 
 # Dev/test/debug output & logs
 *.txt
+!robots.txt
+!public/robots.txt
 backend/*_output.txt
 backend/*_log.txt
 test_*.js

@@ -116,19 +116,19 @@ const ClientProfilePage: React.FC = () => {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://hustlex.com",
+        "item": "https://hustlexet.com",
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Clients",
-        "item": "https://hustlex.com/job-listings",
+        "item": "https://hustlexet.com/job-listings",
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": companyName,
-        "item": `https://hustlex.com/clients/${slug}`,
+        "item": `https://hustlexet.com/clients/${slug}`,
       },
     ],
   };
@@ -139,10 +139,10 @@ const ClientProfilePage: React.FC = () => {
         title={`${companyName} | Hire Freelancers & Active Jobs | HustleX`}
         description={description.substring(0, 160)}
         keywords={[companyName, industry, "hire freelancers", "remote jobs", "company listings"]}
-        canonical={`https://hustlex.com/clients/${slug}`}
+        canonical={`https://hustlexet.com/clients/${slug}`}
         ogTitle={`${companyName} | Premium Client Company`}
         ogDescription={description.substring(0, 160)}
-        ogImage={logo || "https://hustlex.com/og-image-home.jpg"}
+        ogImage={logo || "https://hustlexet.com/Logo.png"}
         structuredData={[orgSchema, breadcrumbsSchema]}
       />
 

@@ -15,64 +15,64 @@ const staticPageSEO = {
     title: "HustleX — Hire Elite Freelancers Worldwide | Premium Marketplace",
     description: "Hire top 1% freelancers in web development, MERN stack, UI/UX design & AI services. Trusted by startups & Fortune 500. Get started in minutes.",
     keywords: ["freelancing platform", "hire freelancers", "freelance marketplace", "hire MERN developer", "remote developers"],
-    canonicalUrl: "https://hustlex.com/",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   },
   postJob: {
     title: "Post a Project & Get Proposals in 24h | HustleX",
     description: "Post your project for free. Hire verified freelancers in web development, MERN stack, UI/UX design & AI services. 100% secure payments.",
     keywords: ["post a job", "hire freelancers", "freelance project", "hire developers"],
-    canonicalUrl: "https://hustlex.com/post-job",
-    ogImage: "https://hustlex.com/og-image-hire.jpg",
+    canonicalUrl: "https://hustlexet.com/post-job",
+    ogImage: "https://hustlexet.com/og-image-hire.jpg",
   },
   jobListings: {
     title: "Browse Freelance Jobs | Remote Opportunities — HustleX",
     description: "Discover 1000+ freelance jobs in web development, design, marketing & AI. Remote opportunities for elite freelancers worldwide.",
     keywords: ["freelance jobs", "remote work", "MERN jobs", "developer opportunities"],
-    canonicalUrl: "https://hustlex.com/job-listings",
-    ogImage: "https://hustlex.com/og-image-jobs.jpg",
+    canonicalUrl: "https://hustlexet.com/job-listings",
+    ogImage: "https://hustlexet.com/og-image-jobs.jpg",
   },
   about: {
     title: "About Us | HustleX — Premium Freelance Marketplace",
     description: "HustleX connects businesses with the world's top 1% freelancers. Learn about our mission, values, and commitment to excellence.",
     keywords: ["about HustleX", "our mission", "freelance network", "elite freelancers"],
-    canonicalUrl: "https://hustlex.com/about-us",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/about-us",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   },
   contact: {
     title: "Contact Us | HustleX Support & Inquiries",
     description: "Get in touch with HustleX. We are here to help with your questions, support needs, and partnership inquiries. 24/7 support available.",
     keywords: ["contact HustleX", "support", "help", "customer service"],
-    canonicalUrl: "https://hustlex.com/contact-us",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/contact-us",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   },
   faq: {
     title: "FAQ | HustleX — Frequently Asked Questions",
     description: "Find answers to common questions about hiring freelancers, getting paid, account management, and using HustleX.",
     keywords: ["HustleX FAQ", "help center", "freelancer guides", "payment security"],
-    canonicalUrl: "https://hustlex.com/faq",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/faq",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   },
   pricing: {
     title: "Pricing | HustleX — Transparent Freelance Marketplace Fees",
     description: "Simple, transparent pricing for clients and freelancers. No hidden fees. Start for free and scale as you grow.",
     keywords: ["HustleX pricing", "service fee", "freelance commissions", "billing"],
-    canonicalUrl: "https://hustlex.com/pricing",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/pricing",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   },
   howItWorks: {
     title: "How It Works | HustleX — Hire or Work in 3 Simple Steps",
     description: "Learn how HustleX works. Post projects, hire elite freelancers, and manage work seamlessly. Or join as a freelancer and start earning.",
     keywords: ["how HustleX works", "how to hire", "getting hired", "escrow payments"],
-    canonicalUrl: "https://hustlex.com/HowItWorks",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/HowItWorks",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   },
   helpCenter: {
     title: "Help Center | HustleX — Support & Documentation",
     description: "Comprehensive guides, tutorials, and support resources for clients and freelancers. Get the most out of HustleX.",
     keywords: ["help center", "documentation", "guides", "user tutorials"],
-    canonicalUrl: "https://hustlex.com/help-center",
-    ogImage: "https://hustlex.com/og-image-home.jpg",
+    canonicalUrl: "https://hustlexet.com/help-center",
+    ogImage: "https://hustlexet.com/og-image-home.jpg",
   }
 };
 
@@ -98,8 +98,8 @@ const injectMetadata = (html, meta, bodyHtml = "") => {
   const title = meta.title || "HustleX — Hire Elite Freelancers Worldwide";
   const desc = cleanText(meta.description || "Premium Freelancing Marketplace");
   const keywords = Array.isArray(meta.keywords) ? meta.keywords.join(", ") : (meta.keywords || "");
-  const canonical = meta.canonicalUrl || "https://hustlex.com/";
-  const ogImg = meta.ogImage || "https://hustlex.com/og-image-home.jpg";
+  const canonical = meta.canonicalUrl || "https://hustlexet.com/";
+  const ogImg = meta.ogImage || "https://hustlexet.com/og-image-home.jpg";
 
   // Build the new HEAD tags
   let headTags = `
@@ -200,7 +200,7 @@ exports.prerenderPage = async (req, res, next) => {
         if (job) {
           meta.title = `${job.title} | ${job.company || "HustleX"} | Freelance Jobs`;
           meta.description = cleanText(job.description).substring(0, 150);
-          meta.canonicalUrl = `https://hustlex.com/job-details/${job._id}`;
+          meta.canonicalUrl = `https://hustlexet.com/job-details/${job._id}`;
           meta.keywords = job.skills || [];
           
           // JobPosting Structured Data
@@ -215,7 +215,7 @@ exports.prerenderPage = async (req, res, next) => {
             "hiringOrganization": {
               "@type": "Organization",
               "name": job.company || "HustleX Client",
-              "sameAs": job.companyWebsite || "https://hustlex.com",
+              "sameAs": job.companyWebsite || "https://hustlexet.com",
             },
             "jobLocationType": "TELECOMMUTE",
             "applicantLocationRequirements": {
@@ -234,8 +234,8 @@ exports.prerenderPage = async (req, res, next) => {
           };
 
           const breadcrumbs = makeBreadcrumbSchema([
-            { name: "Home", url: "https://hustlex.com" },
-            { name: "Jobs", url: "https://hustlex.com/job-listings" },
+            { name: "Home", url: "https://hustlexet.com" },
+            { name: "Jobs", url: "https://hustlexet.com/job-listings" },
             { name: job.title, url: meta.canonicalUrl }
           ]);
 
@@ -295,7 +295,7 @@ exports.prerenderPage = async (req, res, next) => {
         const name = `${user.profile.firstName || ""} ${user.profile.lastName || ""}`.trim();
         meta.title = `${name} | Elite ${user.profile.primarySkill || "Freelancer"} | HustleX`;
         meta.description = cleanText(user.profile.bio).substring(0, 150) || `Hire ${name}, a professional freelancer on HustleX.`;
-        meta.canonicalUrl = `https://hustlex.com/freelancers/${user.slug}`;
+        meta.canonicalUrl = `https://hustlexet.com/freelancers/${user.slug}`;
         meta.keywords = user.profile.skills || [];
 
         // Person Structured Data
@@ -317,8 +317,8 @@ exports.prerenderPage = async (req, res, next) => {
         };
 
         const breadcrumbs = makeBreadcrumbSchema([
-          { name: "Home", url: "https://hustlex.com" },
-          { name: "Freelancers", url: "https://hustlex.com/freelancers" },
+          { name: "Home", url: "https://hustlexet.com" },
+          { name: "Freelancers", url: "https://hustlexet.com/freelancers" },
           { name: name, url: meta.canonicalUrl }
         ]);
 
@@ -385,7 +385,7 @@ exports.prerenderPage = async (req, res, next) => {
       if (blog) {
         meta.title = `${blog.title} | HustleX Blog`;
         meta.description = cleanText(blog.content).substring(0, 150);
-        meta.canonicalUrl = `https://hustlex.com/blog/${blog.slug || blog._id}`;
+        meta.canonicalUrl = `https://hustlexet.com/blog/${blog.slug || blog._id}`;
         meta.keywords = [blog.category, "freelance blog", "HustleX insights"];
 
         // Article Structured Data
@@ -393,7 +393,7 @@ exports.prerenderPage = async (req, res, next) => {
           "@context": "https://schema.org",
           "@type": "NewsArticle",
           "headline": blog.title,
-          "image": blog.imageUrl || "https://hustlex.com/og-image-home.jpg",
+          "image": blog.imageUrl || "https://hustlexet.com/og-image-home.jpg",
           "datePublished": blog.createdAt,
           "dateModified": blog.updatedAt,
           "author": {
@@ -403,8 +403,8 @@ exports.prerenderPage = async (req, res, next) => {
         };
 
         const breadcrumbs = makeBreadcrumbSchema([
-          { name: "Home", url: "https://hustlex.com" },
-          { name: "Blog", url: "https://hustlex.com/blog" },
+          { name: "Home", url: "https://hustlexet.com" },
+          { name: "Blog", url: "https://hustlexet.com/blog" },
           { name: blog.title, url: meta.canonicalUrl }
         ]);
 
@@ -487,7 +487,7 @@ exports.prerenderPage = async (req, res, next) => {
         if (data) {
           meta.title = data.metaTitle;
           meta.description = data.metaDescription;
-          meta.canonicalUrl = `https://hustlex.com${req.path}`;
+          meta.canonicalUrl = `https://hustlexet.com${req.path}`;
           meta.keywords = data.keywords;
           
           // FAQ & Breadcrumbs
@@ -505,7 +505,7 @@ exports.prerenderPage = async (req, res, next) => {
           };
 
           const breadcrumbs = makeBreadcrumbSchema([
-            { name: "Home", url: "https://hustlex.com" },
+            { name: "Home", url: "https://hustlexet.com" },
             { name: data.breadcrumbsName, url: meta.canonicalUrl }
           ]);
 
@@ -609,7 +609,7 @@ exports.getSitemap = async (req, res) => {
       return res.send(cachedSitemap);
     }
 
-    const domain = "https://hustlex.com";
+    const domain = "https://hustlexet.com";
     
     // Core static routes
     const staticRoutes = [
@@ -723,7 +723,7 @@ Disallow: /dashboard/
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://hustlex.com/sitemap.xml
+Sitemap: https://hustlexet.com/sitemap.xml
 `;
   res.header("Content-Type", "text/plain");
   res.send(robots);

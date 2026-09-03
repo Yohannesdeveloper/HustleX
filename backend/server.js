@@ -406,7 +406,7 @@ const { initSocketRedis, getSocketPubClient } = require("./lib/redis-socket");
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? [process.env.CLIENT_URL || 'https://hustlex.com']
+      ? [process.env.CLIENT_URL || 'https://hustlexet.com']
       : [
           process.env.CLIENT_URL || 'http://localhost:5173',
           'http://localhost:5174',

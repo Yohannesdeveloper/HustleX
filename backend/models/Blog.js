@@ -339,7 +339,7 @@ blogSchema.pre("save", async function (next) {
           : `Read "${this.title}" by ${this.author || "Admin"} on the HustleX blog. Get tips on freelancing, remote work, and tech.`;
       }
       if (!this.seo.canonicalUrl) {
-        this.seo.canonicalUrl = `https://hustlex.com/blog/${this.slug}`;
+        this.seo.canonicalUrl = `https://hustlexet.com/blog/${this.slug}`;
       }
     } catch (err) {
       return next(err);

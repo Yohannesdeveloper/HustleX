@@ -138,19 +138,19 @@ const FreelancerProfilePage: React.FC = () => {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://hustlex.com",
+        "item": "https://hustlexet.com",
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Freelancers",
-        "item": "https://hustlex.com/job-listings",
+        "item": "https://hustlexet.com/job-listings",
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": fullName,
-        "item": `https://hustlex.com/freelancers/${slug}`,
+        "item": `https://hustlexet.com/freelancers/${slug}`,
       },
     ],
   };
@@ -233,10 +233,10 @@ const FreelancerProfilePage: React.FC = () => {
         title={`${fullName} | Elite ${primarySkill} | HustleX`}
         description={bio.substring(0, 160)}
         keywords={[fullName, primarySkill, ...skills]}
-        canonical={`https://hustlex.com/freelancers/${slug}`}
+        canonical={`https://hustlexet.com/freelancers/${slug}`}
         ogTitle={`${fullName} | Elite ${primarySkill}`}
         ogDescription={bio.substring(0, 160)}
-        ogImage={avatarUrl || "https://hustlex.com/og-image-home.jpg"}
+        ogImage={avatarUrl || "https://hustlexet.com/Logo.png"}
         structuredData={[personSchema, breadcrumbsSchema]}
       />
 

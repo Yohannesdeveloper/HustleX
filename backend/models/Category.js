@@ -48,7 +48,7 @@ categorySchema.pre("save", async function (next) {
           : `Find top freelance services in ${this.name} on HustleX. Hire experts for your projects with secure payments.`;
       }
       if (!this.seo.canonicalUrl) {
-        this.seo.canonicalUrl = `https://hustlex.com/categories/${this.slug}`;
+        this.seo.canonicalUrl = `https://hustlexet.com/categories/${this.slug}`;
       }
     } catch (err) {
       return next(err);

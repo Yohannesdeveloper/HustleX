@@ -7,8 +7,8 @@
 export const siteConfig = {
   name: "HustleX",
   tagline: "Hire Elite Freelancers Worldwide",
-  url: "https://hustlex.com",
-  logo: "https://hustlex.com/Logo.png",
+  url: "https://hustlexet.com",
+  logo: "https://hustlexet.com/Logo.png",
   favicon: "/Logo.png",
   locale: "en_US",
   twitterHandle: "@HustleX",
@@ -20,14 +20,22 @@ export const siteConfig = {
 // 1. HOMEPAGE SEO
 // ============================================
 export const homepageSEO = {
-  // Title: Under 60 characters, click-magnet, premium positioning
-  title: "HustleX — Hire Elite Freelancers Worldwide | Premium Marketplace",
+  // Title: Under 60 characters, brand-first, click-magnet, premium positioning
+  title: "HustleX — Freelance Marketplace | Hire Top Freelancers in Ethiopia & Worldwide",
   
-  // Meta Description: Under 155 characters, luxury, high-trust, conversion focused
-  description: "Hire top 1% freelancers in web development, MERN stack, UI/UX design & AI services. Trusted by startups & Fortune 500. Get started in minutes.",
+  // Meta Description: Under 155 characters, high-trust, conversion focused
+  description: "HustleX is Ethiopia's #1 freelance marketplace. Hire top 1% talent in web development, MERN stack, UI/UX design & AI services. Get started in minutes.",
   
-  // Keywords: 30 high-ranking keywords
+  // Keywords: High-ranking brand & category keywords
   keywords: [
+    "hustlex",
+    "HustleX",
+    "hustle x",
+    "hustlex ethiopia",
+    "freelance marketplace ethiopia",
+    "hire freelancers ethiopia",
+    "hustlexet",
+    "hustlexet.com",
     "freelancing platform",
     "hire freelancers",
     "freelance marketplace",
@@ -52,16 +60,10 @@ export const homepageSEO = {
     "hire React developer",
     "hire Node.js developer",
     "hire full stack developer",
-    "hire mobile app developer",
-    "hire SEO expert",
-    "hire content writer",
-    "hire virtual assistant",
-    "hire blockchain developer",
-    "hire data scientist",
   ],
   
   // Canonical URL
-  canonical: "https://hustlex.com/",
+  canonical: "https://hustlexet.com/",
   
   // Robots
   robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
@@ -72,33 +74,33 @@ export const homepageSEO = {
 // ============================================
 export const openGraph = {
   homepage: {
-    title: "HustleX — Hire Elite Freelancers Worldwide",
-    description: "Connect with top 1% freelancers in web development, MERN stack, UI/UX design & AI services. The premium marketplace for businesses that demand excellence.",
-    image: "https://hustlex.com/og-image-home.jpg",
-    url: "https://hustlex.com/",
+    title: "HustleX — Freelance Marketplace | Hire Top Talent",
+    description: "Ethiopia's leading freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top talent on HustleX.",
+    image: "https://hustlexet.com/Logo.png",
+    url: "https://hustlexet.com/",
     type: "website",
     siteName: "HustleX",
     locale: "en_US",
   },
   hire: {
-    title: "Hire Elite Freelancers | HustleX",
+    title: "Hire Top Freelancers | HustleX",
     description: "Post your project and hire top-tier freelancers in 24 hours. Access verified talent in development, design, marketing & AI.",
-    image: "https://hustlex.com/og-image-hire.jpg",
-    url: "https://hustlex.com/post-job",
+    image: "https://hustlexet.com/Logo.png",
+    url: "https://hustlexet.com/post-job",
     type: "website",
   },
   becomeFreelancer: {
     title: "Become a Freelancer | HustleX",
     description: "Join the elite network. Get high-paying clients, work on exciting projects, and grow your freelance career with HustleX.",
-    image: "https://hustlex.com/og-image-freelancer.jpg",
-    url: "https://hustlex.com/signup",
+    image: "https://hustlexet.com/Logo.png",
+    url: "https://hustlexet.com/signup",
     type: "website",
   },
   jobs: {
     title: "Browse Freelance Jobs | HustleX",
     description: "Discover high-quality freelance opportunities. Remote jobs for developers, designers, marketers & AI specialists.",
-    image: "https://hustlex.com/og-image-jobs.jpg",
-    url: "https://hustlex.com/job-listings",
+    image: "https://hustlexet.com/Logo.png",
+    url: "https://hustlexet.com/job-listings",
     type: "website",
   },
 };
@@ -111,19 +113,19 @@ export const twitterCard = {
   site: "@HustleX",
   creator: "@HustleX",
   homepage: {
-    title: "HustleX — Hire Elite Freelancers Worldwide",
-    description: "Connect with top 1% freelancers in web development, MERN stack, UI/UX design & AI services. The premium marketplace for excellence.",
-    image: "https://hustlex.com/twitter-image-home.jpg",
+    title: "HustleX — Freelance Marketplace | Hire Top Talent",
+    description: "Connect with top freelancers in web development, MERN stack, UI/UX design & AI services on HustleX.",
+    image: "https://hustlexet.com/Logo.png",
   },
   hire: {
-    title: "Hire Elite Freelancers | HustleX",
-    description: "Post your project and hire top-tier freelancers in 24 hours. Access verified talent in development, design & AI.",
-    image: "https://hustlex.com/twitter-image-hire.jpg",
+    title: "Hire Top Freelancers | HustleX",
+    description: "Post your project and hire top-tier freelancers in 24 hours on HustleX.",
+    image: "https://hustlexet.com/Logo.png",
   },
   becomeFreelancer: {
     title: "Become a Freelancer | HustleX",
     description: "Join the elite network. Get high-paying clients and grow your freelance career with HustleX.",
-    image: "https://hustlex.com/twitter-image-freelancer.jpg",
+    image: "https://hustlexet.com/Logo.png",
   },
 };
 
@@ -136,51 +138,60 @@ export const structuredData = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "HustleX",
-    alternateName: "HustleX Freelance Marketplace",
-    url: "https://hustlex.com",
-    logo: "https://hustlex.com/Logo.png",
+    legalName: "HustleX",
+    alternateName: [
+      "hustlex",
+      "Hustle X",
+      "HustleX Ethiopia",
+      "HustleX Freelance Marketplace",
+      "hustlexet",
+      "hustlexet.com"
+    ],
+    url: "https://hustlexet.com",
+    logo: "https://hustlexet.com/Logo.png",
     sameAs: [
+      "https://t.me/HustleX_bot",
       "https://twitter.com/HustleX",
-      "https://www.linkedin.com/company/hustlex",
-      "https://www.facebook.com/HustleX",
-      "https://www.instagram.com/hustlex",
+      "https://www.linkedin.com/company/hustlex"
     ],
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: "+1-800-HUSTLEX",
-      contactType: "customer service",
-      availableLanguage: ["English"],
+      contactType: "customer support",
+      email: "support@hustlexet.com",
+      availableLanguage: ["English", "Amharic"],
       areaServed: "Worldwide",
     },
-    description: "HustleX is a premium global freelancing marketplace connecting businesses with elite freelancers in web development, MERN stack, UI/UX design, graphic design, video editing, digital marketing, and AI services.",
+    description: "HustleX is Ethiopia's premier freelance marketplace connecting businesses with top freelance talent in web development, MERN stack, UI/UX design, and AI services.",
     foundingDate: "2024",
-    founders: [
-      {
-        "@type": "Person",
-        name: "HustleX Team",
-      },
-    ],
     address: {
       "@type": "PostalAddress",
-      addressCountry: "US",
+      addressLocality: "Addis Ababa",
+      addressCountry: "ET",
     },
   },
 
-  // Website Schema with Search Action
+  // Website Schema with Search Action (Site Name Signal for Google)
   website: {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "HustleX",
-    url: "https://hustlex.com",
+    alternateName: [
+      "hustlex",
+      "Hustle X",
+      "HustleX Ethiopia",
+      "hustlexet",
+      "hustlexet.com"
+    ],
+    url: "https://hustlexet.com/",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://hustlex.com/job-listings?search={search_term_string}",
+        urlTemplate: "https://hustlexet.com/job-listings?search={search_term_string}",
       },
       "query-input": "required name=search_term_string",
     },
-    description: "Find and hire elite freelancers worldwide. Premium marketplace for web development, design, marketing & AI services.",
+    description: "Find and hire top freelancers in Ethiopia and worldwide on HustleX.",
     inLanguage: "en-US",
   },
 
@@ -189,30 +200,24 @@ export const structuredData = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     name: "HustleX Freelance Services",
-    image: "https://hustlex.com/Logo.png",
-    url: "https://hustlex.com",
-    telephone: "+1-800-HUSTLEX",
-    priceRange: "$$$",
+    image: "https://hustlexet.com/Logo.png",
+    url: "https://hustlexet.com",
+    priceRange: "$$",
     address: {
       "@type": "PostalAddress",
-      addressCountry: "US",
+      addressLocality: "Addis Ababa",
+      addressCountry: "ET",
     },
     geo: {
       "@type": "GeoCoordinates",
-      latitude: "37.7749",
-      longitude: "-122.4194",
+      latitude: "9.0245",
+      longitude: "38.7468",
     },
     openingHoursSpecification: {
       "@type": "OpeningHoursSpecification",
       dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
       opens: "00:00",
       closes: "23:59",
-    },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.9",
-      reviewCount: "12500",
-      bestRating: "5",
     },
   },
 
@@ -225,7 +230,7 @@ export const structuredData = {
     hiringOrganization: {
       "@type": "Organization",
       name: "HustleX",
-      sameAs: "https://hustlex.com",
+      sameAs: "https://hustlexet.com",
     },
     employmentType: "CONTRACTOR",
     jobLocationType: "TELECOMMUTE",
@@ -601,10 +606,10 @@ export const technicalSEO = {
   locale: "en_US",
   
   // Geo targeting
-  geoRegion: "US",
-  geoPlacename: "United States",
-  geoPosition: "37.7749;-122.4194",
-  ICBM: "37.7749, -122.4194",
+  geoRegion: "ET",
+  geoPlacename: "Addis Ababa, Ethiopia",
+  geoPosition: "9.0245;38.7468",
+  ICBM: "9.0245, 38.7468",
 };
 
 // ============================================

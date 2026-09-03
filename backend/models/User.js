@@ -192,7 +192,7 @@ userSchema.pre("save", async function (next) {
           : `Hire ${name || "a professional freelancer"} on HustleX. Review portfolio, hourly rates, and certifications.`;
       }
       if (!this.seo.canonicalUrl && this.slug) {
-        this.seo.canonicalUrl = `https://hustlex.com/freelancers/${this.slug}`;
+        this.seo.canonicalUrl = `https://hustlexet.com/freelancers/${this.slug}`;
       }
     } catch (err) {
       console.error("⚠️  Slug generation failed:", {

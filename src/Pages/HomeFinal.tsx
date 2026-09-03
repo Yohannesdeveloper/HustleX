@@ -156,7 +156,7 @@ const Home = () => {
                   <div className="absolute inset-0 bg-black/3 z-20"></div>
                   {/* Text Content */}
                   <div className="relative z-30 px-4 sm:px-8 md:px-10 lg:px-16 xl:px-10 pt-16 sm:pt-20 md:pt-24 pb-7 sm:pb-12 md:pb-27">
-                    <motion.h2
+                    <motion.h1
                       className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-6 sm:mb-8 md:mb-10 leading-tight max-w-4xl text-left ${darkMode ? "text-white" : "text-black"
                         }`}
                       initial={{ opacity: 0, y: 30 }}
@@ -168,7 +168,7 @@ const Home = () => {
                       <span className="text-cyan-500">
                         {t.hero.titleHighlight}
                       </span>"
-                    </motion.h2>
+                    </motion.h1>
 
                     <motion.p
                       className={`text-base sm:text-lg md:text-xl lg:text-2xl mb-8 sm:mb-10 md:mb-12 leading-relaxed max-w-3xl text-left ${darkMode ? "text-white/90" : "text-black/90"

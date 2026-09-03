@@ -64,7 +64,7 @@ projectSchema.pre("save", async function (next) {
           : `View portfolio project "${this.title}" hosted on HustleX. Review case study, project images, and technologies used.`;
       }
       if (!this.seo.canonicalUrl) {
-        this.seo.canonicalUrl = `https://hustlex.com/projects/${this.slug}`;
+        this.seo.canonicalUrl = `https://hustlexet.com/projects/${this.slug}`;
       }
       if (this.images && this.images.length > 0 && !this.seo.ogImage) {
         this.seo.ogImage = this.images[0];

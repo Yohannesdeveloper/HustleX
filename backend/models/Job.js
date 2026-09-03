@@ -167,7 +167,7 @@ jobSchema.pre("save", async function (next) {
           : `Apply to the ${this.title} remote/contract job at ${this.company || "HustleX"} on HustleX. Budget: ${this.budget}. Apply now!`;
       }
       if (!this.seo.canonicalUrl) {
-        this.seo.canonicalUrl = `https://hustlex.com/jobs/${this.slug}`;
+        this.seo.canonicalUrl = `https://hustlexet.com/jobs/${this.slug}`;
       }
     } catch (err) {
       return next(err);

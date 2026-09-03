@@ -585,7 +585,7 @@ const JobDetailsMongo: React.FC = () => {
   if (!job) return null; // Extra safety check for TypeScript
 
   const cleanSnippet = job.description.replace(/<[^>]*>/g, "").substring(0, 160);
-  const canonicalUrl = `https://hustlex.com/job-details/${job._id}`;
+  const canonicalUrl = `https://hustlexet.com/job-details/${job._id}`;
   const jobDate = job.createdAt
     ? typeof job.createdAt === "string"
       ? new Date(job.createdAt).toISOString()
@@ -603,7 +603,7 @@ const JobDetailsMongo: React.FC = () => {
     "hiringOrganization": {
       "@type": "Organization",
       "name": job.company || "HustleX Client",
-      "sameAs": job.companyWebsite || "https://hustlex.com"
+      "sameAs": job.companyWebsite || "https://hustlexet.com"
     },
     "jobLocationType": "TELECOMMUTE",
     "applicantLocationRequirements": {
@@ -629,13 +629,13 @@ const JobDetailsMongo: React.FC = () => {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://hustlex.com"
+        "item": "https://hustlexet.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Jobs",
-        "item": "https://hustlex.com/job-listings"
+        "item": "https://hustlexet.com/job-listings"
       },
       {
         "@type": "ListItem",
@@ -658,7 +658,7 @@ const JobDetailsMongo: React.FC = () => {
         canonical={canonicalUrl}
         ogTitle={job.title}
         ogDescription={cleanSnippet}
-        ogImage="https://hustlex.com/og-image-jobs.jpg"
+        ogImage="https://hustlexet.com/Logo.png"
         structuredData={[jobPostingSchema, breadcrumbsSchema]}
       />
 

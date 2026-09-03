@@ -177,13 +177,13 @@ const ProgrammaticSEOPage: React.FC = () => {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://hustlex.com",
+        "item": "https://hustlexet.com",
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": data.breadcrumbsName,
-        "item": `https://hustlex.com${pathname}`,
+        "item": `https://hustlexet.com${pathname}`,
       },
     ],
   };
@@ -196,10 +196,10 @@ const ProgrammaticSEOPage: React.FC = () => {
         title={data.metaTitle}
         description={data.metaDescription}
         keywords={data.keywords}
-        canonical={`https://hustlex.com${pathname}`}
+        canonical={`https://hustlexet.com${pathname}`}
         ogTitle={data.headline}
         ogDescription={data.metaDescription}
-        ogImage="https://hustlex.com/og-image-home.jpg"
+        ogImage="https://hustlexet.com/Logo.png"
         structuredData={[faqSchema, breadcrumbsSchema]}
       />
 

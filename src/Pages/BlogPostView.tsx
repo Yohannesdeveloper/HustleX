@@ -75,8 +75,8 @@ const BlogPostView: React.FC = () => {
   }
 
   const cleanSnippet = blog.content.replace(/<[^>]*>/g, "").substring(0, 160);
-  const canonicalUrl = `https://hustlex.com/blog/${blog.slug || blog._id}`;
-  const ogImg = blog.imageUrl ? apiService.getFileUrl(blog.imageUrl) : "https://hustlex.com/og-image-home.jpg";
+  const canonicalUrl = `https://hustlexet.com/blog/${blog.slug || blog._id}`;
+  const ogImg = blog.imageUrl ? apiService.getFileUrl(blog.imageUrl) : "https://hustlexet.com/Logo.png";
 
   const articleSchema = {
     "@context": "https://schema.org",
@@ -99,13 +99,13 @@ const BlogPostView: React.FC = () => {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://hustlex.com"
+        "item": "https://hustlexet.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Blog",
-        "item": "https://hustlex.com/blog"
+        "item": "https://hustlexet.com/blog"
       },
       {
         "@type": "ListItem",
