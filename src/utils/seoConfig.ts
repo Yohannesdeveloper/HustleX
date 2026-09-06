@@ -142,15 +142,10 @@ export const structuredData = {
     name: "HustleX",
     legalName: "HustleX",
     alternateName: [
-      "hustlex",
-      "Hustle X",
-      "HustleX Ethiopia",
-      "HustleX Freelance Marketplace",
-      "hustlexet",
-      "hustlexet.com"
+      "Hustle X"
     ],
-    url: "https://hustlexet.com",
-    logo: "https://hustlexet.com/Logo.png",
+    url: "https://hustlexet.com/",
+    logo: "https://hustlexet.com/favicon-512x512.png",
     sameAs: [
       "https://github.com/Yohannesdeveloper/HustleX"
     ],
@@ -176,11 +171,7 @@ export const structuredData = {
     "@type": "WebSite",
     name: "HustleX",
     alternateName: [
-      "hustlex",
-      "Hustle X",
-      "HustleX Ethiopia",
-      "hustlexet",
-      "hustlexet.com"
+      "Hustle X"
     ],
     url: "https://hustlexet.com/",
     potentialAction: {
