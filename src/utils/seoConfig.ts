@@ -11,7 +11,7 @@ export const siteConfig = {
   tagline: "Hire Elite Freelancers Worldwide",
   url: SITE_URL,
   logo: `${SITE_URL}/Logo.png`,
-  favicon: "/Logo.png",
+  favicon: "/favicon-48x48.png",
   locale: "en_US",
   twitterHandle: "@HustleX",
   facebookAppId: "",
