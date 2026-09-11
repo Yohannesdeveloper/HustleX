@@ -3,15 +3,22 @@
 
 <head>
   <!-- Prevent Telegram navy flash before React loads -->
-  <style>html,body{background:#111827;margin:0}</style>
+  <style>
+    html,
+    body {
+      background: #111827;
+      margin: 0
+    }
+  </style>
   <!-- Basic Meta Tags -->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    (function() {
+    (function () {
       function dismissNavy() {
         try {
           var _w = window.Telegram;
@@ -20,91 +27,97 @@
             if (typeof _w.WebApp.expand === 'function') _w.WebApp.expand();
             return true;
           }
-        } catch(e) {}
+        } catch (e) { }
         return false;
       }
       if (!dismissNavy()) {
         var _a = 0;
-        var _i = setInterval(function() { _a++; if (dismissNavy() || _a > 100) clearInterval(_i); }, 50);
+        var _i = setInterval(function () { _a++; if (dismissNavy() || _a > 100) clearInterval(_i); }, 50);
       }
     })();
   </script>
-  
+
   <!-- Primary Meta Tags -->
   <title>HustleX — Freelance Marketplace | Hire Top Freelancers in Ethiopia & Worldwide</title>
   <meta name="title" content="HustleX — Freelance Marketplace | Hire Top Freelancers in Ethiopia & Worldwide" />
-  <meta name="description" content="HustleX is Ethiopia's #1 freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top Ethiopian talent for web development and digital services." />
-  <meta name="keywords" content="hustlex, HustleX, hustle x, hustlex ethiopia, freelance marketplace ethiopia, hire freelancers ethiopia, hire web developer ethiopia, hire MERN developer, hire UI UX designer, hire graphic designer, hire video editor, hire digital marketer, hire AI developer, Upwork alternative, Fiverr alternative, ethiopian freelancers, remote developers ethiopia, hire remote team, best freelancing website, hire developers online, hustlexet, hustlexet.com" />
+  <meta name="description"
+    content="HustleX is Ethiopia's #1 freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top Ethiopian talent for web development and digital services." />
+  <meta name="keywords"
+    content="hustlex, HustleX, hustle x, hustlex ethiopia, freelance marketplace ethiopia, hire freelancers ethiopia, hire web developer ethiopia, hire MERN developer, hire UI UX designer, hire graphic designer, hire video editor, hire digital marketer, hire AI developer, Upwork alternative, Fiverr alternative, ethiopian freelancers, remote developers ethiopia, hire remote team, best freelancing website, hire developers online, hustlexet, hustlexet.com" />
   <meta name="author" content="HustleX" />
   <meta name="copyright" content="© 2026 HustleX. All rights reserved." />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="bingbot" content="index, follow" />
   <link rel="canonical" href="https://hustlexet.com/" />
-  
+
   <!-- Language & Locale -->
   <meta http-equiv="content-language" content="en" />
   <meta name="language" content="English" />
-  
+
   <!-- Geo Tags -->
   <meta name="geo.region" content="ET" />
   <meta name="geo.placename" content="Addis Ababa, Ethiopia" />
   <meta name="geo.position" content="9.0245;38.7468" />
   <meta name="ICBM" content="9.0245, 38.7468" />
-  
-  <!-- Favicon & Icons (Google Search & Multi-device standard) -->
-  <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
+
+  <!-- Favicon & Icons -->
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
-  <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="mask-icon" href="/favicon-512x512.png" color="#0ea5e9" />
-  
   <!-- Theme Color -->
   <meta name="theme-color" content="#0ea5e9" />
   <meta name="msapplication-TileColor" content="#0ea5e9" />
   <meta name="msapplication-TileImage" content="/Logo.png" />
-  
+
   <!-- Mobile Web App -->
   <meta name="application-name" content="HustleX" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="HustleX" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://hustlexet.com/" />
   <meta property="og:site_name" content="HustleX" />
   <meta property="og:title" content="HustleX — Freelance Marketplace | Hire Top Talent" />
-  <meta property="og:description" content="Ethiopia's leading freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top talent on HustleX." />
+  <meta property="og:description"
+    content="Ethiopia's leading freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top talent on HustleX." />
   <meta property="og:image" content="https://hustlexet.com/Logo.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="HustleX - Premium Freelance Marketplace" />
   <meta property="og:locale" content="en_US" />
-  
+
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@HustleX" />
   <meta name="twitter:creator" content="@HustleX" />
   <meta name="twitter:url" content="https://hustlexet.com/" />
   <meta name="twitter:title" content="HustleX — Freelance Marketplace | Hire Top Talent" />
-  <meta name="twitter:description" content="Ethiopia's leading freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists." />
+  <meta name="twitter:description"
+    content="Ethiopia's leading freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists." />
   <meta name="twitter:image" content="https://hustlexet.com/Logo.png" />
   <meta name="twitter:image:alt" content="HustleX - Premium Freelance Marketplace" />
-  
+
   <!-- Preconnect for Performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
   <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-  
+
   <!-- Google Search Console Verification -->
   <meta name="google-site-verification" content="b1b916ceb07e5572" />
-  
+
   <!-- Structured Data: Organization -->
   <script type="application/ld+json">
   {
@@ -118,12 +131,16 @@
     "url": "https://hustlexet.com/",
     "logo": "https://hustlexet.com/favicon-512x512.png",
     "sameAs": [
-      "https://github.com/Yohannesdeveloper/HustleX"
+      "https://github.com/Yohannesdeveloper/HustleX",
+      "https://hustlexet.com"
     ],
+    "foundingDate": "2024",
+    "telephone": "+251942927999",
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "customer support",
       "email": "support@hustlexet.com",
+      "telephone": "+251942927999",
       "availableLanguage": ["English", "Amharic"]
     },
     "description": "HustleX is Ethiopia's premier freelance marketplace connecting businesses with top freelance talent in web development, MERN stack, UI/UX design, and AI services.",
@@ -134,17 +151,26 @@
     }
   }
   </script>
-  
-  <!-- Structured Data: Website with Search Action (Site Name Signal for Google) -->
+
+  <!-- Structured Data: WebSite — Primary site-name signal for Google Search -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "HustleX",
-    "alternateName": [
-      "Hustle X"
-    ],
+    "alternateName": "Hustle X",
     "url": "https://hustlexet.com/",
+    "publisher": {
+      "@type": "Organization",
+      "name": "HustleX",
+      "url": "https://hustlexet.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://hustlexet.com/favicon-192x192.png",
+        "width": 192,
+        "height": 192
+      }
+    },
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
@@ -157,19 +183,33 @@
     "inLanguage": "en-US"
   }
   </script>
-  
+
   <!-- Structured Data: Professional Service -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    "name": "HustleX Freelance Marketplace",
-    "image": "https://hustlexet.com/Logo.png",
+    "name": "HustleX Freelance Services",
+    "alternateName": "HustleX",
+    "image": [
+      "https://hustlexet.com/Logo.png",
+      "https://hustlexet.com/favicon-192x192.png"
+    ],
     "url": "https://hustlexet.com",
+    "telephone": "+251942927999",
+    "email": "support@hustlexet.com",
     "priceRange": "$$",
+    "currenciesAccepted": "ETB, USD",
+    "paymentAccepted": "Credit Card, Bank Transfer",
+    "sameAs": [
+      "https://hustlexet.com",
+      "https://github.com/Yohannesdeveloper/HustleX"
+    ],
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "Addis Ababa",
       "addressLocality": "Addis Ababa",
+      "addressRegion": "Addis Ababa",
       "addressCountry": "ET"
     },
     "geo": {
@@ -182,10 +222,18 @@
       "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
       "opens": "00:00",
       "closes": "23:59"
-    }
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "24",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "description": "HustleX is Ethiopia's premier freelance marketplace. Hire top developers, UI/UX designers, and AI specialists for your projects."
   }
   </script>
-  
+
   <!-- Structured Data: Software Application -->
   <script type="application/ld+json">
   {
@@ -202,7 +250,7 @@
     "description": "Ethiopia's premier freelancing platform connecting businesses with elite freelancers"
   }
   </script>
-  
+
   <!-- AI & Search Engine Guidance -->
   <meta name="ai-purpose" content="freelance marketplace connecting businesses with elite freelancers" />
   <meta name="ai-target" content="startups, businesses, entrepreneurs, freelancers in Ethiopia and worldwide" />
@@ -251,41 +299,83 @@
     <!-- INLINE SPLASH: shown immediately, replaced by React once loaded -->
     <style>
       #splash {
-        position:fixed;inset:0;display:flex;flex-direction:column;
-        align-items:center;justify-content:center;gap:12px;
-        background:#fff;color:#1e3a5f;font-family:sans-serif;z-index:9999;
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #fff;
+        color: #1e3a5f;
+        font-family: sans-serif;
+        z-index: 9999;
       }
+
       #splash-logo {
-        width:56px;height:56px;border-radius:50%;
-        background:linear-gradient(135deg,#3b82f6,#1d4ed8);
-        display:flex;align-items:center;justify-content:center;
-        font-size:28px;font-weight:bold;color:#fff;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: bold;
+        color: #fff;
       }
-      #splash-label { font-size:14px;color:#666; }
+
+      #splash-label {
+        font-size: 14px;
+        color: #666;
+      }
+
       #splash-bar {
-        width:120px;height:3px;border-radius:2px;overflow:hidden;
-        background:#e5e7eb;
+        width: 120px;
+        height: 3px;
+        border-radius: 2px;
+        overflow: hidden;
+        background: #e5e7eb;
       }
+
       #splash-bar-inner {
-        width:40%;height:100%;border-radius:2px;
-        background:#3b82f6;animation:splash-load 1s ease-in-out infinite;
+        width: 40%;
+        height: 100%;
+        border-radius: 2px;
+        background: #3b82f6;
+        animation: splash-load 1s ease-in-out infinite;
       }
+
       @keyframes splash-load {
-        0%{transform:translateX(-100%)} 50%{transform:translateX(150%)} 100%{transform:translateX(350%)}
+        0% {
+          transform: translateX(-100%)
+        }
+
+        50% {
+          transform: translateX(150%)
+        }
+
+        100% {
+          transform: translateX(350%)
+        }
       }
     </style>
     <div id="splash">
       <div id="splash-logo">H</div>
       <div style="font-size:18px;font-weight:600">HustleX</div>
       <div id="splash-label">Loading...</div>
-      <div id="splash-bar"><div id="splash-bar-inner"></div></div>
+      <div id="splash-bar">
+        <div id="splash-bar-inner"></div>
+      </div>
     </div>
   </div>
   <noscript>
     <div style="padding:2rem;font-family:sans-serif;max-width:800px;margin:0 auto;color:#e5e7eb;">
       <h1>HustleX — Ethiopia's #1 Freelance Marketplace</h1>
       <p>
-        <strong>HustleX</strong> (hustlexet.com) is Ethiopia's premier freelance platform connecting businesses, startups, and clients with top-rated freelance software developers, UI/UX designers, and digital professionals in Addis Ababa and across the globe.
+        <strong>HustleX</strong> (hustlexet.com) is Ethiopia's premier freelance platform connecting businesses,
+        startups, and clients with top-rated freelance software developers, UI/UX designers, and digital professionals
+        in Addis Ababa and across the globe.
       </p>
       <h2>Explore HustleX Services</h2>
       <ul>
@@ -300,7 +390,7 @@
   <script>
     // Unregister any stale Service Worker from a previous broken build
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
         for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
       });
     }
