@@ -23,7 +23,7 @@ export const siteConfig = {
 // ============================================
 export const homepageSEO = {
   // Title: Under 60 characters, brand-first, click-magnet, premium positioning
-  title: "HustleX — Freelance Marketplace | Hire Top Talent",
+  title: "HustleX — Freelance Marketplace",
   
   // Meta Description: Under 155 characters, high-trust, conversion focused
   description: "HustleX is Ethiopia's #1 freelance marketplace. Hire top 1% talent in web development, MERN stack, UI/UX design & AI services. Get started in minutes.",
@@ -76,7 +76,7 @@ export const homepageSEO = {
 // ============================================
 export const openGraph = {
   homepage: {
-    title: "HustleX — Freelance Marketplace | Hire Top Talent",
+    title: "HustleX — Freelance Marketplace",
     description: "Ethiopia's leading freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top talent on HustleX.",
     image: "https://hustlexet.com/Logo.png",
     url: "https://hustlexet.com/",
@@ -115,7 +115,7 @@ export const twitterCard = {
   site: "@HustleX",
   creator: "@HustleX",
   homepage: {
-    title: "HustleX — Freelance Marketplace | Hire Top Talent",
+    title: "HustleX — Freelance Marketplace",
     description: "Connect with top freelancers in web development, MERN stack, UI/UX design & AI services on HustleX.",
     image: "https://hustlexet.com/Logo.png",
   },
@@ -264,7 +264,7 @@ export const structuredData = {
 export const pageSEO = {
   // Homepage
   home: {
-    title: "HustleX — Freelance Marketplace | Hire Top Talent",
+    title: "HustleX — Freelance Marketplace",
     description: "Hire top 1% freelancers in web development, MERN stack, UI/UX design & AI services. Trusted by startups & Fortune 500. Get started in minutes.",
     keywords: homepageSEO.keywords,
     canonical: `${SITE_URL}/`,
