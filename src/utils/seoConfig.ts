@@ -23,7 +23,7 @@ export const siteConfig = {
 // ============================================
 export const homepageSEO = {
   // Title: Under 60 characters, brand-first, click-magnet, premium positioning
-  title: "HustleX — Freelance Marketplace | Hire Top Freelancers in Ethiopia & Worldwide",
+  title: "HustleX — Freelance Marketplace | Hire Top Talent",
   
   // Meta Description: Under 155 characters, high-trust, conversion focused
   description: "HustleX is Ethiopia's #1 freelance marketplace. Hire top 1% talent in web development, MERN stack, UI/UX design & AI services. Get started in minutes.",
@@ -264,7 +264,7 @@ export const structuredData = {
 export const pageSEO = {
   // Homepage
   home: {
-    title: "HustleX — Hire Elite Freelancers Worldwide | Premium Marketplace",
+    title: "HustleX — Freelance Marketplace | Hire Top Talent",
     description: "Hire top 1% freelancers in web development, MERN stack, UI/UX design & AI services. Trusted by startups & Fortune 500. Get started in minutes.",
     keywords: homepageSEO.keywords,
     canonical: `${SITE_URL}/`,
