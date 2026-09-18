@@ -718,39 +718,30 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
       return normalized;
     }
 
-    // Derive backend origin from this.baseUrl (or window.location)
-    let origin: string;
-    if (typeof window !== "undefined" && window.location.hostname.includes("devtunnels")) {
-      origin = `https://${window.location.hostname}`;
-    } else if (this.baseUrl) {
-      origin = this.baseUrl.replace(/\/api\/?$/, "");
-    } else if (typeof window !== "undefined") {
-      origin = window.location.origin;
-    } else {
-      origin = "";
-    }
-
-    // If it's already an absolute URL, return it as-is UNLESS it points to localhost
+    // If it's already an absolute URL
     if (/^https?:\/\//i.test(normalized)) {
       try {
         const parsed = new URL(normalized);
-        // Only rewrite if the URL is localhost/127.0.0.1 (dev artifacts stored with wrong origin)
+        // Only rewrite localhost/127.0.0.1 URLs (dev artifacts stored with wrong origin)
         const isLocalhost =
           parsed.hostname === "localhost" ||
           parsed.hostname === "127.0.0.1";
-
-        if (isLocalhost && parsed.pathname.startsWith("/uploads/") && origin) {
-          return `${origin}${parsed.pathname}`;
+        if (isLocalhost && parsed.pathname.startsWith("/uploads/") && typeof window !== "undefined") {
+          return `${window.location.origin}${parsed.pathname}`;
         }
       } catch {
-        // fall through if URL parsing fails
+        // fall through
       }
-      // All other absolute URLs (Railway, Atlas, S3, etc.) are returned as-is
+      // All other absolute URLs (Railway, S3, CDN, etc.) returned as-is
       return normalized;
     }
 
-    const path = normalized.startsWith("/") ? normalized : `/${normalized}`;
-    return origin ? `${origin}${path}` : path;
+    // Relative path — resolve against window.location.origin so:
+    // - In dev (localhost:5173): Vite proxies /uploads/* → backend
+    // - In production: same origin serves /uploads/* directly
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const urlPath = normalized.startsWith("/") ? normalized : `/${normalized}`;
+    return origin ? `${origin}${urlPath}` : urlPath;
   }
 
   // ✅ Updated sendPasswordResetOTP to send OTP via email

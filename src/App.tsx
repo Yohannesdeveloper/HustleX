@@ -251,6 +251,7 @@ function AppContent() {
             </ProtectedRoute>
           } />
           <Route path="/blog" element={<PageLayout><Blog /></PageLayout>} />
+          <Route path="/blog/edit/:id" element={<PageLayout><EditBlog /></PageLayout>} />
           <Route path="/blog/:id" element={<PageLayout><BlogPostView /></PageLayout>} />
           <Route path="/how-it-works" element={<PageLayout><HowItWorks /></PageLayout>} />
           <Route path="/HowItWorks" element={<Navigate to="/how-it-works" replace />} />
