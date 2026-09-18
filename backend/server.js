@@ -192,8 +192,9 @@ app.use(sanitizeInput);
 // Request timeout handling (30 seconds default)
 app.use(requestTimeout(30000));
 
-// Serve static files from uploads directory
+// Serve static files from uploads directory (support both /uploads and /api/uploads)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);

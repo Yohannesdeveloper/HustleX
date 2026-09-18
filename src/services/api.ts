@@ -441,7 +441,18 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     hasSkills: boolean;
     skillsCount: number;
   }> {
-    const response = await axios.get(
+    const response = await axios.get<{
+      jobId: string;
+      matchScore: number;
+      semanticSimilarity: number;
+      skillSimilarity: number;
+      matchedSkills: string[];
+      missingSkills: string[];
+      recommendation: string;
+      hasCV: boolean;
+      hasSkills: boolean;
+      skillsCount: number;
+    }>(
       `${this.baseUrl}/recommendations/match/${jobId}`,
       { headers: this.token ? { Authorization: `Bearer ${this.token}` } : {} }
     );
@@ -699,37 +710,47 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
   getFileUrl(filePath: string): string {
     if (!filePath) return "";
 
-    // Derive the backend origin from this.baseUrl (which is kept up-to-date
-    // by async port detection).  Strip trailing /api if present.
-    let origin: string;
-    if (window.location.hostname.includes("devtunnels")) {
-      origin = `https://${window.location.hostname}`;
-    } else {
-      origin = this.baseUrl.replace(/\/api\/?$/, "");
+    // Normalize Windows backslashes
+    const normalized = filePath.replace(/\\/g, "/").trim();
+
+    // Immediately return data URIs and blob URIs as-is
+    if (normalized.startsWith("data:") || normalized.startsWith("blob:")) {
+      return normalized;
     }
 
-    // If it's already an absolute URL, check if it's a phantom CDN URL
-    // that doesn't actually exist (e.g. CDN_ENABLED=false but CDN_URL was set).
-    // Rewrite those to use the real backend origin instead.
-    if (/^https?:\/\//i.test(filePath)) {
+    // Derive backend origin from this.baseUrl (or window.location)
+    let origin: string;
+    if (typeof window !== "undefined" && window.location.hostname.includes("devtunnels")) {
+      origin = `https://${window.location.hostname}`;
+    } else if (this.baseUrl) {
+      origin = this.baseUrl.replace(/\/api\/?$/, "");
+    } else if (typeof window !== "undefined") {
+      origin = window.location.origin;
+    } else {
+      origin = "";
+    }
+
+    // If it's already an absolute URL, return it as-is UNLESS it points to localhost
+    if (/^https?:\/\//i.test(normalized)) {
       try {
-        const parsed = new URL(filePath);
-        const originUrl = new URL(origin);
-        // If the host is NOT the current backend host, it might be a phantom CDN.
-        // Check if the path looks like an /uploads/... path and rewrite it.
-        if (parsed.host !== originUrl.host && parsed.pathname.startsWith("/uploads/")) {
+        const parsed = new URL(normalized);
+        // Only rewrite if the URL is localhost/127.0.0.1 (dev artifacts stored with wrong origin)
+        const isLocalhost =
+          parsed.hostname === "localhost" ||
+          parsed.hostname === "127.0.0.1";
+
+        if (isLocalhost && parsed.pathname.startsWith("/uploads/") && origin) {
           return `${origin}${parsed.pathname}`;
         }
       } catch {
         // fall through if URL parsing fails
       }
-      return filePath;
+      // All other absolute URLs (Railway, Atlas, S3, etc.) are returned as-is
+      return normalized;
     }
 
-    if (filePath.startsWith("/")) {
-      return `${origin}${filePath}`;
-    }
-    return `${origin}/${filePath}`;
+    const path = normalized.startsWith("/") ? normalized : `/${normalized}`;
+    return origin ? `${origin}${path}` : path;
   }
 
   // ✅ Updated sendPasswordResetOTP to send OTP via email

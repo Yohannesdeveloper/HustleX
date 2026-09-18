@@ -28,6 +28,7 @@ const BlogPostView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const isAdmin = (user?.roles?.includes('admin') ?? false);
 
@@ -230,13 +231,36 @@ const BlogPostView: React.FC = () => {
           </div>
 
           {/* Featured Image */}
-          {blog.imageUrl && (
-            <div className="mb-8">
+          {blog.imageUrl && !imageFailed ? (
+            <div className="mb-8 rounded-2xl overflow-hidden shadow-xl border border-white/10">
               <img
                 src={apiService.getFileUrl(blog.imageUrl)}
                 alt={blog.title}
-                className="w-full h-64 md:h-96 object-cover rounded-2xl"
+                className="w-full h-64 md:h-96 object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (target.src.includes('/uploads/') && !target.dataset.triedFallback) {
+                    target.dataset.triedFallback = 'true';
+                    const uploadIndex = target.src.indexOf('/uploads/');
+                    target.src = target.src.substring(uploadIndex);
+                    return;
+                  }
+                  setImageFailed(true);
+                }}
               />
+            </div>
+          ) : (
+            <div className={`mb-8 w-full h-48 md:h-64 rounded-2xl flex flex-col items-center justify-center p-6 border ${
+              darkMode 
+                ? "bg-gradient-to-br from-cyan-950/60 via-blue-950/40 to-purple-950/60 border-white/10 text-cyan-400" 
+                : "bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 border-black/10 text-cyan-700"
+            }`}>
+              <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+              </div>
+              <span className="text-sm uppercase tracking-wider font-semibold opacity-75">{blog.category}</span>
             </div>
           )}
 

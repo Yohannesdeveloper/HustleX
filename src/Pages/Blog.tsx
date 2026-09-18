@@ -53,6 +53,7 @@ const Blog: React.FC = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const hasCodeAccess = (() => {
     try {
@@ -221,26 +222,41 @@ const Blog: React.FC = () => {
                     " rounded-2xl overflow-hidden border shadow cursor-pointer transition-colors"
                   }
                 >
-                  <div className="relative bg-gray-100">
-                    {b.imageUrl ? (
+                  <div className="relative bg-gray-100 dark:bg-zinc-900 h-64 overflow-hidden">
+                    {b.imageUrl && !failedImages[b._id] ? (
                       <img
                         src={apiService.getFileUrl(b.imageUrl)}
                         alt={b.title}
                         loading="lazy"
-                        className="w-full h-64 object-cover block"
+                        className="w-full h-64 object-cover block transition-transform duration-300 hover:scale-105"
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                          const target = e.currentTarget as HTMLImageElement;
+                          // If absolute URL with /uploads/ failed, attempt relative /uploads/ path as fallback
+                          if (target.src.includes('/uploads/') && !target.dataset.triedFallback) {
+                            target.dataset.triedFallback = 'true';
+                            const uploadIndex = target.src.indexOf('/uploads/');
+                            target.src = target.src.substring(uploadIndex);
+                            return;
+                          }
+                          setFailedImages((prev) => ({ ...prev, [b._id]: true }));
                         }}
                       />
                     ) : (
-                      <div className={`w-full h-64 ${
+                      <div className={`w-full h-64 flex flex-col items-center justify-center p-6 ${
                         darkMode
-                          ? "bg-gradient-to-br from-cyan-900/40 via-blue-900/40 to-purple-900/40"
-                          : "bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50"
-                      }`} />
+                          ? "bg-gradient-to-br from-cyan-950 via-blue-950 to-purple-950 text-cyan-400"
+                          : "bg-gradient-to-br from-cyan-100 via-blue-50 to-purple-100 text-cyan-700"
+                      }`}>
+                        <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                          </svg>
+                        </div>
+                        <span className="text-xs uppercase tracking-wider font-semibold opacity-75">{b.category}</span>
+                      </div>
                     )}
                     {/* Caption overlay at the bottom of the image */}
-                    <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white p-4">
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent text-white p-4">
                       <h2 className="text-lg font-semibold line-clamp-1">{b.title}</h2>
                       <p className="text-sm opacity-90 line-clamp-2">
                         {b.content.length > 150 ? b.content.slice(0, 150) + "…" : b.content}

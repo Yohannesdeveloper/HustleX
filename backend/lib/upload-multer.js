@@ -34,7 +34,7 @@ const MIME = {
     "application/zip",
     "application/x-rar-compressed",
   ],
-  image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+  image: ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", "image/svg+xml", "image/bmp"],
   tradeLicense: [
     "application/pdf",
     "image/jpeg",
