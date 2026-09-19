@@ -128,6 +128,7 @@ const Home = () => {
         className={`relative overflow-hidden ${darkMode ? "bg-black" : "bg-white"
           }`}
       >
+        <HomeSEO />
         {/* Background */}
         {darkMode ? (
           <div className="fixed inset-0 z-0 bg-black" />
@@ -159,9 +160,8 @@ const Home = () => {
                     <motion.h1
                       className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-6 sm:mb-8 md:mb-10 leading-tight max-w-4xl text-left ${darkMode ? "text-white" : "text-black"
                         }`}
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={false}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3, duration: 0.8 }}
                     >
                       "{t.hero.title}
                       <br />
@@ -173,9 +173,8 @@ const Home = () => {
                     <motion.p
                       className={`text-base sm:text-lg md:text-xl lg:text-2xl mb-8 sm:mb-10 md:mb-12 leading-relaxed max-w-3xl text-left ${darkMode ? "text-white/90" : "text-black/90"
                         }`}
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={false}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5, duration: 0.8 }}
                     >
                       {t.hero.subtitle}
                       <br className="hidden md:block" />
@@ -189,9 +188,8 @@ const Home = () => {
 
                     <motion.div
                       className="flex flex-col sm:flex-row gap-4 sm:gap-6"
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={false}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.7, duration: 0.8 }}
                     >
                       <motion.button
                         onClick={handleGetStarted}

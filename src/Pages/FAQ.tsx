@@ -121,16 +121,12 @@ const FAQ: React.FC = () => {
             <AnimatePresence>
               {isLoaded && (
                 <motion.div
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
                 >
                   {/* Introduction */}
-                  <motion.div
+                  <div
                     className="text-center mb-12"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.6 }}
                   >
                     <h2 className="text-3xl sm:text-4xl font-bold mb-4">
                       {t.aboutUs.gotQuestions}
@@ -138,20 +134,17 @@ const FAQ: React.FC = () => {
                     <p className={`text-lg ${darkMode ? "text-gray-300" : "text-gray-600"} max-w-2xl mx-auto`}>
                       {t.aboutUs.gotQuestionsDesc}
                     </p>
-                  </motion.div>
+                  </div>
 
                   {/* FAQ Items */}
                   <div className="space-y-4">
                     {faqData.map((faq, index) => (
-                      <motion.div
+                      <div
                         key={index}
                         className={`rounded-2xl overflow-hidden ${darkMode
                           ? "bg-black border-white/10"
                           : "bg-white border-black/10"
                           } border shadow-lg`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.5 }}
                       >
                         <motion.button
                           onClick={() => toggleItem(index)}
@@ -186,19 +179,16 @@ const FAQ: React.FC = () => {
                             </motion.div>
                           )}
                         </AnimatePresence>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
 
                   {/* Contact Section */}
-                  <motion.div
+                  <div
                     className={`mt-16 p-8 rounded-2xl text-center ${darkMode
                       ? "bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border-white/10"
                       : "bg-gradient-to-br from-cyan-50 to-blue-50 border-black/10"
                       } border`}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8, duration: 0.6 }}
                   >
                     <h3 className="text-2xl font-bold mb-4">
                       {t.aboutUs.stillHaveQuestions}
@@ -230,7 +220,7 @@ const FAQ: React.FC = () => {
                         {t.aboutUs.visitHelpCenter}
                       </motion.button>
                     </div>
-                  </motion.div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

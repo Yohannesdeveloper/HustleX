@@ -162,16 +162,14 @@ const AboutUs: React.FC = () => {
             <AnimatePresence>
               {isLoaded && (
                 <motion.div
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
                 >
                   {/* Hero Section */}
                   <motion.section
                     className="text-center mb-20"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={false}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.6 }}
                   >
                     <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
                       {t.aboutUs.ourStory}
@@ -183,12 +181,7 @@ const AboutUs: React.FC = () => {
                   </motion.section>
 
                   {/* Stats Section */}
-                  <motion.section
-                    className="mb-20"
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
-                  >
+                  <section className="mb-20">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                       {stats.map((stat, index) => (
                         <motion.div
@@ -197,17 +190,10 @@ const AboutUs: React.FC = () => {
                             ? "bg-black border-white/10"
                             : "bg-white border-black/10"
                             } border shadow-xl`}
-                          initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                          whileInView={{ opacity: 1, y: 0, scale: 1 }}
                           whileHover={{
                             scale: 1.05,
                             y: -10,
                             boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)"
-                          }}
-                          transition={{
-                            delay: index * 0.1,
-                            duration: 0.8,
-                            type: "spring"
                           }}
                         >
                           <motion.div
@@ -236,15 +222,10 @@ const AboutUs: React.FC = () => {
                         </motion.div>
                       ))}
                     </div>
-                  </motion.section>
+                  </section>
 
                   {/* Founder Section */}
-                  <motion.section
-                    className="mb-20"
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
-                  >
+                  <section className="mb-20">
                     <div className="text-center mb-12">
                       <h3 className="text-3xl sm:text-4xl font-bold mb-4">
                         {t.aboutUs.meetOurFounder}
@@ -260,9 +241,6 @@ const AboutUs: React.FC = () => {
                           ? "bg-black border-white/10"
                           : "bg-white border-black/10"
                           } border rounded-2xl p-8 shadow-xl`}
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
                         whileHover={{ scale: 1.02, y: -5 }}
                       >
                         <motion.div
@@ -303,21 +281,12 @@ const AboutUs: React.FC = () => {
                         </div>
                       </motion.div>
                     </div>
-                  </motion.section>
+                  </section>
 
                   {/* Our Story Section */}
-                  <motion.section
-                    className="mb-20"
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
-                  >
+                  <section className="mb-20">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
-                      <motion.div
-                        initial={{ opacity: 0, x: -50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8 }}
-                      >
+                      <div>
                         <h3 className="text-3xl sm:text-4xl font-bold mb-6">
                           {t.aboutUs.ourStory}
                         </h3>
@@ -329,13 +298,8 @@ const AboutUs: React.FC = () => {
 
                           </p>
                         </div>
-                      </motion.div>
-                      <motion.div
-                        className="relative"
-                        initial={{ opacity: 0, x: 50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                      >
+                      </div>
+                      <div className="relative">
                         <div className={`p-8 rounded-2xl ${darkMode
                           ? "bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border-white/10"
                           : "bg-gradient-to-br from-cyan-50 to-blue-50 border-black/10"
@@ -349,25 +313,15 @@ const AboutUs: React.FC = () => {
                             </p>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     </div>
-                  </motion.section>
+                  </section>
 
                   {/* Values Section */}
-                  <motion.section
-                    className="mb-20"
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
-                  >
-                    <motion.h3
-                      className="text-3xl sm:text-4xl font-bold text-center mb-12"
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8 }}
-                    >
+                  <section className="mb-20">
+                    <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12">
                       Our Values
-                    </motion.h3>
+                    </h3>
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                       {values.map((value, index) => (
                         <motion.div
@@ -376,17 +330,10 @@ const AboutUs: React.FC = () => {
                             ? "bg-black border-white/10"
                             : "bg-white border-black/10"
                             } border shadow-lg`}
-                          initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                          whileInView={{ opacity: 1, y: 0, scale: 1 }}
                           whileHover={{
                             scale: 1.05,
                             y: -10,
                             boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)"
-                          }}
-                          transition={{
-                            delay: index * 0.1,
-                            duration: 0.6,
-                            type: "spring"
                           }}
                         >
                           <motion.div
@@ -404,23 +351,13 @@ const AboutUs: React.FC = () => {
                         </motion.div>
                       ))}
                     </div>
-                  </motion.section>
+                  </section>
 
                   {/* Team Section */}
-                  <motion.section
-                    className="mb-20"
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    transition={{ duration: 1 }}
-                  >
-                    <motion.h3
-                      className="text-3xl sm:text-4xl font-bold text-center mb-12"
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8 }}
-                    >
+                  <section className="mb-20">
+                    <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12">
                       {t.aboutUs.meetOurTeam}
-                    </motion.h3>
+                    </h3>
                     <div className="grid md:grid-cols-3 gap-8">
                       {team.map((member, index) => (
                         <motion.div
@@ -429,17 +366,10 @@ const AboutUs: React.FC = () => {
                             ? "bg-black border-white/10"
                             : "bg-white border-black/10"
                             } border shadow-xl`}
-                          initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                          whileInView={{ opacity: 1, y: 0, scale: 1 }}
                           whileHover={{
                             scale: 1.05,
                             y: -10,
                             boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)"
-                          }}
-                          transition={{
-                            delay: index * 0.1,
-                            duration: 0.6,
-                            type: "spring"
                           }}
                         >
                           <motion.img
@@ -460,17 +390,14 @@ const AboutUs: React.FC = () => {
                         </motion.div>
                       ))}
                     </div>
-                  </motion.section>
+                  </section>
 
                   {/* CTA Section */}
-                  <motion.section
+                  <section
                     className={`p-8 sm:p-12 rounded-2xl text-center ${darkMode
                       ? "bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border-white/10"
                       : "bg-gradient-to-br from-cyan-50 to-blue-50 border-black/10"
                       } border`}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
                   >
                     <h3 className="text-2xl sm:text-3xl font-bold mb-4">
                       {t.aboutUs.joinCommunity}
@@ -503,7 +430,7 @@ const AboutUs: React.FC = () => {
                         {t.aboutUs.community}
                       </motion.button>
                     </div>
-                  </motion.section>
+                  </section>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -652,30 +652,22 @@ However, make sure you can deliver quality work on time for all projects. Overco
           <>
             {/* Hero Section */}
             <motion.section
-              initial={{ opacity: 0, y: -20 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
               className={`pt-20 pb-12 px-6 ${darkMode ? "bg-gradient-to-b from-black to-gray-900" : "bg-gradient-to-b from-white to-gray-50"}`}
             >
               <div className="max-w-7xl mx-auto text-center">
-                <motion.div
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
+                <div>
                   <h1 className={`text-5xl sm:text-6xl md:text-7xl font-extrabold mb-6 ${darkMode ? "text-white" : "text-black"}`}>
                     {t.helpCenter.title}
                   </h1>
                   <p className={`text-lg sm:text-xl ${darkMode ? "text-white/80" : "text-black/70"} max-w-3xl mx-auto mb-8`}>
                     {t.helpCenter.subtitle}
                   </p>
-                </motion.div>
+                </div>
 
                 {/* Enhanced Search Bar */}
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
+                <div
                   className="mt-8 max-w-3xl mx-auto"
                 >
                   <div
@@ -706,7 +698,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
                   <p className={`text-sm mt-3 ${darkMode ? "text-white/60" : "text-black/60"}`}>
                     {filteredArticles.length + filteredFAQs.length} results found
                   </p>
-                </motion.div>
+                </div>
               </div>
             </motion.section>
 
@@ -749,11 +741,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
 
             {/* Categories Grid */}
             {!query && !selectedCategory && (
-              <motion.section
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
+              <section
                 className="px-6 py-12"
               >
                 <div className="max-w-7xl mx-auto">
@@ -761,13 +749,9 @@ However, make sure you can deliver quality work on time for all projects. Overco
                     Browse by Category
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {categories.map((cat, i) => (
-                      <motion.div
+                    {categories.map((cat) => (
+                      <div
                         key={cat.id}
-                        initial={{ y: 20, opacity: 0 }}
-                        whileInView={{ y: 0, opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1, duration: 0.4 }}
                         onClick={() => {
                           setSelectedCategory(cat.id);
                           setQuery("");
@@ -791,11 +775,11 @@ However, make sure you can deliver quality work on time for all projects. Overco
                           <span className="text-sm font-medium">Explore</span>
                           <FaArrowRight className="text-xs" />
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>
-              </motion.section>
+              </section>
             )}
 
             {/* Search Results - Articles */}
@@ -930,11 +914,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
 
             {/* Popular Articles (when no search and no category selected) */}
             {!query && !selectedCategory && (
-              <motion.section
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
+              <section
                 className="px-6 py-12"
               >
                 <div className="max-w-7xl mx-auto">
@@ -942,13 +922,9 @@ However, make sure you can deliver quality work on time for all projects. Overco
                     {t.helpCenter.popularArticles}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {articles.slice(0, 4).map((article, i) => (
-                      <motion.div
+                    {articles.slice(0, 4).map((article) => (
+                      <div
                         key={article.id}
-                        initial={{ y: 20, opacity: 0 }}
-                        whileInView={{ y: 0, opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1, duration: 0.4 }}
                         onClick={() => toggleArticle(article.id)}
                         className={`p-6 rounded-xl border cursor-pointer transition-all ${darkMode
                           ? "bg-black/50 border-white/10 hover:border-cyan-500/50 hover:bg-black/70"
@@ -977,19 +953,15 @@ However, make sure you can deliver quality work on time for all projects. Overco
                             </div>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>
-              </motion.section>
+              </section>
             )}
 
             {/* FAQs Section */}
-            <motion.section
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+            <section
               className="px-6 py-12"
             >
               <div className="max-w-7xl mx-auto">
@@ -997,13 +969,9 @@ However, make sure you can deliver quality work on time for all projects. Overco
                   {(query || selectedCategory) ? `${t.helpCenter.frequentlyAskedQuestions} (${filteredFAQs.length})` : t.helpCenter.frequentlyAskedQuestions}
                 </h2>
                 <div className="space-y-4">
-                  {((query || selectedCategory) ? filteredFAQs : faqs).map((faq, i) => (
-                    <motion.div
+                  {((query || selectedCategory) ? filteredFAQs : faqs).map((faq) => (
+                    <div
                       key={faq.id}
-                      initial={{ y: 20, opacity: 0 }}
-                      whileInView={{ y: 0, opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.05, duration: 0.4 }}
                       className={`rounded-xl border overflow-hidden ${darkMode
                         ? "bg-black/50 border-white/10"
                         : "bg-white border-black/10"
@@ -1048,19 +1016,15 @@ However, make sure you can deliver quality work on time for all projects. Overco
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>
-            </motion.section>
+            </section>
 
 
             {/* Contact Support Section */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+            <section
               className="px-6 pb-16"
             >
               <div className="max-w-7xl mx-auto">
@@ -1070,12 +1034,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
                     : "bg-gradient-to-br from-cyan-50 to-blue-50 border-black/10"
                     } shadow-xl`}
                 >
-                  <motion.div
-                    initial={{ scale: 0.9 }}
-                    whileInView={{ scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                  >
+                  <div>
                     <FaLifeRing className={`text-5xl mx-auto mb-4 ${darkMode ? "text-cyan-400" : "text-cyan-600"}`} />
                     <h3 className={`text-3xl sm:text-4xl font-bold mb-4 ${darkMode ? "text-white" : "text-black"}`}>
                       Still need help?
@@ -1125,10 +1084,10 @@ However, make sure you can deliver quality work on time for all projects. Overco
                         <p className={`text-sm ${darkMode ? "text-white/70" : "text-black/70"}`}>24/7 Support</p>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 </div>
               </div>
-            </motion.section>
+            </section>
           </>
         )}
       </AnimatePresence>

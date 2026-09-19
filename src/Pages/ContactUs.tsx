@@ -163,16 +163,14 @@ const ContactUs: React.FC = () => {
           <AnimatePresence>
             {isLoaded && (
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
               >
                 {/* Hero Section */}
                 <motion.section
                   className="text-center mb-20"
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.6 }}
                 >
                   <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
                     {t.contactUs.getInTouchWith}{" "}
@@ -187,12 +185,7 @@ const ContactUs: React.FC = () => {
                 </motion.section>
 
                 {/* Contact Info Cards */}
-                <motion.section
-                  className="mb-20"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  transition={{ duration: 1 }}
-                >
+                <section className="mb-20">
                   <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {contactInfo.map((info, index) => (
                       <motion.div
@@ -201,17 +194,10 @@ const ContactUs: React.FC = () => {
                             ? "bg-black border-white/10"
                             : "bg-white border-black/10"
                           } border shadow-xl`}
-                        initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         whileHover={{
                           scale: 1.05,
                           y: -10,
                           boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)"
-                        }}
-                        transition={{
-                          delay: index * 0.1,
-                          duration: 0.8,
-                          type: "spring"
                         }}
                       >
                         <motion.div
@@ -233,30 +219,17 @@ const ContactUs: React.FC = () => {
                       </motion.div>
                     ))}
                   </div>
-                </motion.section>
+                </section>
 
                 {/* Contact Form & Map Section */}
-                <motion.section
-                  className="mb-20"
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  transition={{ duration: 1 }}
-                >
+                <section className="mb-20">
                   <div className="grid lg:grid-cols-2 gap-12">
                     {/* Contact Form */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.8 }}
-                    >
+                    <div>
                       <h3 className="text-3xl font-bold mb-6">{t.contactUs.sendUsMessage}</h3>
                       <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1, duration: 0.5 }}
-                          >
+                          <div>
                             <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
                               }`}>
                               {t.contactUs.fullName} *
@@ -273,13 +246,9 @@ const ContactUs: React.FC = () => {
                                 }`}
                               placeholder={t.contactUs.yourFullName}
                             />
-                          </motion.div>
+                          </div>
 
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2, duration: 0.5 }}
-                          >
+                          <div>
                             <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
                               }`}>
                               {t.contactUs.emailAddress} *
@@ -296,14 +265,10 @@ const ContactUs: React.FC = () => {
                                 }`}
                               placeholder={t.contactUs.yourEmailPlaceholder}
                             />
-                          </motion.div>
+                          </div>
                         </div>
 
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3, duration: 0.5 }}
-                        >
+                        <div>
                           <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
                             }`}>
                             {t.contactUs.subject} *
@@ -326,13 +291,9 @@ const ContactUs: React.FC = () => {
                             <option value="feedback">{t.contactUs.feedback}</option>
                             <option value="other">{t.contactUs.other}</option>
                           </select>
-                        </motion.div>
+                        </div>
 
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4, duration: 0.5 }}
-                        >
+                        <div>
                           <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"
                             }`}>
                             {t.contactUs.message} *
@@ -349,7 +310,7 @@ const ContactUs: React.FC = () => {
                               }`}
                             placeholder={t.contactUs.tellUsHowWeCanHelp}
                           />
-                        </motion.div>
+                        </div>
 
                         <motion.button
                           type="submit"
@@ -360,21 +321,15 @@ const ContactUs: React.FC = () => {
                             }`}
                           whileHover={{ scale: isSubmitting ? 1 : 1.02, y: isSubmitting ? 0 : -2 }}
                           whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.5, duration: 0.5 }}
                         >
                           <FaPaperPlane className="inline mr-2" />
                           {isSubmitting ? t.contactUs.sending : t.contactUs.sendMessage}
                         </motion.button>
                       </form>
-                    </motion.div>
+                    </div>
 
                     {/* Map/Location Info */}
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.8, delay: 0.2 }}
+                    <div
                       className="space-y-8"
                     >
                       <div>
@@ -431,28 +386,22 @@ const ContactUs: React.FC = () => {
                                 } ${social.color}`}
                               whileHover={{ scale: 1.1, y: -2 }}
                               whileTap={{ scale: 0.95 }}
-                              initial={{ opacity: 0, y: 20 }}
-                              whileInView={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.1, duration: 0.5 }}
                             >
                               <span className="text-xl">{social.icon}</span>
                             </motion.a>
                           ))}
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
-                </motion.section>
+                </section>
 
                 {/* FAQ Section */}
-                <motion.section
+                <section
                   className={`p-8 sm:p-12 rounded-2xl text-center ${darkMode
                       ? "bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border-white/10"
                       : "bg-gradient-to-br from-cyan-50 to-blue-50 border-black/10"
                     } border`}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
                 >
                   <h3 className="text-2xl sm:text-3xl font-bold mb-4">
                     {t.contactUs.needQuickAnswers}
@@ -472,7 +421,7 @@ const ContactUs: React.FC = () => {
                   >
                     {t.contactUs.visitFAQ}
                   </motion.button>
-                </motion.section>
+                </section>
               </motion.div>
             )}
           </AnimatePresence>
