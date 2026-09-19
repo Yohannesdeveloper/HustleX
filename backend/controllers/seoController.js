@@ -698,30 +698,10 @@ exports.getSitemap = async (req, res) => {
 exports.getRobots = async (req, res) => {
   const robots = `User-agent: *
 Allow: /
-Disallow: /dashboard/
-Disallow: /admin/
-Disallow: /login
-Disallow: /signup
-Disallow: /forgot-password
-Disallow: /chat
-Disallow: /payment-wizard
+Disallow: /admin
 Disallow: /api/
-
-User-agent: GPTBot
-Allow: /
-Disallow: /dashboard/
-Disallow: /api/
-
-User-agent: Claude-Web
-Allow: /
-Disallow: /dashboard/
-
-User-agent: PerplexityBot
-Allow: /
-Disallow: /dashboard/
-
-User-agent: Google-Extended
-Allow: /
+Allow: /api/jobs$
+Allow: /api/jobs?
 
 Sitemap: https://hustlexet.com/sitemap.xml
 `;
