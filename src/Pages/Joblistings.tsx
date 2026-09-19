@@ -809,9 +809,9 @@ const JobListings: React.FC = () => {
       <div className="relative z-10 flex flex-col lg:flex-row pt-16 sm:pt-20 pb-4 px-1 sm:px-2 lg:px-4 gap-1 sm:gap-2 max-w-7xl mx-auto">
         {/* Sidebar */}
         <motion.aside
-          initial={{ x: -100, opacity: 0 }}
+          initial={false}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.3 }}
           className={`fixed inset-y-0 left-0 z-50 w-11/12 sm:w-64 lg:w-72 rounded-r-2xl p-2 sm:p-3 space-y-3 shadow-2xl lg:sticky lg:top-6 max-h-screen overflow-hidden transition-colors duration-300 ${darkMode
             ? "bg-black border border-white/10"
             : "bg-white border border-black/10"
@@ -962,9 +962,8 @@ const JobListings: React.FC = () => {
         {/* Main Content */}
         <motion.main
           className="flex-1 w-full max-w-5xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
         >
           <div className="lg:hidden mb-4">
             <button
@@ -1207,9 +1206,9 @@ const JobListings: React.FC = () => {
             {loading ? (
               <motion.div
                 className="text-center py-12 sm:py-16"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={false}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.2 }}
               >
                 <div
                   className={`w-10 sm:w-12 h-10 sm:h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4 ${darkMode ? "text-white" : "text-black"
@@ -1225,9 +1224,9 @@ const JobListings: React.FC = () => {
             ) : error ? (
               <motion.div
                 className="text-center py-12 sm:py-16"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={false}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.2 }}
               >
                 <div className="text-6xl sm:text-8xl mb-4">⚠️</div>
                 <h3
@@ -1264,9 +1263,9 @@ const JobListings: React.FC = () => {
             ) : filteredJobs.length === 0 ? (
               <motion.div
                 className="text-center py-12 sm:py-16"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={false}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.2 }}
               >
                 {aiMatchOnly ? (
                   <div className="py-8 space-y-3">
@@ -1310,12 +1309,9 @@ const JobListings: React.FC = () => {
                 )}
               </motion.div>
             ) : (
-              filteredJobs.map((job: JobType, index: number) => (
-                <motion.div
+              filteredJobs.map((job: JobType) => (
+                <div
                   key={job.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
                   className={`rounded-xl p-2 sm:p-3 md:p-4 shadow-lg transition-all duration-300 relative group border ${darkMode
                     ? "bg-black border-white/10 hover:bg-white/5"
                     : "bg-white border-black/10 hover:bg-black/5"
@@ -1945,7 +1941,7 @@ const JobListings: React.FC = () => {
                       </motion.a>
                     )}
                   </div>
-                </motion.div>
+                </div>
               ))
             )}
             {hasMore && !loading && (
