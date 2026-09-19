@@ -29,6 +29,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://hustlex-production.up.railway.app/uploads/:path*"
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [

@@ -2,5 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Allow: /api/jobs$
+Allow: /api/jobs?
 
 Sitemap: https://hustlexet.com/sitemap.xml

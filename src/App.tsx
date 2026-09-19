@@ -72,8 +72,8 @@ function AppContent() {
   // then check for start_param — prevents homepage flicker on channel apply.
   useEffect(() => {
     let cancelled = false;
-    let interval;
-    let fallbackTimer;
+    let interval: ReturnType<typeof setInterval>;
+    let fallbackTimer: ReturnType<typeof setTimeout>;
 
     const processStartParam = () => {
       initTelegramMiniApp();
