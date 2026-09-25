@@ -38,12 +38,17 @@ COPY --from=prod-deps --chown=hustlex:nodejs /app/node_modules ./node_modules
 # Copy application source
 COPY --chown=hustlex:nodejs . .
 
-# Create required directories with correct ownership
+# Create required directories. World-writable so a Railway volume mounted at
+# /app/uploads (owned by root on the host) is still writable by the Node process.
+# Without 0777, uploads fail with EACCES on Railway while working locally.
 RUN mkdir -p logs uploads && \
-    chown -R hustlex:nodejs logs uploads
+    chmod -R 0777 logs uploads
 
-# Drop to non-root
-USER hustlex
+# Run as root so the persistent Railway volume at /app/uploads accepts writes.
+# (Railway mounts the volume as root; the previous non-root user `hustlex` (UID 1001)
+# got EACCES on every upload. Railway isolates each container so running as root
+# inside this image is acceptable in practice.)
+USER root
 
 # Environment
 ENV NODE_ENV=production
