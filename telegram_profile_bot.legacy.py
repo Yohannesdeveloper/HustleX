@@ -1,3 +1,29 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ⚠️  DISABLED — DO NOT RUN  ⚠️
+#
+# This Python long-polling bot is retired. The Node.js Telegram webhook in
+# backend/routes/auth.js is now the SOLE handler for the HustleXet bot token.
+# It serves the "Welcome to the Arena, Champion!" epic copy and all menu flows
+# (Application / Profile / Setting / About + login confirmations).
+#
+# If this file runs with the same TELEGRAM_BOT_TOKEN as the Node webhook, the
+# two will fight: Telegram delivers each update to only one target at a time,
+# and long-polling silently breaks the webhook. Users will report "bot stopped
+# responding" whenever this script is left running in a terminal.
+#
+# To re-enable (do NOT do this without also retiring the Node handler):
+#   git mv telegram_profile_bot.legacy.py telegram_profile_bot.py
+# and remove the sys.exit() below.
+# ─────────────────────────────────────────────────────────────────────────────
+import sys
+sys.exit(
+    "\n"
+    "  telegram_profile_bot is disabled.\n"
+    "  Telegram is now served by the Node.js backend webhook\n"
+    "  (see backend/routes/auth.js). Running this file would\n"
+    "  break the live bot. See the header comment for details.\n"
+)
+
 import os
 os.environ['TZ'] = 'UTC'
 

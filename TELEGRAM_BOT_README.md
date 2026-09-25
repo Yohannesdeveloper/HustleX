@@ -1,5 +1,19 @@
 # HustleX Telegram Profile Bot
 
+> ⚠️ **RETIRED.** The Python bot described in this document is no longer the
+> Telegram entry point for HustleX. It has been renamed to
+> `telegram_profile_bot.legacy.py` and exits immediately if executed.
+>
+> All Telegram traffic is now handled by the Node.js webhook in
+> `backend/routes/auth.js`, which serves the "Welcome to the Arena, Champion!"
+> epic copy and the Application / Profile / Setting / About menu.
+>
+> Running this Python bot with the same `TELEGRAM_BOT_TOKEN` as the Node
+> backend will silently disconnect the webhook and users will see a dead bot.
+> The historical setup below is preserved for reference only.
+
+---
+
 A Python Telegram bot that provides a profile setup wizard similar to the HustleX web platform's freelancer profile wizard. Users can set their profile picture, education, and certificates through an interactive chat interface.
 
 ## Features
