@@ -235,7 +235,7 @@ router.post(
       //     `Your account has been created successfully.`,
       //     `Complete your freelancer profile to start applying for jobs.`,
       //     ``,
-      //     `🌐 <a href="https://hustlexet.com/freelancer-profile-setup">Complete Profile</a>`,
+      //     `🌐 <a href="https://hustlexet.vercel.app/freelancer-profile-setup">Complete Profile</a>`,
       //     ``,
       //     `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       //   ].join("\n");
@@ -881,7 +881,7 @@ router.post("/freelancer-profile", async (req, res) => {
         `Hi <b>${firstName}</b>!`,
         `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
         ``,
-        `🌐 <a href="https://hustlexet.com">Open HustleX</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
         ``,
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
@@ -1122,7 +1122,7 @@ router.post("/profile/freelancer", auth, [
         `Hi <b>${firstName}</b>!`,
         `Your freelancer profile has been completed successfully. You can now start applying for jobs.`,
         ``,
-        `🌐 <a href="https://hustlexet.com">Open HustleX</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app">Open HustleX</a>`,
         ``,
         `💼 <b>HustleX</b> — Connecting Talent with Opportunity`,
       ].join("\n");
@@ -1405,34 +1405,6 @@ router.post("/telegram-webhook", async (req, res) => {
       ...extra,
     }).catch((e) => console.error("sendMessage error:", e?.response?.data || e.message));
 
-  // Persistent bottom reply keyboard — attached ONLY to /start (and the
-  // unrecognized-message fallback). Tapping one of its text buttons sends the
-  // literal string "📋 Application" / "👤 Profile" / etc., which the message
-  // handlers below catch and answer with the arena text.
-  const welcomeReplyKeyboard = {
-    keyboard: [
-      [{ text: "📋 Application" }, { text: "👤 Profile" }],
-      [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
-    ],
-    resize_keyboard: true,
-  };
-
-  // Single-button inline URL keyboard — attached directly underneath each arena
-  // response so users get a tappable "🌐 Open X" button in the message itself,
-  // without the persistent reply keyboard being re-sent on every reply.
-  const urlKeyboard = (label, url) => ({
-    inline_keyboard: [[{ text: label, url }]],
-  });
-
-  // Menu callback_data → matching inline keyboard. Profile intentionally has
-  // no URL (nothing to link to), so its response is text-only.
-  const menuUrlButtons = {
-    menu_applications: urlKeyboard("🌐 Open Applications", "https://hustlexet.com/dashboard/freelancer"),
-    menu_profile: null,
-    menu_settings: urlKeyboard("🌐 Open Command Center", "https://hustlexet.com/settings"),
-    menu_about: urlKeyboard("🌐 Join the Arena", "https://hustlexet.com"),
-  };
-
   try {
     const update = req.body;
 
@@ -1461,7 +1433,7 @@ router.post("/telegram-webhook", async (req, res) => {
             `• 📊 <b>Proposal Stats</b> — Know your win rate`,
             `• 🔔 <b>Real-time Alerts</b> — Strike when iron's hot`,
             ``,
-            `🌐 <a href="https://hustlexet.com/dashboard/freelancer">Open Applications</a>`,
+            `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">Open Applications</a>`,
             ``,
             `━━━━━━━━━━━━━━━━━━━━━`,
             `💼 <b>HustleX</b> — Your Freelance Journey`,
@@ -1495,7 +1467,7 @@ router.post("/telegram-webhook", async (req, res) => {
             `• 🔒 <b>Privacy</b> — Lock down your fortress`,
             `• 🌐 <b>Preferences</b> — Customize your arena`,
             ``,
-            `🌐 <a href="https://hustlexet.com/settings">Open Command Center</a>`,
+            `🌐 <a href="https://hustlexet.vercel.app/settings">Open Command Center</a>`,
             ``,
             `━━━━━━━━━━━━━━━━━━━━━`,
             `💼 <b>HustleX</b> — Your Freelance Journey`,
@@ -1511,7 +1483,7 @@ router.post("/telegram-webhook", async (req, res) => {
             `• ⚡ <b>Instant Connect</b> — From pitch to hire in record time`,
             `• 💎 <b>Quality First</b> — Top-tier talent, premium results`,
             ``,
-            `🌐 <a href="https://hustlexet.com">Join the Arena</a>`,
+            `🌐 <a href="https://hustlexet.vercel.app">Join the Arena</a>`,
             `📧 support@hustleX.et`,
             ``,
             `━━━━━━━━━━━━━━━━━━━━━`,
@@ -1519,7 +1491,13 @@ router.post("/telegram-webhook", async (req, res) => {
           ].join("\n"),
         };
         await sendMessage(chatId, menuTexts[data], {
-          ...(menuUrlButtons[data] ? { reply_markup: menuUrlButtons[data] } : {}),
+          reply_markup: {
+            keyboard: [
+              [{ text: "📋 Application" }, { text: "👤 Profile" }],
+              [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+            ],
+            resize_keyboard: true,
+          },
         });
         return; // done with callback_query
       }
@@ -1577,7 +1555,7 @@ router.post("/telegram-webhook", async (req, res) => {
     // /start command
     if (text.startsWith("/start")) {
       const welcomeText = [
-        `🌐 https://hustlexet.com/`,
+        `🌐 https://hustlexet.vercel.app/`,
         ``,
         `Hello <b>${firstName}</b>! 👋`,
         ``,
@@ -1598,7 +1576,13 @@ router.post("/telegram-webhook", async (req, res) => {
       ].join("\n");
 
       await sendMessage(chatId, welcomeText, {
-        reply_markup: welcomeReplyKeyboard,
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
       });
       return;
     }
@@ -1616,14 +1600,20 @@ router.post("/telegram-webhook", async (req, res) => {
         `• 📊 <b>Proposal Stats</b> — Know your win rate`,
         `• 🔔 <b>Real-time Alerts</b> — Strike when iron's hot`,
         ``,
-        `🌐 <a href="https://hustlexet.com/dashboard/freelancer">Open Applications</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app/dashboard/freelancer">Open Applications</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
       await sendMessage(chatId, helpText, {
-        reply_markup: menuUrlButtons.menu_applications,
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
       });
       return;
     }
@@ -1649,7 +1639,16 @@ router.post("/telegram-webhook", async (req, res) => {
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
-      await sendMessage(chatId, profileText);
+      await sendMessage(chatId, profileText, {
+        parse_mode: "HTML",
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
       return;
     }
 
@@ -1666,7 +1665,7 @@ router.post("/telegram-webhook", async (req, res) => {
         `• ⚡ <b>Instant Connect</b> — From pitch to hire in record time`,
         `• 💎 <b>Quality First</b> — Top-tier talent, premium results`,
         ``,
-        `🌐 <a href="https://hustlexet.com">Join the Arena</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app">Join the Arena</a>`,
         `📧 support@hustleX.et`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
@@ -1674,7 +1673,13 @@ router.post("/telegram-webhook", async (req, res) => {
       ].join("\n");
 
       await sendMessage(chatId, aboutText, {
-        reply_markup: menuUrlButtons.menu_about,
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
       });
       return;
     }
@@ -1692,14 +1697,20 @@ router.post("/telegram-webhook", async (req, res) => {
         `• 🔒 <b>Privacy</b> — Lock down your fortress`,
         `• 🌐 <b>Preferences</b> — Customize your arena`,
         ``,
-        `🌐 <a href="https://hustlexet.com/settings">Open Command Center</a>`,
+        `🌐 <a href="https://hustlexet.vercel.app/settings">Open Command Center</a>`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━━`,
         `💼 <b>HustleX</b> — Your Freelance Journey`,
       ].join("\n");
 
       await sendMessage(chatId, settingText, {
-        reply_markup: menuUrlButtons.menu_settings,
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
       });
       return;
     }
@@ -1709,7 +1720,13 @@ router.post("/telegram-webhook", async (req, res) => {
       chatId,
       `💬 Hi ${firstName}! Use /start to see available options or /help for more info.`,
       {
-        reply_markup: welcomeReplyKeyboard,
+        reply_markup: {
+          keyboard: [
+            [{ text: "📋 Application" }, { text: "👤 Profile" }],
+            [{ text: "⚙️ Setting" }, { text: "ℹ️ About" }],
+          ],
+          resize_keyboard: true,
+        },
       }
     );
 

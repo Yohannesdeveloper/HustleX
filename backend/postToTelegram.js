@@ -91,7 +91,7 @@ async function postJobToTelegram(job) {
   const baseUrl = (
     process.env.PRODUCTION_CLIENT_URL ||
     process.env.CLIENT_URL_PRODUCTION ||
-    'https://hustlexet.com'
+    'https://hustlexet.vercel.app'
   ).replace(/\/+$/, "");
   const jobId = job?._id ? String(job._id) : "";
   const jobLink = jobId ? `${baseUrl}/job-details/${jobId}` : "";

@@ -13,17 +13,6 @@
       "permanent": true
     },
     {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.hustlexet.com"
-        }
-      ],
-      "destination": "https://hustlexet.com/:path*",
-      "permanent": true
-    },
-    {
       "source": "/HowItWorks",
       "destination": "/how-it-works",
       "permanent": true

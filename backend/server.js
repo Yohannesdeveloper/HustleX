@@ -66,9 +66,7 @@ const corsOptions = {
     
     const allowedOrigins = [
       process.env.CLIENT_URL || "",
-      "https://hustlexet.com",
-      "https://www.hustlexet.com",
-      "https://hustlexet.vercel.app", // legacy — kept so old bookmarks / cached clients keep working during DNS cutover
+      "https://hustlexet.vercel.app",
       "https://hustlex-production.up.railway.app"
     ];
     
