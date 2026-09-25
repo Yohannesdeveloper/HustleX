@@ -23,6 +23,10 @@ interface WebSocketContextType {
   offMessage: (callback: (data: any) => void) => void;
   onTyping: (callback: (data: any) => void) => void;
   offTyping: (callback: (data: any) => void) => void;
+  watchPresence: (userId: string) => void;
+  unwatchPresence: (userId: string) => void;
+  onPresence: (callback: (data: { userId: string; online: boolean; lastSeen?: string | null }) => void) => void;
+  offPresence: (callback: (data: any) => void) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -34,6 +38,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const callbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const messageCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const typingCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
+  const presenceCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const errorCountRef = useRef<number>(0);
 
   useEffect(() => {
@@ -113,6 +118,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         typingCallbacksRef.current.forEach((cb) => { try { cb({ ...data, typing: false }); } catch (e) {} });
       });
 
+      newSocket.on("presence:update", (data: any) => {
+        presenceCallbacksRef.current.forEach((cb) => { try { cb(data); } catch (e) {} });
+      });
+
       socketRef.current = newSocket;
     };
 
@@ -136,6 +145,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       callbacksRef.current.clear();
       messageCallbacksRef.current.clear();
       typingCallbacksRef.current.clear();
+      presenceCallbacksRef.current.clear();
     };
   }, []);
 
@@ -151,6 +161,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const offMessage = useCallback((cb: (data: any) => void) => { messageCallbacksRef.current.delete(cb); }, []);
   const onTyping = useCallback((cb: (data: any) => void) => { typingCallbacksRef.current.add(cb); }, []);
   const offTyping = useCallback((cb: (data: any) => void) => { typingCallbacksRef.current.delete(cb); }, []);
+  const watchPresence = useCallback((userId: string) => {
+    if (socketRef.current && connectedRef.current) socketRef.current.emit("watchPresence", userId);
+  }, []);
+  const unwatchPresence = useCallback((userId: string) => {
+    if (socketRef.current && connectedRef.current) socketRef.current.emit("unwatchPresence", userId);
+  }, []);
+  const onPresence = useCallback((cb: (data: any) => void) => { presenceCallbacksRef.current.add(cb); }, []);
+  const offPresence = useCallback((cb: (data: any) => void) => { presenceCallbacksRef.current.delete(cb); }, []);
 
   // Value never changes reference — no re-renders ever triggered by WebSocket
   const value: WebSocketContextType = {
@@ -164,6 +182,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     offMessage,
     onTyping,
     offTyping,
+    watchPresence,
+    unwatchPresence,
+    onPresence,
+    offPresence,
   };
 
   return (

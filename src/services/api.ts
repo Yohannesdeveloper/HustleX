@@ -1150,6 +1150,38 @@ async telegramLoginStatus(requestId: string): Promise<{ status: string; token?: 
     }
   }
 
+  // Delete a single message
+  async deleteMessage(messageId: string): Promise<any> {
+    const token = localStorage.getItem("token") || this.token;
+    if (!token) {
+      throw new Error("Authentication required");
+    }
+    try {
+      const response = await axios.delete(`${this.baseUrl}/messages/${messageId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error deleting message:", error);
+      throw error;
+    }
+  }
+
+  // Clear (bulk-delete) every message in a conversation
+  async clearConversationMessages(conversationId: string): Promise<any> {
+    const token = localStorage.getItem("token") || this.token;
+    if (!token) {
+      throw new Error("Authentication required");
+    }
+    try {
+      const response = await axios.delete(
+        `${this.baseUrl}/messages/conversation/${conversationId}/all`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error clearing conversation:", error);
+      throw error;
+    }
+  }
+
   // Send payment request to phone number via Santim Pay
   async sendPaymentRequest(phoneNumber: string, planId: string, amount: number, currency: string): Promise<any> {
     const token = localStorage.getItem("token") || this.token;

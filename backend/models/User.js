@@ -103,6 +103,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Real-time presence support: updated whenever the user's socket disconnects
+    lastSeen: {
+      type: Date,
+      default: null,
+    },
     otp: String,
     otpExpires: Date,
     subscription: {

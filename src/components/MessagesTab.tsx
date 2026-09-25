@@ -4,7 +4,7 @@ import { useAppSelector } from "../store/hooks";
 import { useAuth } from "../store/hooks";
 import { useLocation } from "react-router-dom";
 import { useWebSocket } from "../context/WebSocketContext";
-import { Send, MessageSquare, X, Smile, CheckCircle2, Paperclip, Mic, MicOff, Video, FileText, Image, File, Trash2, Play, Pause, Square, Music, Film, Archive, Code, Database, FileSpreadsheet, Presentation, MoreVertical, Copy, Forward, Reply, Pencil, Download, Pin, User, ChevronLeft } from "lucide-react";
+import { Send, MessageSquare, X, Smile, CheckCircle2, Paperclip, Mic, MicOff, Video, Phone, FileText, Image, File, Trash2, Play, Pause, Square, Music, Film, Archive, Code, Database, FileSpreadsheet, Presentation, MoreVertical, Copy, Forward, Reply, Pencil, Download, Pin, User, ChevronLeft } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import type { EmojiClickData } from "emoji-picker-react";
 import apiService from "../services/api";
@@ -81,6 +81,9 @@ const normalizeName = (name?: string) =>
   name?.trim().toLowerCase().replace(/\s+/g, " ");
 
 const getConversationKey = (conv: Conversation) => {
+  // freelancerId is the most stable identity; prefer it so two entries that refer
+  // to the same user (even with differing email/name fields) collapse into one.
+  if (conv.freelancerId) return `id:${String(conv.freelancerId)}`;
   const emailKey = normalizeEmail(conv.freelancerEmail);
   if (emailKey) return `email:${emailKey}`;
   const nameKey = normalizeName(conv.freelancerName);
@@ -91,7 +94,13 @@ const getConversationKey = (conv: Conversation) => {
       return `id:${parts.sort().join("_")}`;
     }
   }
-  return conv.freelancerId ? `id:${conv.freelancerId}` : "";
+  return "";
+};
+
+/** Same-identity check used by setConversations lookups (freelancerId only). */
+const isConvForFreelancer = (conv: Conversation, freelancerId: unknown): boolean => {
+  if (!conv?.freelancerId || freelancerId == null) return false;
+  return String(conv.freelancerId) === String(freelancerId);
 };
 
 const getConversationKeyFromData = (data: {
@@ -128,6 +137,18 @@ const isSameUser = (a: unknown, b: unknown) => {
   const idA = getUserId(a as string | ChatUser);
   const idB = getUserId(b as string | ChatUser);
   return idA.length > 0 && idB.length > 0 && idA === idB;
+};
+
+/** Turn a lastSeen ISO date into a compact "last seen" label. */
+const formatLastSeen = (value?: string | null): string => {
+  if (!value) return "Offline";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "Offline";
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 60) return "Last seen just now";
+  if (diffSec < 3600) return `Last seen ${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `Last seen ${Math.floor(diffSec / 3600)}h ago`;
+  return `Last seen ${Math.floor(diffSec / 86400)}d ago`;
 };
 
 const getNameFromChatUser = (chatUser?: ChatUser, fallback = ""): string => {
@@ -356,9 +377,11 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   const darkMode = useAppSelector((s) => s.theme.darkMode);
   const { user } = useAuth();
   const location = useLocation();
-  const { socket, connected, joinUser, sendMessage, onMessage, offMessage } = useWebSocket();
+  const { socket, connected, joinUser, sendMessage, onMessage, offMessage, watchPresence, unwatchPresence, onPresence, offPresence } = useWebSocket();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  // Live presence of the open chat partner: userId -> { online, lastSeen }
+  const [presence, setPresence] = useState<Record<string, { online: boolean; lastSeen?: string | null }>>({});
   const [messages, setMessages] = useState<StoredMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -375,6 +398,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
+  const [callDialog, setCallDialog] = useState<{ phone: string; name: string } | null>(null);
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const [chatHeaderMenuOpen, setChatHeaderMenuOpen] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -575,8 +599,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           if (lastMessage && (lastMessage._id?.toString() === editId?.toString() || lastMessage.id?.toString() === editId?.toString())) {
             setConversations((prevConvs) =>
               prevConvs.map((conv) => {
-                const convKey = getConversationKey(conv);
-                if (convKey === conversationKey || convKey === backendConversationId) {
+                if (isConvForFreelancer(conv, selectedConversation.freelancerId)) {
                   return {
                     ...conv,
                     lastMessage: data.message,
@@ -623,6 +646,62 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       socket.off("messageEdited", handleMessageEdit);
     };
   }, [socket, selectedConversation, user?._id]);
+
+  // Real-time delete/clear broadcasts from the backend — mirror the local removal
+  // so both participants see the same view without needing a refresh.
+  useEffect(() => {
+    if (!socket || !user?._id) return;
+
+    const handleMessageDeleted = (data: { messageId: string; conversationId: string }) => {
+      if (!data?.messageId) return;
+      setMessages((prev) =>
+        prev.filter((msg) => {
+          const mId = msg._id || msg.id;
+          return !(mId && String(mId) === String(data.messageId));
+        })
+      );
+      // Sync localStorage for the currently-open conversation
+      if (selectedConversation) {
+        const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+        const stored = getStoredMessages(conversationKey);
+        const next = stored.filter((msg) => {
+          const mId = msg._id || msg.id;
+          return !(mId && String(mId) === String(data.messageId));
+        });
+        localStorage.setItem(conversationKey, JSON.stringify(next));
+      }
+    };
+
+    const handleConversationCleared = (data: { conversationId: string; clearedBy?: string }) => {
+      if (!data?.conversationId) return;
+      // Only react if the cleared conversation matches our currently-selected one
+      if (selectedConversation) {
+        const myBackendId = getNormalizedConversationKey(user._id, selectedConversation.freelancerId).replace(/^conversation_/, "");
+        if (myBackendId === data.conversationId) {
+          setMessages([]);
+          setSelectedConversation(null);
+          setConversations((prev) =>
+            prev.filter((conv) => !isConvForFreelancer(conv, selectedConversation.freelancerId))
+          );
+          const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
+          localStorage.removeItem(conversationKey);
+          const clearedAt = new Date().toISOString();
+          localStorage.setItem(getConversationClearedKey(user._id, selectedConversation.freelancerId), clearedAt);
+          // Allow the user to re-initiate a chat with this person afterwards
+          lastProcessedFreelancerIdRef.current = null;
+          try { window.history.replaceState({}, ""); } catch { /* no-op */ }
+        }
+      }
+    };
+
+    socket.on("messageDeleted", handleMessageDeleted);
+    socket.on("conversationCleared", handleConversationCleared);
+
+    return () => {
+      socket.off("messageDeleted", handleMessageDeleted);
+      socket.off("conversationCleared", handleConversationCleared);
+    };
+  }, [socket, selectedConversation, user?._id]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -652,6 +731,28 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       joinUser(user._id);
     }
   }, [connected, user?._id, joinUser]);
+
+  // Subscribe to live presence updates coming from the server
+  useEffect(() => {
+    const handlePresence = (data: { userId: string; online: boolean; lastSeen?: string | null }) => {
+      if (!data?.userId) return;
+      const key = String(data.userId);
+      setPresence((prev) => ({
+        ...prev,
+        [key]: { online: !!data.online, lastSeen: data.lastSeen ?? prev[key]?.lastSeen },
+      }));
+    };
+    onPresence(handlePresence);
+    return () => offPresence(handlePresence);
+  }, [onPresence, offPresence]);
+
+  // Watch the currently open chat partner so the header shows real presence
+  useEffect(() => {
+    const targetId = selectedConversation?.freelancerId;
+    if (!targetId || !connected) return;
+    watchPresence(targetId);
+    return () => unwatchPresence(targetId);
+  }, [connected, selectedConversation?.freelancerId, watchPresence, unwatchPresence]);
 
   // Listen for real-time messages - uses refs to avoid re-registration
   useEffect(() => {
@@ -886,12 +987,12 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       setConversations((prev) => {
         const normalizedKey = getNormalizedConversationKey(currentUser?._id || "", targetFreelancerId || "");
         const existingConv = prev.find(
-          (conv) => getConversationKey(conv) === normalizedKey
+          (conv) => isConvForFreelancer(conv, targetFreelancerId)
         );
 
         if (existingConv) {
           const updated = prev.map((conv) =>
-            getConversationKey(conv) === normalizedKey
+            isConvForFreelancer(conv, targetFreelancerId)
               ? {
                 ...conv,
                 lastMessage: messageData.message,
@@ -902,19 +1003,19 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
           // Remove duplicates
           const seen = new Set<string>();
           return updated.filter(conv => {
-            if (seen.has(conv.freelancerId)) return false;
-            seen.add(conv.freelancerId);
+            if (conv.freelancerId && seen.has(String(conv.freelancerId))) return false;
+            if (conv.freelancerId) seen.add(String(conv.freelancerId));
             return true;
           }).sort((a, b) =>
             new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
           );
         } else {
           const alreadyExists = prev.some(
-            (conv) => getConversationKey(conv) === normalizedKey
+            (conv) => isConvForFreelancer(conv, targetFreelancerId)
           );
           if (alreadyExists) {
             return prev.map((conv) =>
-              getConversationKey(conv) === normalizedKey
+              isConvForFreelancer(conv, targetFreelancerId)
                 ? {
                   ...conv,
                   lastMessage: messageData.message,
@@ -944,8 +1045,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
           const seen = new Set<string>();
           const deduplicated = prev.filter(conv => {
-            if (seen.has(conv.freelancerId)) return false;
-            seen.add(conv.freelancerId);
+            if (conv.freelancerId && seen.has(String(conv.freelancerId))) return false;
+            if (conv.freelancerId) seen.add(String(conv.freelancerId));
             return true;
           });
 
@@ -991,7 +1092,10 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
       const allKeys = Object.keys(localStorage);
       const conversationKeys = allKeys.filter(
-        (key) => key.startsWith("conversation_") && key.includes(user._id)
+        (key) =>
+          key.startsWith("conversation_") &&
+          !key.startsWith("conversation_cleared_") &&
+          key.includes(user._id)
       );
 
       const convs: Conversation[] = [];
@@ -1015,11 +1119,33 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         if (!otherId || otherId === user._id) continue;
 
         const normalizedKey = getNormalizedConversationKey(user._id, otherId);
-        const conversationMessages = getStoredMessages(key);
-        // Allow conversations even if they only have a "conversation_started" message
-        if (conversationMessages.length === 0) continue;
+        const rawConversationMessages = getStoredMessages(key);
 
-        const lastMessage = conversationMessages[conversationMessages.length - 1];
+        // If this conversation was cleared, drop messages older than the clearedAt marker.
+        const clearedKeyForPair = getConversationClearedKey(user._id, otherId);
+        const clearedAtRaw = localStorage.getItem(clearedKeyForPair);
+        const clearedAtTs = clearedAtRaw ? new Date(clearedAtRaw).getTime() : null;
+        const conversationMessages = clearedAtTs
+          ? rawConversationMessages.filter((m) => {
+            const t = m.createdAt || m.timestamp || "";
+            return new Date(t).getTime() > clearedAtTs;
+          })
+          : rawConversationMessages;
+        // Skip conversations that have no real messages (empty seed arrays or
+        // residual "conversation_started" entries from the old format)
+        const realMessages = conversationMessages.filter(
+          (m) => m.action !== "conversation_started" && (m.message || m.voiceData || (m.files && m.files.length > 0))
+        );
+        if (realMessages.length === 0) {
+          // If nothing survived the clearedAt filter, drop the storage key too so
+          // the conversation cannot reappear on the next refresh.
+          if (clearedAtTs && rawConversationMessages.length > 0) {
+            localStorage.removeItem(normalizedKey);
+          }
+          continue;
+        }
+
+        const lastMessage = realMessages[realMessages.length - 1];
 
         // Migrate to normalized key if needed (merge messages)
         if (key !== normalizedKey) {
@@ -1162,6 +1288,17 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
     conversationsRef.current = displayConversations;
   }, [conversations, displayConversations]);
 
+  // Watch live presence for everyone in the conversation list so dots stay honest
+  const listPresenceIds = useMemo(
+    () => Array.from(new Set(displayConversations.map((c) => c.freelancerId).filter(Boolean).map(String))),
+    [displayConversations]
+  );
+  useEffect(() => {
+    if (!connected || listPresenceIds.length === 0) return;
+    listPresenceIds.forEach((id) => watchPresence(id));
+    return () => listPresenceIds.forEach((id) => unwatchPresence(id));
+  }, [connected, listPresenceIds, watchPresence, unwatchPresence]);
+
   // Auto-select conversation when navigating with freelancer ID
   useEffect(() => {
     console.log("MessagesTab: Checking location.state...", location.state);
@@ -1185,9 +1322,15 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       console.log("MessagesTab: conversationKey is", conversationKey);
 
       const createAndSelectConversation = async () => {
+        // Respect a prior "clear chat history": don't resurrect a deleted conversation
+        // just because router state survived the reload.
+        const clearedKey = getConversationClearedKey(user._id, freelancerId);
+        const clearedAtRaw = localStorage.getItem(clearedKey);
+        const clearedAt = clearedAtRaw ? new Date(clearedAtRaw).getTime() : null;
+
         // Check if conversation already exists in conversations list using ref
         const existingConv = conversationsRef.current.find(
-          (c) => getConversationKey(c) === getNormalizedConversationKey(user._id, freelancerId)
+          (c) => isConvForFreelancer(c, freelancerId)
         );
         if (existingConv) {
           console.log("MessagesTab: Found existing conversation!");
@@ -1198,12 +1341,18 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
         // Check localStorage for existing messages
         const existingMessages = getStoredMessages(conversationKey);
-        console.log("MessagesTab: existingMessages in localStorage", existingMessages.length);
+        const liveExistingMessages = clearedAt
+          ? existingMessages.filter((m) => {
+            const t = m.createdAt || m.timestamp || "";
+            return new Date(t).getTime() > clearedAt;
+          })
+          : existingMessages;
+        console.log("MessagesTab: existingMessages in localStorage", existingMessages.length, "live", liveExistingMessages.length);
         let conv: Conversation | null = null;
 
-        if (existingMessages.length > 0) {
+        if (liveExistingMessages.length > 0) {
           // Conversation exists in localStorage, create it
-          const lastMessage = existingMessages[existingMessages.length - 1];
+          const lastMessage = liveExistingMessages[liveExistingMessages.length - 1];
           let freelancerFromStorage: FreelancerWithStatus | undefined;
           if (freelancersDirectoryRef.current.length === 0) {
             freelancersDirectoryRef.current =
@@ -1229,6 +1378,15 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
             freelancer: freelancerFromStorage,
           };
         } else {
+          // If this conversation was previously cleared by the user and no new
+          // messages have arrived since, honor the fresh navigation intent:
+          // drop the clearedAt marker and create a new (empty) conversation.
+          // handleClearChatHistory already wipes router state on clear, so
+          // reaching here means the user genuinely re-clicked "Message".
+          if (clearedAt) {
+            console.log("MessagesTab: Re-engaging after clear — removing clearedAt marker for", freelancerId);
+            localStorage.removeItem(clearedKey);
+          }
           // New conversation - fetch freelancer data
           console.log("MessagesTab: Creating NEW conversation!");
           let freelancer: FreelancerWithStatus | undefined = state?.freelancer;
@@ -1260,16 +1418,10 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
             freelancer: freelancer,
           };
 
-          // Save an initial empty message to localStorage so the conversation persists
-          console.log("MessagesTab: Saving initial message to localStorage");
-          const initialMessage: StoredMessage = {
-            senderId: user._id,
-            receiverId: freelancerId,
-            message: "",
-            timestamp: new Date().toISOString(),
-            action: "conversation_started"
-          };
-          localStorage.setItem(conversationKey, JSON.stringify([initialMessage]));
+          // Write a lightweight "conversation exists" marker (NOT a message) so the
+          // conversation shows in the sidebar on next loadConversations run. Once a
+          // real message is sent, it overwrites this key with actual messages.
+          localStorage.setItem(conversationKey, JSON.stringify([]));
         }
 
         if (conv) {
@@ -1326,12 +1478,13 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         const apiMessages = await apiService.getConversationMessages(backendConversationId) as StoredMessage[];
         if (apiMessages && Array.isArray(apiMessages) && apiMessages.length > 0) {
           console.log("Loaded messages from API:", apiMessages.length);
-          const filteredApiMessages = clearedAt
-            ? apiMessages.filter((msg) => {
+          const filteredApiMessages = apiMessages
+            .filter((msg) => msg.action !== "conversation_started" && (msg.message || msg.voiceData || (msg.files && msg.files.length > 0)))
+            .filter((msg) => {
+              if (!clearedAt) return true;
               const timestamp = msg.createdAt || msg.timestamp || "";
               return new Date(timestamp).getTime() > clearedAt;
-            })
-            : apiMessages;
+            });
           setMessages(filteredApiMessages);
           // Persist API messages locally for refresh safety
           const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
@@ -1346,12 +1499,14 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
       const conversationMessages = getStoredMessages(conversationKey);
       console.log("Loaded messages from localStorage:", conversationMessages.length);
-      const filteredLocalMessages = clearedAt
-        ? conversationMessages.filter((msg) => {
+      const filteredLocalMessages = conversationMessages
+        // Filter out legacy blank "conversation_started" seeds that pre-date this fix
+        .filter((msg) => msg.action !== "conversation_started" && (msg.message || msg.voiceData || (msg.files && msg.files.length > 0)))
+        .filter((msg) => {
+          if (!clearedAt) return true;
           const timestamp = msg.createdAt || msg.timestamp || "";
           return new Date(timestamp).getTime() > clearedAt;
-        })
-        : conversationMessages;
+        });
       setMessages(filteredLocalMessages);
 
       // If API failed but we have localStorage messages, try to sync them to API in background
@@ -1589,7 +1744,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
     // Update conversation list - ensure no duplicates
     setConversations((prev) => {
       const updated = prev.map((conv) =>
-        getConversationKey(conv) === conversationId
+        isConvForFreelancer(conv, selectedConversation.freelancerId)
           ? {
             ...conv,
             id: conversationId,
@@ -1774,58 +1929,356 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Video call handlers
-  const initiateVideoCall = async () => {
-    setShowVideoCallModal(true);
-    setCallStatus('calling');
-    console.log('Initiating video call with:', selectedConversation?.freelancerName);
+  // ─── Phone Call (via tel: / WhatsApp) ──────────────────────────────────
+  const initiatePhoneCall = () => {
+    const freelancer = selectedConversation?.freelancer;
+    let phone = freelancer?.profile?.phone || (freelancer as any)?.phone || "";
 
+    if (!phone && selectedConversation?.freelancerId) {
+      const dir = freelancersDirectoryRef.current;
+      const match = dir.find((f) => String(f._id) === String(selectedConversation.freelancerId));
+      phone = match?.profile?.phone || (match as any)?.phone || "";
+    }
+
+    if (!phone) {
+      alert(`${selectedConversation?.freelancerName || "This user"} hasn't added a phone number to their profile.`);
+      return;
+    }
+
+    const cleaned = phone.replace(/[\s\-().]/g, "");
+    const formatted = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
+    setCallDialog({ phone: formatted, name: selectedConversation?.freelancerName || "User" });
+  };
+
+  // ─── WebRTC Video Call ──────────────────────────────────────────────────────
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const [videoCallActive, setVideoCallActive] = useState(false);
+  const [isCaller, setIsCaller] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<{ callerId: string; callerInfo: { name: string; avatar?: string }; isVideo: boolean } | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [callTargetName, setCallTargetName] = useState("");
+  const [isCallConnecting, setIsCallConnecting] = useState(false);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoCallRef = useRef<HTMLVideoElement>(null);
+  const callTargetIdRef = useRef<string>("");
+  const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ─── Ringtone (Web Audio API — no external files) ────────────────────────
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const ringIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const playRingtone = (mode: 'outgoing' | 'incoming') => {
+    // Stop any existing ring before starting a new one
+    stopRingtone();
     try {
-      // Request camera and microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        },
-        audio: true
-      });
+      if (!audioCtxRef.current) {
+        const AC = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AC) return;
+        audioCtxRef.current = new AC();
+      }
+      const ctx = audioCtxRef.current!;
+      if (ctx.state === 'suspended') ctx.resume();
 
-      console.log('Got media stream:', stream.getTracks().map(t => t.kind));
+      const beep = () => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
 
-      setLocalStream(stream);
-      setIsVideoEnabled(true);
-      setIsAudioEnabled(true);
-
-      // Wait for next render cycle then attach stream to video element
-      setTimeout(() => {
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(err => {
-            console.log('Video play error:', err);
-          });
-          console.log('Stream attached to video element');
+        if (mode === 'outgoing') {
+          // Ringback tone: 440+480 Hz dual-tone, 0.5s on / 1s off
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.45);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.5);
         } else {
-          console.log('Video ref not available yet');
+          // Incoming: bright two-tone "beep beep"
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.22);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.25);
         }
-      }, 100);
+      };
 
-      // Simulate call connecting after 2 seconds
-      setTimeout(() => {
-        setCallStatus('connected');
-        // Start call duration timer
-        callTimerRef.current = setInterval(() => {
-          setCallDuration(prev => prev + 1);
-        }, 1000);
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-      alert('Could not access camera/microphone. Please ensure you have granted permission.');
-      setCallStatus('idle');
-      setShowVideoCallModal(false);
+      beep();
+      const interval = mode === 'outgoing' ? 1500 : 700;
+      ringIntervalRef.current = setInterval(beep, interval);
+    } catch (e) {
+      console.warn("Ringtone failed:", e);
     }
   };
+
+  const stopRingtone = () => {
+    if (ringIntervalRef.current) {
+      clearInterval(ringIntervalRef.current);
+      ringIntervalRef.current = null;
+    }
+  };
+
+  const ICE_SERVERS: RTCConfiguration = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+    ],
+  };
+
+  const createPeerConnection = (targetUserId: string) => {
+    const pc = new RTCPeerConnection(ICE_SERVERS);
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socket) {
+        socket.emit("webrtcIce", { targetUserId, candidate: event.candidate });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      const [stream] = event.streams;
+      setRemoteStream(stream);
+      setIsCallConnecting(false);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream;
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+        cleanupCall();
+      }
+    };
+
+    peerConnectionRef.current = pc;
+    return pc;
+  };
+
+  const getLocalMedia = async (): Promise<MediaStream> => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setLocalStream(stream);
+    // Attach to local preview
+    setTimeout(() => {
+      if (localVideoCallRef.current) {
+        localVideoCallRef.current.srcObject = stream;
+      }
+    }, 50);
+    return stream;
+  };
+
+  const startVideoCall = async (targetUserId: string, targetName: string) => {
+    if (!socket || !user?._id) return;
+
+    setIsCaller(true);
+    setVideoCallActive(true);
+    setCallTargetName(targetName);
+    setIsCallConnecting(true);
+    callTargetIdRef.current = targetUserId;
+
+    try {
+      const stream = await getLocalMedia();
+      const pc = createPeerConnection(targetUserId);
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      // Just invite the callee; offer will be sent after they accept
+      socket.emit("callUser", {
+        targetUserId,
+        from: user._id,
+        callerInfo: { name: `${user.profile?.firstName || ""} ${user.profile?.lastName || ""}`.trim() || user.email },
+        isVideo: true,
+      });
+
+      // Play ringback tone while waiting for answer
+      playRingtone('outgoing');
+
+      // 30s timeout if callee doesn't accept
+      callTimeoutRef.current = setTimeout(() => {
+        stopRingtone();
+        alert("No answer.");
+        cleanupCall();
+      }, 30000);
+    } catch (err: any) {
+      console.error("Video call failed:", err);
+      alert("Could not access camera/microphone. " + (err?.message || ""));
+      cleanupCall();
+    }
+  };
+
+  const initiateVideoCall = () => {
+    const freelancerId = selectedConversation?.freelancerId;
+    const freelancerName = selectedConversation?.freelancerName || "User";
+    if (!freelancerId) {
+      alert("No conversation selected.");
+      return;
+    }
+    startVideoCall(String(freelancerId), freelancerName);
+  };
+
+  const acceptIncomingCall = async () => {
+    stopRingtone();
+    if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+    if (!incomingCall || !socket || !user?._id) return;
+    const { callerId } = incomingCall;
+
+    setCallTargetName(incomingCall.callerInfo.name);
+    setIsCaller(false);
+    setVideoCallActive(true);
+    setIsCallConnecting(true);
+    callTargetIdRef.current = callerId;
+
+    try {
+      const stream = await getLocalMedia();
+      const pc = createPeerConnection(callerId);
+
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      socket.emit("acceptCall", { fromUserId: callerId, userId: user._id });
+    } catch (err: any) {
+      console.error("Accept call failed:", err);
+      cleanupCall();
+    }
+
+    setIncomingCall(null);
+  };
+
+  const declineIncomingCall = () => {
+    stopRingtone();
+    if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+    if (!incomingCall || !socket) return;
+    socket.emit("declineCall", { fromUserId: incomingCall.callerId });
+    setIncomingCall(null);
+  };
+
+  const cleanupCall = () => {
+    stopRingtone();
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach((t) => t.stop());
+      setLocalStream(null);
+    }
+    setRemoteStream(null);
+    setVideoCallActive(false);
+    setIsCallConnecting(false);
+    setCallTargetName("");
+  };
+
+  const hangUpCall = () => {
+    const targetId = callTargetIdRef.current;
+    if (socket && targetId) {
+      socket.emit("endCall", { targetUserId: targetId });
+    }
+    cleanupCall();
+  };
+
+  // Socket listeners for incoming calls & WebRTC signaling
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleIncoming = (data: any) => {
+      // Don't show incoming if we're already in a call
+      if (videoCallActive) {
+        socket.emit("declineCall", { fromUserId: data.callerId });
+        return;
+      }
+      setIncomingCall({
+        callerId: data.callerId,
+        callerInfo: data.callerInfo || { name: "Unknown" },
+        isVideo: data.isVideo !== false,
+      });
+      // Play urgent incoming ring until accept/decline
+      playRingtone('incoming');
+      // Auto-dismiss after 20s if not answered
+      callTimeoutRef.current = setTimeout(() => {
+        stopRingtone();
+        setIncomingCall(null);
+      }, 20000);
+    };
+
+    const handleAccepted = async () => {
+      // Caller side: callee accepted, now create and send offer
+      stopRingtone();
+      if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+      const pc = peerConnectionRef.current;
+      const targetId = callTargetIdRef.current;
+      if (!pc || !targetId || !socket || !user?._id) return;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit("webrtcOffer", { targetUserId: targetId, from: user._id, sdp: offer });
+      } catch (e) {
+        console.error("createOffer failed:", e);
+        cleanupCall();
+      }
+    };
+
+    const handleDeclined = () => {
+      alert("Call declined.");
+      cleanupCall();
+    };
+
+    const handleOffer = async (data: any) => {
+      // Callee side: received offer after accepting
+      if (!peerConnectionRef.current) return;
+      const pc = peerConnectionRef.current;
+      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit("webrtcAnswer", { targetUserId: data.from, from: user?._id, sdp: answer });
+    };
+
+    const handleAnswer = async (data: any) => {
+      // Caller side: received answer
+      if (!peerConnectionRef.current) return;
+      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    };
+
+    const handleIce = async (data: any) => {
+      if (!peerConnectionRef.current || !data.candidate) return;
+      try {
+        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } catch (e) {
+        // Ignore ICE errors after call ended
+      }
+    };
+
+    const handleEnded = () => {
+      cleanupCall();
+    };
+
+    socket.on("incomingCall", handleIncoming);
+    socket.on("callAccepted", handleAccepted);
+    socket.on("callDeclined", handleDeclined);
+    socket.on("webrtcOffer", handleOffer);
+    socket.on("webrtcAnswer", handleAnswer);
+    socket.on("webrtcIce", handleIce);
+    socket.on("callEnded", handleEnded);
+
+    return () => {
+      socket.off("incomingCall", handleIncoming);
+      socket.off("callAccepted", handleAccepted);
+      socket.off("callDeclined", handleDeclined);
+      socket.off("webrtcOffer", handleOffer);
+      socket.off("webrtcAnswer", handleAnswer);
+      socket.off("webrtcIce", handleIce);
+      socket.off("callEnded", handleEnded);
+    };
+  }, [socket, videoCallActive, user?._id]);
+
+  // Attach remote stream when it changes
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const endVideoCall = () => {
     // Stop all tracks
@@ -1878,17 +2331,31 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
   // Message action handlers
   const handleDeleteMessage = (messageId: string) => {
-    // Remove from messages state
-    setMessages(prev => prev.filter(msg => (msg._id || msg.id) !== messageId));
+    // Guard: never attempt a real delete for synthetic UI-only ids (they don't exist on the backend)
+    const isSyntheticId = typeof messageId === "string" && messageId.startsWith("msg_");
+
+    // Remove from messages state (optimistic UI)
+    setMessages(prev => prev.filter(msg => {
+      const mId = msg._id || msg.id;
+      return mId !== messageId && String(mId) !== String(messageId);
+    }));
 
     // Also remove from localStorage
     if (selectedConversation && user?._id) {
       const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
       const storedMessages = getStoredMessages(conversationKey);
-      const updatedMessages = storedMessages.filter((msg) =>
-        (msg._id || msg.id) !== messageId
-      );
+      const updatedMessages = storedMessages.filter((msg) => {
+        const mId = msg._id || msg.id;
+        return mId !== messageId && String(mId) !== String(messageId);
+      });
       localStorage.setItem(conversationKey, JSON.stringify(updatedMessages));
+    }
+
+    // Persist the deletion on the server so a refresh doesn't resurrect the message
+    if (!isSyntheticId && messageId) {
+      apiService.deleteMessage(String(messageId)).catch((err) => {
+        console.warn("Backend deleteMessage failed:", err?.message || err);
+      });
     }
 
     setMessageMenuOpen(null);
@@ -1969,33 +2436,42 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
 
     // Confirm before clearing
     if (window.confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
-      // Clear messages from state
+      // Clear messages from state (optimistic UI)
       setMessages([]);
 
-      // Clear from localStorage
+      // Clear from localStorage (normalized, legacy, and any unsorted variants)
       const conversationKey = getNormalizedConversationKey(user._id, selectedConversation.freelancerId);
       const legacyConversationKey = `conversation_${user._id}_${selectedConversation.freelancerId}`;
+      const legacyReverseKey = `conversation_${selectedConversation.freelancerId}_${user._id}`;
       localStorage.removeItem(conversationKey);
       localStorage.removeItem(legacyConversationKey);
+      localStorage.removeItem(legacyReverseKey);
 
       // Persist a cleared timestamp so old messages don't return
+      const clearedAt = new Date().toISOString();
       const clearedKey = getConversationClearedKey(user._id, selectedConversation.freelancerId);
-      localStorage.setItem(clearedKey, new Date().toISOString());
+      localStorage.setItem(clearedKey, clearedAt);
 
-      // Update conversation list to remove last message
-      setConversations((prev) => {
-        return prev.map((conv) =>
-          getConversationKey(conv) === conversationKey
-            ? {
-              ...conv,
-              lastMessage: "",
-              lastMessageTime: new Date().toISOString(),
-            }
-            : conv
-        );
-      });
+      // Also remove the freelancer-scoped seed key that the auto-select path may write,
+      // and drop the conversation entirely from the visible list.
+      setConversations((prev) =>
+        prev.filter((conv) => !isConvForFreelancer(conv, selectedConversation.freelancerId))
+      );
+      setSelectedConversation(null);
+
+      // Reset the auto-select guard so a future re-navigation to this same
+      // freelancer is processed as a fresh intent (not a duplicate). Also
+      // clear router state so a page reload doesn't re-trigger the seed.
+      lastProcessedFreelancerIdRef.current = null;
+      try { window.history.replaceState({}, ""); } catch { /* no-op */ }
 
       setChatHeaderMenuOpen(false);
+
+      // Persist the deletion server-side (backend uses raw "id1_id2" format without the "conversation_" prefix)
+      const backendConversationId = conversationKey.replace(/^conversation_/, "");
+      apiService.clearConversationMessages(backendConversationId).catch((err) => {
+        console.warn("Backend clearConversationMessages failed:", err?.message || err);
+      });
     }
   };
 
@@ -2090,6 +2566,16 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
       return date.toLocaleDateString([], { month: "short", day: "numeric" });
     }
   };
+
+  // Resolve live presence for the open chat partner (falls back to directory status)
+  const peerId = selectedConversation?.freelancerId ? String(selectedConversation.freelancerId) : "";
+  const peerPresence = peerId ? presence[peerId] : undefined;
+  const peerOnline = peerPresence
+    ? peerPresence.online
+    : selectedConversation?.freelancer?.status === "online";
+  const peerLastSeenLabel = peerOnline
+    ? "Online"
+    : formatLastSeen(peerPresence?.lastSeen ?? selectedConversation?.freelancer?.lastActive);
 
   return (
     <div className="h-full flex flex-col relative overflow-hidden">
@@ -2346,8 +2832,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                         </span>
                       </motion.div>
                       <motion.div
-                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 ${darkMode ? "border-gray-900" : "border-white"} bg-green-500`}
-                        animate={{ scale: [1, 1.15, 1] }}
+                        className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 ${darkMode ? "border-gray-900" : "border-white"} ${(presence[String(conv.freelancerId)]?.online ?? conv.freelancer?.status === "online") ? "bg-green-500" : "bg-gray-400"}`}
+                        animate={(presence[String(conv.freelancerId)]?.online ?? conv.freelancer?.status === "online") ? { scale: [1, 1.15, 1] } : {}}
                         transition={{ duration: 2, repeat: Infinity }}
                       />
                     </div>
@@ -2433,8 +2919,9 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                       </span>
                     </motion.div>
                     <motion.div
-                      className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-900 bg-green-500"
-                      animate={{ scale: [1, 1.2, 1] }}
+                      className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-900 ${peerOnline ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      animate={peerOnline ? { scale: [1, 1.2, 1] } : {}}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
                   </div>
@@ -2448,12 +2935,11 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                     </h3>
                     <p className={`text-xs font-body flex items-center gap-1.5 ${darkMode ? "text-gray-400" : "text-gray-600"
                       }`}>
-                      <motion.span
-                        className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"
-                        animate={{ opacity: [1, 0.4, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
+                      <span
+                        className={`inline-block w-1.5 h-1.5 rounded-full ${peerOnline ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                          }`}
                       />
-                      Online
+                      {peerLastSeenLabel}
                     </p>
                   </div>
                 </div>
@@ -2483,18 +2969,31 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                     </span>
                   </div>
 
-                  {/* Video Call Button */}
+                  {/* Call Buttons */}
                   <motion.button
                     onClick={initiateVideoCall}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`p-2 rounded-lg transition-all glass-card ${darkMode
+                      ? "bg-gradient-to-r from-purple-500/20 to-indigo-500/20 hover:from-purple-500/30 hover:to-indigo-500/30 text-purple-400 border border-purple-500/30"
+                      : "bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-600 border border-purple-200"
+                      }`}
+                    title="Video Call"
+                  >
+                    <Video className="w-4 h-4" />
+                  </motion.button>
+
+                  <motion.button
+                    onClick={initiatePhoneCall}
                     whileHover={{ scale: 1.05, rotate: -3 }}
                     whileTap={{ scale: 0.95 }}
                     className={`p-2 rounded-lg transition-all glass-card ${darkMode
                       ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/30 hover:to-emerald-500/30 text-green-400 border border-green-500/30"
                       : "bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-600 border border-green-200"
                       }`}
-                    title="Start Video Call"
+                    title="Phone Call"
                   >
-                    <Video className="w-4 h-4" />
+                    <Phone className="w-4 h-4" />
                   </motion.button>
 
                   {/* 3-Dot Menu Button */}
@@ -3426,226 +3925,196 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* Video Call Modal */}
+      {/* ─── Video Call Modal ──────────────────────────────────────────── */}
       <AnimatePresence>
-        {showVideoCallModal && (
+        {videoCallActive && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-[100] bg-black flex flex-col"
           >
-            {/* Full Screen Video Call Interface */}
-            <div className="absolute inset-0 bg-gray-900">
-              {/* Remote Video (placeholder - shows avatar) */}
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                {callStatus === 'connected' ? (
-                  <div className="text-center">
-                    <motion.div
-                      className="w-32 h-32 rounded-full mx-auto mb-4 bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-4 border-cyan-500/50 flex items-center justify-center"
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <span className="text-5xl font-bold text-cyan-300">
-                        {selectedConversation?.freelancerName?.charAt(0)?.toUpperCase() || "?"}
-                      </span>
-                    </motion.div>
-                    <h3 className="text-2xl font-bold text-white mb-2">
-                      {selectedConversation?.freelancerName}
-                    </h3>
-                    <p className="text-gray-400 text-sm">
-                      Waiting for {selectedConversation?.freelancerName} to join...
-                    </p>
-                  </div>
-                ) : callStatus === 'calling' ? (
-                  <div className="text-center">
-                    <motion.div
-                      className="w-32 h-32 rounded-full mx-auto mb-4 bg-gradient-to-br from-cyan-500/30 to-blue-500/30 border-4 border-cyan-500/50 flex items-center justify-center"
-                      animate={{
-                        scale: [1, 1.1, 1],
-                        boxShadow: [
-                          "0 0 0 0 rgba(6, 182, 212, 0.4)",
-                          "0 0 0 30px rgba(6, 182, 212, 0)",
-                          "0 0 0 0 rgba(6, 182, 212, 0)"
-                        ]
-                      }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <span className="text-5xl font-bold text-cyan-300">
-                        {selectedConversation?.freelancerName?.charAt(0)?.toUpperCase() || "?"}
-                      </span>
-                    </motion.div>
-                    <h3 className="text-2xl font-bold text-white mb-2">
-                      {selectedConversation?.freelancerName}
-                    </h3>
-                    <motion.p
-                      className="text-cyan-400 text-lg font-medium"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      Calling...
-                    </motion.p>
-                  </div>
-                ) : callStatus === 'ended' ? (
-                  <div className="text-center">
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="w-32 h-32 rounded-full mx-auto mb-4 bg-red-500/20 border-4 border-red-500/50 flex items-center justify-center"
-                    >
-                      <X className="w-16 h-16 text-red-400" />
-                    </motion.div>
-                    <h3 className="text-2xl font-bold text-white mb-2">
-                      Call Ended
-                    </h3>
-                    <p className="text-gray-400">
-                      Duration: {formatCallDuration(callDuration)}
-                    </p>
-                  </div>
-                ) : null}
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/70 to-transparent absolute top-0 left-0 right-0 z-10">
+              <div>
+                <p className="text-white font-semibold text-lg">{callTargetName}</p>
+                <p className="text-gray-300 text-sm">
+                  {isCallConnecting ? "Connecting..." : "In Call"}
+                </p>
               </div>
-
-              {/* Local Video Preview */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, x: 20, y: 20 }}
-                animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                className="absolute bottom-32 right-6 w-48 h-36 rounded-2xl overflow-hidden border-2 border-cyan-500/50 shadow-2xl bg-gray-800"
+              <motion.button
+                onClick={hangUpCall}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white"
+                title="End Call"
               >
-                {/* Always render video element so ref is available */}
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className={`w-full h-full object-cover transform scale-x-[-1] ${isVideoEnabled && localStream ? 'block' : 'hidden'
-                    }`}
-                />
-                {/* Show avatar when video is off */}
-                {(!isVideoEnabled || !localStream) && (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                    <div className="text-center">
-                      <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-2">
-                        <span className="text-lg font-bold text-gray-400">
-                          {user?.profile?.firstName?.charAt(0)?.toUpperCase() || "U"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500">Camera Off</p>
-                    </div>
-                  </div>
-                )}
-                <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/50 text-xs text-white">
-                  You
-                </div>
-              </motion.div>
-
-              {/* Call Duration */}
-              {callStatus === 'connected' && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute top-6 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/30"
-                >
-                  <div className="flex items-center gap-2">
-                    <motion.div
-                      className="w-2 h-2 rounded-full bg-green-500"
-                      animate={{ opacity: [1, 0.5, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    />
-                    <span className="text-green-400 font-mono font-medium">
-                      {formatCallDuration(callDuration)}
-                    </span>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Top Bar */}
-              <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent">
-                <div className="flex items-center gap-3">
-                  <Video className="w-5 h-5 text-green-400" />
-                  <span className="text-white font-medium">Video Call</span>
-                </div>
-                <motion.button
-                  onClick={endVideoCall}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
-                >
-                  <X className="w-5 h-5" />
-                </motion.button>
-              </div>
-
-              {/* Bottom Controls */}
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent"
-              >
-                <div className="flex items-center justify-center gap-4">
-                  {/* Mute Audio Button */}
-                  <motion.button
-                    onClick={toggleAudio}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className={`p-4 rounded-full transition-all ${isAudioEnabled
-                      ? "bg-gray-700 hover:bg-gray-600 text-white"
-                      : "bg-red-500 hover:bg-red-400 text-white"
-                      }`}
-                    title={isAudioEnabled ? "Mute" : "Unmute"}
-                  >
-                    {isAudioEnabled ? (
-                      <Mic className="w-6 h-6" />
-                    ) : (
-                      <MicOff className="w-6 h-6" />
-                    )}
-                  </motion.button>
-
-                  {/* Toggle Video Button */}
-                  <motion.button
-                    onClick={toggleVideo}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className={`p-4 rounded-full transition-all ${isVideoEnabled
-                      ? "bg-gray-700 hover:bg-gray-600 text-white"
-                      : "bg-red-500 hover:bg-red-400 text-white"
-                      }`}
-                    title={isVideoEnabled ? "Turn Off Camera" : "Turn On Camera"}
-                  >
-                    {isVideoEnabled ? (
-                      <Video className="w-6 h-6" />
-                    ) : (
-                      <X className="w-6 h-6" />
-                    )}
-                  </motion.button>
-
-                  {/* End Call Button */}
-                  <motion.button
-                    onClick={endVideoCall}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-5 rounded-full bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/50"
-                    title="End Call"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
-                      <line x1="23" y1="1" x2="1" y2="23" />
-                    </svg>
-                  </motion.button>
-                </div>
-
-                {/* Call Info */}
-                <div className="mt-4 text-center">
-                  <p className="text-white font-medium">{selectedConversation?.freelancerName}</p>
-                  <p className="text-gray-400 text-sm">
-                    {callStatus === 'calling' ? 'Ringing...' :
-                      callStatus === 'connected' ? 'Connected' :
-                        callStatus === 'ended' ? 'Call Ended' : ''}
-                  </p>
-                </div>
-              </motion.div>
+                <Phone className="w-5 h-5 rotate-[135deg]" />
+              </motion.button>
             </div>
+
+            {/* Remote Video (full screen) */}
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+
+            {/* Local Video (picture-in-picture) */}
+            <div className="absolute bottom-6 right-6 w-40 h-56 md:w-48 md:h-64 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20">
+              <video
+                ref={localVideoCallRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Connecting overlay */}
+            {isCallConnecting && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                <div className="text-center">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="w-16 h-16 rounded-full bg-purple-500/30 flex items-center justify-center mx-auto mb-4"
+                  >
+                    <Video className="w-8 h-8 text-purple-400" />
+                  </motion.div>
+                  <p className="text-white text-lg font-medium">Calling {callTargetName}...</p>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Incoming Call Dialog ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {incomingCall && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              className={`rounded-3xl p-8 w-full max-w-sm mx-4 text-center shadow-2xl ${darkMode ? "bg-gray-800 border border-gray-700" : "bg-white"}`}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+                className="w-20 h-20 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4"
+              >
+                <Video className="w-10 h-10 text-purple-500" />
+              </motion.div>
+
+              <h3 className={`text-xl font-bold mb-1 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                Incoming Video Call
+              </h3>
+              <p className={`text-sm mb-6 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                from <span className="font-semibold">{incomingCall.callerInfo.name}</span>
+              </p>
+
+              <div className="flex gap-4 justify-center">
+                {/* Decline */}
+                <motion.button
+                  onClick={declineIncomingCall}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-medium"
+                >
+                  <Phone className="w-6 h-6 rotate-[135deg]" />
+                  <span className="text-xs">Decline</span>
+                </motion.button>
+
+                {/* Accept */}
+                <motion.button
+                  onClick={acceptIncomingCall}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-medium"
+                >
+                  <Video className="w-6 h-6" />
+                  <span className="text-xs">Accept</span>
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Call Confirmation Dialog (Phone) */}
+      <AnimatePresence>
+        {callDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setCallDialog(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e: any) => e.stopPropagation()}
+              className={`rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl ${darkMode ? "bg-gray-800 border border-gray-700" : "bg-white"}`}
+            >
+              <div className="text-center mb-6">
+                <div className={`w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center ${darkMode ? "bg-green-500/20" : "bg-green-50"}`}>
+                  <Phone className="w-8 h-8 text-green-500" />
+                </div>
+                <h3 className={`text-lg font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  Call {callDialog.name}
+                </h3>
+                <p className={`text-sm mt-1 font-mono ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  {callDialog.phone}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Phone Call */}
+                <a
+                  href={`tel:${callDialog.phone}`}
+                  className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold transition-colors"
+                >
+                  <Phone className="w-5 h-5" />
+                  Call Phone
+                </a>
+
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/${callDialog.phone.replace(/\+/, "")}?text=${encodeURIComponent("Hi, this is a message from HustleX!")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3 w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  WhatsApp
+                </a>
+
+                {/* Cancel */}
+                <button
+                  onClick={() => setCallDialog(null)}
+                  className={`w-full py-2.5 px-4 rounded-xl font-medium transition-colors ${darkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                    }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Profile Modal */}
       {showProfileModal && profileFreelancer && (
         <FreelancerProfileModal

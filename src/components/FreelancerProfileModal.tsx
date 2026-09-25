@@ -66,26 +66,20 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
       <style>{`
         .font-display { font-family: 'Space Grotesk', sans-serif; }
         .font-body { font-family: 'Inter', sans-serif; }
-        .glass-card {
-          background: rgba(255,255,255,0.03);
+        /* Scoped to this modal so we don't override Tailwind's bg-* classes globally */
+        .profile-modal .glass-card {
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           border: 1px solid rgba(6,242,242,0.15);
         }
-        .dark .glass-card { background: rgba(0,0,0,0.4); }
-        .cyan-gradient-text {
-          background: linear-gradient(135deg, #06f2f2 0%, #0af 50%, #06f2f2 100%);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.3); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 242, 242, 0.5); }
+        .profile-modal.mode-dark .glass-card { background: rgba(0,0,0,0.4); }
+        .profile-modal.mode-light .glass-card { background: rgba(255,255,255,0.85); }
+        .profile-modal .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .profile-modal .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .profile-modal .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 242, 242, 0.3); border-radius: 3px; }
+        .profile-modal .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 242, 242, 0.5); }
       `}</style>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+      <div className={`profile-modal fixed inset-0 bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-4 ${darkMode ? 'mode-dark' : 'mode-light'}`}>
         <motion.div
           className={`w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl glass-card shadow-[0_0_60px_rgba(6,242,242,0.12)] ${
             darkMode ? "bg-black/70 border-cyan-500/20 text-white" : "bg-white/80 border-cyan-400/20 text-gray-900"
@@ -121,13 +115,13 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     )}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold font-display cyan-gradient-text flex items-center gap-2">
+                    <h1 className={`text-2xl font-bold font-display flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
                       {fullName}
                       {isProfileComplete && (
                         <CheckCircle className="w-5 h-5 text-emerald-500" />
                       )}
                     </h1>
-                    <p className="text-sm font-body text-cyan-400">{primarySkill || "Freelancer"}</p>
+                    <p className={`text-sm font-body ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>{primarySkill || "Freelancer"}</p>
                     {freelancer.status && (
                       <div className="mt-1">
                         <StatusIndicator
@@ -135,7 +129,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                           size="sm"
                           showLabel={true}
                           lastActive={freelancer.lastActive}
-                          labelClassName="text-cyan-300"
+                          labelClassName={darkMode ? "text-cyan-300" : "text-cyan-700"}
                           lastActiveClassName="text-gray-400"
                         />
                       </div>
@@ -173,8 +167,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                 <div className={`rounded-2xl p-6 glass-card ${
                   darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                 }`}>
-                  <h3 className="text-xl font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                    <Briefcase className="w-5 h-5 text-cyan-400" />
+                  <h3 className={`text-xl font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                    <Briefcase className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                     About
                   </h3>
                   <p className={`leading-relaxed font-body ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{bio}</p>
@@ -185,8 +179,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   <div className={`rounded-2xl p-6 glass-card ${
                     darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                   }`}>
-                    <h3 className="text-xl font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                      <Globe className="w-5 h-5 text-cyan-400" />
+                    <h3 className={`text-xl font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                      <Globe className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       Portfolio
                     </h3>
                     <a
@@ -206,15 +200,15 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   <div className={`rounded-2xl p-6 glass-card ${
                     darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                   }`}>
-                    <h3 className="text-xl font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                      <Award className="w-5 h-5 text-cyan-400" />
+                    <h3 className={`text-xl font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                      <Award className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       Skills & Expertise
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {skills.map((skill, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 rounded-full text-sm font-body glass-card border border-cyan-500/30 text-cyan-400"
+                          className={`px-3 py-1 rounded-full text-sm font-body glass-card border border-cyan-500/30 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}
                         >
                           {skill}
                         </span>
@@ -229,8 +223,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     <div className={`rounded-2xl p-6 glass-card ${
                       darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                     }`}>
-                      <h3 className="text-lg font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                        <Clock className="w-5 h-5 text-cyan-400" />
+                      <h3 className={`text-lg font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                        <Clock className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                         Experience
                       </h3>
                       {yearsOfExperience && (
@@ -250,8 +244,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                     <div className={`rounded-2xl p-6 glass-card ${
                       darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                     }`}>
-                      <h3 className="text-lg font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                        <Award className="w-5 h-5 text-cyan-400" />
+                      <h3 className={`text-lg font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                        <Award className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                         Education
                       </h3>
                       <p className={`font-body ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
@@ -266,8 +260,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   <div className={`rounded-2xl p-6 glass-card ${
                     darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                   }`}>
-                    <h3 className="text-xl font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                      <Star className="w-5 h-5 text-cyan-400" />
+                    <h3 className={`text-xl font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                      <Star className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       Certifications
                     </h3>
                     <ul className="space-y-2">
@@ -286,8 +280,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   <div className={`rounded-2xl p-6 glass-card ${
                     darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                   }`}>
-                    <h3 className="text-lg font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                      <Calendar className="w-5 h-5 text-cyan-400" />
+                    <h3 className={`text-lg font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                      <Calendar className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       Availability
                     </h3>
                     <p className={`font-body ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
@@ -298,8 +292,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   <div className={`rounded-2xl p-6 glass-card ${
                     darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                   }`}>
-                    <h3 className="text-lg font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                      <MapPin className="w-5 h-5 text-cyan-400" />
+                    <h3 className={`text-lg font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                      <MapPin className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       Location
                     </h3>
                     <p className={`font-body ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{location}</p>
@@ -310,17 +304,17 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                 <div className={`rounded-2xl p-6 glass-card ${
                   darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                 }`}>
-                  <h3 className="text-xl font-bold font-display mb-3 cyan-gradient-text">Contact & Links</h3>
+                  <h3 className={`text-xl font-bold font-display mb-3 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>Contact & Links</h3>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-cyan-400" />
+                      <Mail className={`w-4 h-4 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       <span className={`font-body ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                         {freelancer.email}
                       </span>
                     </div>
                     {profile.phone && (
                       <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-cyan-400" />
+                        <Phone className={`w-4 h-4 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                         <span className={`font-body ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                           {profile.phone}
                         </span>
@@ -331,7 +325,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                         href={profile.linkedinUrl || profile.linkedin}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-body transition-colors"
+                        className={`flex items-center gap-2 font-body transition-colors ${darkMode ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-700 hover:text-cyan-800"}`}
                       >
                         <Linkedin className="w-4 h-4" />
                         LinkedIn Profile
@@ -342,7 +336,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                         href={profile.githubUrl || profile.github}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-body transition-colors"
+                        className={`flex items-center gap-2 font-body transition-colors ${darkMode ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-700 hover:text-cyan-800"}`}
                       >
                         <Github className="w-4 h-4" />
                         GitHub Profile
@@ -353,7 +347,7 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                         href={profile.websiteUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-body transition-colors"
+                        className={`flex items-center gap-2 font-body transition-colors ${darkMode ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-700 hover:text-cyan-800"}`}
                       >
                         <Globe className="w-4 h-4" />
                         Website
@@ -367,8 +361,8 @@ const FreelancerProfileModal: React.FC<FreelancerProfileModalProps> = ({
                   <div className={`rounded-2xl p-6 glass-card ${
                     darkMode ? "bg-black/40 border-cyan-500/20" : "bg-white/70 border-cyan-400/20"
                   }`}>
-                    <h3 className="text-lg font-bold font-display mb-3 flex items-center gap-2 cyan-gradient-text">
-                      <FileText className="w-5 h-5 text-cyan-400" />
+                    <h3 className={`text-lg font-bold font-display mb-3 flex items-center gap-2 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`}>
+                      <FileText className={`w-5 h-5 ${darkMode ? "text-cyan-400" : "text-cyan-700"}`} />
                       Resume/CV
                     </h3>
                     <a

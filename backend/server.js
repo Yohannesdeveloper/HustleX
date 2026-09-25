@@ -472,6 +472,30 @@ async function removeUserPresence(userId) {
   }
 }
 
+/**
+ * Broadcast a user's online/offline transition to everyone watching them.
+ * Watchers join the `watch:{userId}` room via the `watchPresence` socket event.
+ * When offline, we include the persisted lastSeen timestamp for "last seen X" UI.
+ */
+async function broadcastPresence(userId, online) {
+  if (!userId) return;
+  let lastSeen = null;
+  if (!online) {
+    try {
+      const User = require("./models/User");
+      const u = await User.findById(userId).select("lastSeen").lean();
+      lastSeen = u?.lastSeen || null;
+    } catch (err) {
+      console.error("broadcastPresence lastSeen lookup error:", err.message);
+    }
+  }
+  io.to(`watch:${userId}`).emit("presence:update", {
+    userId: String(userId),
+    online,
+    lastSeen,
+  });
+}
+
 // Expose helpers to routes that need to emit to specific users
 app.set('getUserSocketId', getUserSocketId);
 
@@ -493,9 +517,118 @@ io.on("connection", (socket) => {
       setUserPresence(userId, socket.id);
       // Join a named room so any pod can emit to this user via io.to(userId)
       socket.join(`user:${userId}`);
+
+      // Refresh the presence TTL periodically so long-lived sockets don't expire
+      if (socket.presenceTimer) clearInterval(socket.presenceTimer);
+      socket.presenceTimer = setInterval(
+        () => setUserPresence(userId, socket.id),
+        60000
+      );
+
+      // Tell everyone watching this user that they just came online
+      broadcastPresence(userId, true);
       console.log(`User ${userId} joined with socket ${socket.id}`);
     }
   });
+
+  // A client wants live presence for a specific user (e.g. open chat partner)
+  socket.on("watchPresence", async (targetUserId) => {
+    if (!targetUserId) return;
+    socket.join(`watch:${targetUserId}`);
+    // Reply immediately with the current state so the UI is correct on open
+    const sid = await getUserSocketId(targetUserId);
+    let lastSeen = null;
+    if (!sid) {
+      try {
+        const User = require("./models/User");
+        const u = await User.findById(targetUserId).select("lastSeen").lean();
+        lastSeen = u?.lastSeen || null;
+      } catch (err) {
+        console.error("watchPresence lastSeen lookup error:", err.message);
+      }
+    }
+    socket.emit("presence:update", {
+      userId: String(targetUserId),
+      online: !!sid,
+      lastSeen,
+    });
+  });
+
+  socket.on("unwatchPresence", (targetUserId) => {
+    if (targetUserId) socket.leave(`watch:${targetUserId}`);
+  });
+
+  // ─── WebRTC Video Call Signaling ────────────────────────────────────────
+
+  // Caller initiates a call
+  socket.on("callUser", (data) => {
+    const { targetUserId, callerInfo } = data;
+    if (!targetUserId) return;
+    io.to(`user:${targetUserId}`).emit("incomingCall", {
+      callerId: socket.userId || data.from,
+      callerInfo, // { name, avatar }
+      isVideo: data.isVideo !== false,
+    });
+  });
+
+  // Callee accepts
+  socket.on("acceptCall", (data) => {
+    const { fromUserId } = data;
+    if (!fromUserId) return;
+    io.to(`user:${fromUserId}`).emit("callAccepted", {
+      acceptedBy: socket.userId || data.userId,
+    });
+  });
+
+  // Calee declines
+  socket.on("declineCall", (data) => {
+    const { fromUserId } = data;
+    if (!fromUserId) return;
+    io.to(`user:${fromUserId}`).emit("callDeclined", {
+      declinedBy: socket.userId,
+    });
+  });
+
+  // WebRTC offer SDP (caller → callee)
+  socket.on("webrtcOffer", (data) => {
+    const { targetUserId, sdp } = data;
+    if (!targetUserId) return;
+    io.to(`user:${targetUserId}`).emit("webrtcOffer", {
+      sdp,
+      from: socket.userId || data.from,
+    });
+  });
+
+  // WebRTC answer SDP (callee → caller)
+  socket.on("webrtcAnswer", (data) => {
+    const { targetUserId, sdp } = data;
+    if (!targetUserId) return;
+    io.to(`user:${targetUserId}`).emit("webrtcAnswer", {
+      sdp,
+      from: socket.userId || data.from,
+    });
+  });
+
+  // ICE candidate relay
+  socket.on("webrtcIce", (data) => {
+    const { targetUserId, candidate } = data;
+    if (!targetUserId) return;
+    io.to(`user:${targetUserId}`).emit("webrtcIce", {
+      candidate,
+      from: socket.userId || data.from,
+    });
+  });
+
+  // Either side ends the call
+  socket.on("endCall", (data) => {
+    const { targetUserId } = data;
+    if (!targetUserId) return;
+    io.to(`user:${targetUserId}`).emit("callEnded", {
+      endedBy: socket.userId || data.from,
+    });
+  });
+
+  // ─── End WebRTC Signaling ────────────────────────────────────────────────
 
   // Handle sending messages — async queue (scale) or inline persist
   socket.on("sendMessage", async (data) => {
@@ -642,6 +775,22 @@ io.on("connection", (socket) => {
     if (socket.userId) {
       connectedUsers.delete(socket.userId);
       await removeUserPresence(socket.userId);
+      if (socket.presenceTimer) {
+        clearInterval(socket.presenceTimer);
+        socket.presenceTimer = null;
+      }
+
+      // Only mark offline / persist lastSeen if this was their last active socket
+      const stillOnline = await getUserSocketId(socket.userId);
+      if (!stillOnline) {
+        try {
+          const User = require("./models/User");
+          await User.findByIdAndUpdate(socket.userId, { lastSeen: new Date() });
+        } catch (err) {
+          console.error("lastSeen update failed:", err.message);
+        }
+        broadcastPresence(socket.userId, false);
+      }
       console.log(`User ${socket.userId} disconnected`);
     }
   });

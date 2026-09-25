@@ -189,5 +189,85 @@ router.put("/:messageId", auth, async (req, res) => {
   }
 });
 
+// Delete a single message (only participants can delete)
+router.delete("/:messageId", auth, async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user._id || req.user.id;
+
+    const msg = await Message.findById(messageId);
+    if (!msg) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    const isParticipant =
+      msg.senderId.toString() === userId.toString() ||
+      msg.receiverId.toString() === userId.toString();
+    if (!isParticipant) {
+      return res.status(403).json({ message: "Unauthorized to delete this message" });
+    }
+
+    await msg.deleteOne();
+
+    const io = req.app.get("io");
+    if (io) {
+      const payload = {
+        messageId,
+        conversationId: msg.conversationId,
+        deletedBy: userId.toString(),
+      };
+      io.to(`user:${msg.senderId.toString()}`).emit("messageDeleted", payload);
+      io.to(`user:${msg.receiverId.toString()}`).emit("messageDeleted", payload);
+    }
+
+    res.json({ message: "Message deleted", messageId });
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    res.status(500).json({ message: "Error deleting message" });
+  }
+});
+
+// Clear an entire conversation
+router.delete("/conversation/:conversationId/all", auth, async (req, res) => {
+  try {
+    let { conversationId } = req.params;
+    const userId = req.user._id || req.user.id;
+
+    if (conversationId.includes("/")) {
+      const [userId1, userId2] = conversationId.split("/");
+      conversationId = [userId1, userId2].sort().join("_");
+    }
+
+    const sample = await Message.findOne({ conversationId }).lean();
+    if (!sample) {
+      return res.json({ message: "Conversation already empty", deletedCount: 0 });
+    }
+    const isParticipant =
+      sample.senderId.toString() === userId.toString() ||
+      sample.receiverId.toString() === userId.toString();
+    if (!isParticipant) {
+      return res.status(403).json({ message: "Unauthorized to clear this conversation" });
+    }
+
+    const result = await Message.deleteMany({ conversationId });
+
+    const io = req.app.get("io");
+    if (io) {
+      const payload = { conversationId, clearedBy: userId.toString() };
+      io.to(`user:${sample.senderId.toString()}`).emit("conversationCleared", payload);
+      io.to(`user:${sample.receiverId.toString()}`).emit("conversationCleared", payload);
+    }
+
+    res.json({
+      message: "Conversation cleared",
+      deletedCount: result.deletedCount || 0,
+    });
+  } catch (error) {
+    console.error("Error clearing conversation:", error);
+    res.status(500).json({ message: "Error clearing conversation" });
+  }
+});
+
 router.setConnectedUsers = setConnectedUsers;
 module.exports = router;
+
