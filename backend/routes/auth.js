@@ -1555,7 +1555,7 @@ router.post("/telegram-webhook", async (req, res) => {
     // /start command
     if (text.startsWith("/start")) {
       const welcomeText = [
-        `🌐 https://hustlexet.vercel.app/`,
+        `🌐 https://www.hustlexet.com/`,
         ``,
         `Hello <b>${firstName}</b>! 👋`,
         ``,
