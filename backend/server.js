@@ -829,94 +829,36 @@ app.get("/api/port", (req, res) => {
       }
       console.log(`========================================\n`);
 
-      // ── Telegram webhook registration ────────────────────────────────
-      // The Node.js backend is the SOLE owner of the HustleXet Telegram bot.
-      // It serves the "Welcome to the Arena, Champion!" copy plus all menu
-      // flows and login confirmations via POST /api/auth/telegram/webhook
-      // (see backend/routes/auth.js).
-      //
-      // Do NOT run any other process (telegram_profile_bot.legacy.py, botfather
-      // desktop clients, python-telegram-bot polling, aiogram polling, etc.)
-      // with the same bot token. Long-polling silently disconnects the webhook
-      // and users see a dead bot. The verify step below catches that case.
-      const tgBotToken =
-        process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-      const tgWebhookUrl =
-        process.env.TELEGRAM_LOGIN_WEBHOOK_URL || process.env.TELEGRAM_WEBHOOK_URL;
-
+      // Register Telegram webhook for login confirmation callbacks
+      const tgBotToken = process.env.TELEGRAM_LOGIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      const tgWebhookUrl = process.env.TELEGRAM_LOGIN_WEBHOOK_URL || process.env.TELEGRAM_WEBHOOK_URL;
       if (tgBotToken && tgWebhookUrl) {
-        const tgApi = (path, opts = {}) =>
-          fetch(`https://api.telegram.org/bot${tgBotToken}/${path}`, opts);
+        // First, delete the existing webhook to clear any old configuration
+        fetch(`https://api.telegram.org/bot${tgBotToken}/deleteWebhook`)
+          .then(() => console.log("🤖 Old webhook deleted"))
+          .catch((err) => console.log("No existing webhook to delete:", err.message));
 
-        // Detect accidental duplicate-bot config: an old Python profile bot
-        // using TELEGRAM_PROFILE_BOT_TOKEN set to the SAME token as this one
-        // would collide. Warn loudly instead of silently fighting for updates.
-        const profileToken = process.env.TELEGRAM_PROFILE_BOT_TOKEN;
-        if (profileToken && profileToken === tgBotToken) {
-          console.warn(
-            "\n⚠️  TELEGRAM_PROFILE_BOT_TOKEN equals the login/arena bot token.\n" +
-            "   If the retired telegram_profile_bot.legacy.py is ever started\n" +
-            "   with this token, it will steal updates from the Node webhook.\n" +
-            "   Fix: unset TELEGRAM_PROFILE_BOT_TOKEN or use a different bot.\n"
-          );
-        }
 
-        (async () => {
-          try {
-            // 1. Wipe any previous webhook so setWebhook replaces cleanly.
-            await tgApi("deleteWebhook").catch(() => {});
-
-            // 2. Register our endpoint. Omit allowed_updates to receive every
-            //    update type (messages, callbacks, commands, edits, etc.).
-            const setRes = await tgApi("setWebhook", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: tgWebhookUrl }),
-            });
-            const setResult = await setRes.json();
+        // Then register the new webhook with all updates allowed
+        const webhookEndpoint = `${tgWebhookUrl}`;
+        fetch(`https://api.telegram.org/bot${tgBotToken}/setWebhook`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: webhookEndpoint,
+            // Remove allowed_updates to receive all update types (messages, commands, callbacks, etc.)
+          }),
+        })
+          .then((r) => r.json())
+          .then((result) => {
             console.log(
-              `🤖 Telegram webhook set: ${setResult.ok ? "✅" : "❌"}`,
-              setResult.description || ""
+              `🤖 Telegram webhook registered: ${result.ok ? "✅" : "❌"}`,
+              result.description || ""
             );
-
-            // 3. Verify — Telegram sometimes accepts setWebhook then silently
-            //    reverts if another client starts polling with the same token.
-            const infoRes = await tgApi("getWebhookInfo");
-            const info = (await infoRes.json())?.result || {};
-            const actualUrl = (info.url || "").replace(/\/$/, "");
-            const expectedUrl = tgWebhookUrl.replace(/\/$/, "");
-
-            if (!actualUrl) {
-              console.warn(
-                "⚠️  Telegram reports NO webhook configured. A long-polling " +
-                "client (e.g., a stray python-telegram-bot process) is likely " +
-                "holding the bot. Kill it and restart this service."
-              );
-            } else if (actualUrl !== expectedUrl) {
-              console.warn(
-                `⚠️  Telegram webhook points to ${actualUrl}, expected ${expectedUrl}. ` +
-                "Another deployment (or a stale dev box) owns the bot right now."
-              );
-            } else if (info.last_error_message) {
-              console.warn(
-                `⚠️  Telegram webhook registered but last_error="${info.last_error_message}" ` +
-                `(retry after ${info.pending_update_count || 0} pending updates).`
-              );
-            } else {
-              console.log(
-                `✅ Telegram webhook verified: ${actualUrl} ` +
-                `(pending=${info.pending_update_count || 0})`
-              );
-            }
-          } catch (err) {
-            console.error("Failed to register Telegram webhook:", err.message);
-          }
-        })();
-      } else if (tgBotToken && !tgWebhookUrl) {
-        console.warn(
-          "⚠️  Telegram token present but TELEGRAM_WEBHOOK_URL is unset. " +
-          "The bot will not receive any updates."
-        );
+          })
+          .catch((err) =>
+            console.error("Failed to register Telegram webhook:", err.message)
+          );
       }
     });
   } catch (error) {

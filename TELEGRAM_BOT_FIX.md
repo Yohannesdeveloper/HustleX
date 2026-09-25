@@ -1,12 +1,5 @@
 # 🔧 HustleX Telegram Bot - Fix & Setup Guide
 
-> ⚠️ **OUTDATED — DO NOT FOLLOW INSTRUCTION TO RUN `python telegram_profile_bot.py`.**
-> That Python bot has been retired. Telegram is now served exclusively by the
-> Node.js webhook in `backend/routes/auth.js`, which shows the "Welcome to the
-> Arena, Champion!" epic texts and handles all menu / login flows.
-> Running the legacy bot with the same token will silently break the webhook.
-> See `telegram_profile_bot.legacy.py` header for details.
-
 ## 🚨 Issue Summary
 
 Your Telegram bot features are being blocked because:
