@@ -410,7 +410,7 @@ const Home = () => {
                         title: t.howItWorks.steps.step1.title,
                         description: t.howItWorks.steps.step1.desc,
                         icon: "🔍",
-                        color: "from-blue-500 to-cyan-500",
+                        color: "from-cyan-400 to-cyan-600",
                         delay: 0.2
                       },
                       {
@@ -418,7 +418,7 @@ const Home = () => {
                         title: t.howItWorks.steps.step2.title,
                         description: t.howItWorks.steps.step2.desc,
                         icon: "📝",
-                        color: "from-purple-500 to-pink-500",
+                        color: "from-cyan-400 to-cyan-600",
                         delay: 0.4
                       },
                       {
@@ -426,7 +426,7 @@ const Home = () => {
                         title: t.howItWorks.steps.step3.title,
                         description: t.howItWorks.steps.step3.desc,
                         icon: "💬",
-                        color: "from-green-500 to-teal-500",
+                        color: "from-cyan-400 to-cyan-600",
                         delay: 0.6
                       },
                       {
@@ -434,7 +434,7 @@ const Home = () => {
                         title: t.howItWorks.steps.step4.title,
                         description: t.howItWorks.steps.step4.desc,
                         icon: "💰",
-                        color: "from-orange-500 to-red-500",
+                        color: "from-cyan-400 to-cyan-600",
                         delay: 0.8
                       }
                     ].map((item, idx) => (
@@ -616,22 +616,22 @@ const Home = () => {
                       {
                         number: "10K+",
                         label: t.categories.eliteFreelancers,
-                        color: "from-slate-400 to-gray-500",
+                        color: "from-cyan-400 to-cyan-600",
                       },
                       {
                         number: "5K+",
                         label: t.stats.happyClients,
-                        color: "from-red-400 to-red-500",
+                        color: "from-cyan-400 to-cyan-600",
                       },
                       {
                         number: "20M+",
                         label: t.stats.successProjects,
-                        color: "from-gray-400 to-slate-500",
+                        color: "from-cyan-400 to-cyan-600",
                       },
                       {
                         number: "98%",
                         label: t.stats.successRate,
-                        color: "from-yellow-400 to-yellow-500",
+                        color: "from-cyan-400 to-cyan-600",
                       },
                     ].map((stat, i) => (
                       <motion.div
@@ -1217,35 +1217,15 @@ const Home = () => {
                   </motion.h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {[
-                      {
-                        quote:
-                          "HustleX transformed our hiring process. We found the perfect developer in just 3 days!",
-                        name: "Messay A.",
-                        role: "CEO, Tonetor",
-                        image:
-                          avatar5,
-                        gradient: "from-slate-500 to-gray-600",
-                      },
-                      {
-                        quote:
-                          "As a freelancer, I've been able to triple my income while working on projects I'm passionate about.",
-                        name: "Messie A.",
-                        role: "Web developer",
-                        image:
-                          avatar3,
-                        gradient: "from-gray-500 to-slate-600",
-                      },
-                      {
-                        quote:
-                          "HustleX connects me with exceptional talent that delivers outstanding results every time.",
-                        name: "Sara M.",
-                        role: "Project Manager",
-                        image:
-                          "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400",
-                        gradient: "from-slate-600 to-gray-700",
-                      },
-                    ].map((testimonial, idx) => (
+                    {[t.testimonials.user1, t.testimonials.user2, t.testimonials.user3]
+                      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+                      .map((testimonial, idx) => {
+                        const presentation = [
+                          { image: avatar5, gradient: "from-slate-500 to-gray-600" },
+                          { image: avatar3, gradient: "from-gray-500 to-slate-600" },
+                          { image: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400", gradient: "from-slate-600 to-gray-700" },
+                        ][idx];
+                        return (
                       <motion.div
                         key={idx}
                         className={`p-4 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl cursor-pointer ${darkMode
@@ -1258,7 +1238,7 @@ const Home = () => {
                       >
                         <div className="flex-grow relative z-10">
                           <motion.div
-                            className={`w-10 h-10 sm:w-12 sm:h-12 mb-4 sm:mb-6 bg-gradient-to-r ${testimonial.gradient} rounded-full flex items-center justify-center`}
+                            className={`w-10 h-10 sm:w-12 sm:h-12 mb-4 sm:mb-6 bg-gradient-to-r ${presentation.gradient} rounded-full flex items-center justify-center`}
                             whileHover={{ scale: 1.2 }}
                             transition={{ duration: 0.5 }}
                           >
@@ -1280,7 +1260,7 @@ const Home = () => {
 
                         <div className="flex items-center gap-3 sm:gap-4 relative z-10">
                           <motion.img
-                            src={testimonial.image}
+                            src={presentation.image}
                             alt={`Portrait of ${testimonial.name}`}
                             className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover shadow-lg border-2 border-gray-700/40"
                             whileHover={{ scale: 1.1 }}
@@ -1301,7 +1281,8 @@ const Home = () => {
                           </div>
                         </div>
                       </motion.div>
-                    ))}
+                        );
+                      })}
                   </div>
                 </div>
               </motion.section>

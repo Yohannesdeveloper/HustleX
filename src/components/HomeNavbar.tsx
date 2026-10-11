@@ -32,6 +32,7 @@ const HomeNavbar: React.FC = () => {
   ];
 
   const currentLanguage = languages.find((lang) => lang.code === language) || languages[0];
+  const isOromifa = language === "om";
 
   useEffect(() => {
     setIsLoaded(true);
@@ -80,6 +81,10 @@ const HomeNavbar: React.FC = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 min-h-[52px]">
+            <style>{`
+              .nav-scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+              .nav-scrollbar-hide::-webkit-scrollbar { display: none; }
+            `}</style>
             {/* Logo - Left (never shrinks) */}
             <motion.h1
               className={`flex-shrink-0 text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight cursor-pointer transition duration-300 flex items-center group`}
@@ -114,7 +119,7 @@ const HomeNavbar: React.FC = () => {
             </motion.h1>
 
             {/* Desktop nav - in flow, scrollable at zoom to prevent overlap */}
-            <nav className="hidden lg:flex flex-1 min-w-0 justify-center items-center gap-1 lg:gap-2 overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }}>
+            <nav className="hidden lg:flex flex-1 min-w-0 justify-center items-center gap-1 lg:gap-2 overflow-x-auto nav-scrollbar-hide py-1">
               <div className="flex items-center gap-1 lg:gap-2 flex-nowrap">
                 {[
                   { to: "/", label: t.nav.home, shortLabel: t.nav.home, icon: null },
@@ -135,12 +140,12 @@ const HomeNavbar: React.FC = () => {
                   >
                     <Link
                       to={link.to}
-                      className={`flex items-center gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-1 rounded-full transition-all duration-300 whitespace-nowrap text-[10px] lg:text-xs ${darkMode
+                      className={`flex items-center gap-0.5 lg:gap-1 ${isOromifa ? "px-1 lg:px-1.5" : "px-1.5 lg:px-2"} py-1 rounded-full transition-all duration-300 whitespace-nowrap ${isOromifa ? "text-[8px] lg:text-[10px]" : "text-[10px] lg:text-xs"} ${darkMode
                         ? "text-white hover:bg-white/10"
                         : "text-black hover:bg-black/5"
                         }`}
                     >
-                      {link.icon && <span className="w-2.5 h-2.5 flex-shrink-0">{link.icon}</span>}
+                      {link.icon && <span className={`${isOromifa ? "w-2 h-2" : "w-2.5 h-2.5"} flex-shrink-0`}>{link.icon}</span>}
                       <span className="hidden lg:inline">{link.label}</span>
                       <span className="lg:hidden">{link.shortLabel || link.label}</span>
                     </Link>
@@ -150,7 +155,7 @@ const HomeNavbar: React.FC = () => {
             </nav>
 
             {/* Tablet nav - in flow */}
-            <nav className="hidden md:flex lg:hidden flex-1 min-w-0 justify-center items-center gap-1.5 flex-nowrap overflow-x-auto py-1" style={{ scrollbarWidth: 'thin' }}>
+            <nav className="hidden md:flex lg:hidden flex-1 min-w-0 justify-center items-center gap-1.5 flex-nowrap overflow-x-auto nav-scrollbar-hide py-1">
               {[
                 { to: "/", label: t.nav.home },
                 { to: "/job-listings", label: t.nav.exploreJobs, icon: <FaSearch /> },
@@ -165,12 +170,12 @@ const HomeNavbar: React.FC = () => {
                 >
                   <Link
                     to={link.to}
-                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all duration-300 whitespace-nowrap text-[10px] ${darkMode
+                    className={`flex items-center gap-1 ${isOromifa ? "px-1" : "px-1.5"} py-0.5 rounded-full transition-all duration-300 whitespace-nowrap ${isOromifa ? "text-[8px]" : "text-[10px]"} ${darkMode
                       ? "text-white hover:bg-white/10"
                       : "text-black hover:bg-black/5"
                       }`}
                   >
-                    {link.icon && <span className="w-2.5 h-2.5">{link.icon}</span>}
+                    {link.icon && <span className={`${isOromifa ? "w-2 h-2" : "w-2.5 h-2.5"}`}>{link.icon}</span>}
                     {link.label}
                   </Link>
                 </motion.div>

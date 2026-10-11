@@ -541,10 +541,10 @@ const FreelancingDashboard: React.FC = () => {
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5 mb-8">
               {[
-                { label: "Applications", value: analyticsData.totalApplications, icon: Users, color: "from-cyan-500 to-blue-600", glow: "rgba(6,242,242,0.3)" },
-                { label: "Jobs Available", value: analyticsData.totalJobs, icon: Briefcase, color: "from-emerald-500 to-teal-700", glow: "rgba(52,211,153,0.3)" },
-                { label: "Jobs Won", value: analyticsData.hiredCount, icon: CheckCircle, color: "from-violet-500 to-purple-600", glow: "rgba(139,92,246,0.3)" },
-                { label: "Rating", value: analyticsData.averageRating, icon: Star, color: "from-amber-400 to-orange-500", glow: "rgba(251,191,36,0.3)" },
+                { label: "Applications", value: analyticsData.totalApplications, icon: Users, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)" },
+                { label: "Jobs Available", value: analyticsData.totalJobs, icon: Briefcase, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)" },
+                { label: "Jobs Won", value: analyticsData.hiredCount, icon: CheckCircle, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)" },
+                { label: "Rating", value: analyticsData.averageRating, icon: Star, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)" },
                 { label: "Availability", value: profile?.availability || 'Not Set', icon: User, color: profile?.availability === 'Available' ? "from-green-400 to-emerald-600" : profile?.availability === 'Busy' ? "from-yellow-500 to-orange-600" : "from-gray-400 to-gray-600", glow: "rgba(74,222,128,0.3)" },
               ].map((card, i) => (
                 <motion.div
@@ -694,10 +694,10 @@ const FreelancingDashboard: React.FC = () => {
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: "Profile Views", value: analyticsData.profileViews, icon: Eye, color: "from-cyan-500 to-blue-600" },
-                  { label: "Completed", value: analyticsData.completedProjects, icon: CheckCircle, color: "from-emerald-500 to-teal-700" },
-                  { label: "Success Rate", value: `${analyticsData.successRate}%`, icon: TrendingUp, color: "from-violet-500 to-purple-600" },
-                  { label: "Earnings", value: `$${(analyticsData.earnings / 1000).toFixed(1)}k`, icon: Award, color: "from-amber-400 to-orange-500" },
+                  { label: "Profile Views", value: analyticsData.profileViews, icon: Eye, color: "from-cyan-400 to-cyan-600" },
+                  { label: "Completed", value: analyticsData.completedProjects, icon: CheckCircle, color: "from-cyan-400 to-cyan-600" },
+                  { label: "Success Rate", value: `${analyticsData.successRate}%`, icon: TrendingUp, color: "from-cyan-400 to-cyan-600" },
+                  { label: "Earnings", value: `$${(analyticsData.earnings / 1000).toFixed(1)}k`, icon: Award, color: "from-cyan-400 to-cyan-600" },
                 ].map((perf, i) => (
                   <div key={perf.label} className={`p-4 rounded-xl glass-card ${darkMode ? "" : "bg-white/50"}`}>
                     <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${perf.color} flex items-center justify-center mb-2`}>

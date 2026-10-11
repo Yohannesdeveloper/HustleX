@@ -2975,8 +2975,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`p-2 rounded-lg transition-all glass-card ${darkMode
-                      ? "bg-gradient-to-r from-purple-500/20 to-indigo-500/20 hover:from-purple-500/30 hover:to-indigo-500/30 text-purple-400 border border-purple-500/30"
-                      : "bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-600 border border-purple-200"
+                      ? "bg-gradient-to-r from-cyan-500/20 to-teal-500/20 hover:from-cyan-500/30 hover:to-teal-500/30 text-cyan-400 border border-cyan-500/30"
+                      : "bg-gradient-to-r from-cyan-50 to-teal-50 hover:from-cyan-100 hover:to-teal-100 text-cyan-600 border border-cyan-200"
                       }`}
                     title="Video Call"
                   >
@@ -2988,8 +2988,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
                     whileHover={{ scale: 1.05, rotate: -3 }}
                     whileTap={{ scale: 0.95 }}
                     className={`p-2 rounded-lg transition-all glass-card ${darkMode
-                      ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/30 hover:to-emerald-500/30 text-green-400 border border-green-500/30"
-                      : "bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-600 border border-green-200"
+                      ? "bg-gradient-to-r from-cyan-500/20 to-teal-500/20 hover:from-cyan-500/30 hover:to-teal-500/30 text-cyan-400 border border-cyan-500/30"
+                      : "bg-gradient-to-r from-cyan-50 to-teal-50 hover:from-cyan-100 hover:to-teal-100 text-cyan-600 border border-cyan-200"
                       }`}
                     title="Phone Call"
                   >
@@ -4009,9 +4009,9 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
               <motion.div
                 animate={{ scale: [1, 1.15, 1] }}
                 transition={{ duration: 1.2, repeat: Infinity }}
-                className="w-20 h-20 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4"
+                className="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto mb-4"
               >
-                <Video className="w-10 h-10 text-purple-500" />
+                <Video className="w-10 h-10 text-cyan-500" />
               </motion.div>
 
               <h3 className={`text-xl font-bold mb-1 ${darkMode ? "text-white" : "text-gray-900"}`}>

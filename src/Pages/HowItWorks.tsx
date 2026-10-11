@@ -37,7 +37,8 @@ const HowItWorks: React.FC = () => {
   const testimonials = [
     t.testimonials.user1,
     t.testimonials.user2,
-  ];
+    t.testimonials.user3,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   const faqs = [
     {
@@ -162,7 +163,7 @@ const HowItWorks: React.FC = () => {
               } font-bold rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-400/40 hover:scale-105 flex items-center gap-2`}
           >
             <Briefcase className="w-5 h-5" />
-            Find Jobs
+            {t.howItWorks.findJobs}
           </Link>
           <button
             onClick={() => {
@@ -176,7 +177,7 @@ const HowItWorks: React.FC = () => {
               } font-bold rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-400/40 hover:scale-105 flex items-center gap-2`}
           >
             <Users className="w-5 h-5" />
-            Post a Job
+            {t.howItWorks.postAJob}
           </button>
         </div>
 
@@ -188,7 +189,7 @@ const HowItWorks: React.FC = () => {
           >
             {t.testimonials.title}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {testimonials.map((testimonial, idx) => (
               <div
                 key={idx}

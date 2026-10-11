@@ -720,12 +720,12 @@ const HiringDashboard: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-8">
                   {[
-                    { label: "Applications", value: analyticsData.totalApplications, icon: Users, color: "from-cyan-500 to-blue-600", glow: "rgba(6,242,242,0.3)", action: () => setActiveTab("applications") },
-                    { label: "Active Jobs", value: analyticsData.totalJobs, icon: Briefcase, color: "from-cyan-500 to-blue-600", glow: "rgba(6,242,242,0.3)", action: () => setActiveTab("jobs") },
-                    { label: "Hired", value: analyticsData.hiredCount, icon: CheckCircle, color: "from-violet-500 to-purple-600", glow: "rgba(139,92,246,0.3)", action: () => setActiveTab("applications") },
-                    { label: "Success Rate", value: `${analyticsData.successRate}%`, icon: TrendingUp, color: "from-green-400 to-emerald-600", glow: "rgba(74,222,128,0.3)", action: undefined },
-                    { label: "Avg Days to Hire", value: analyticsData.avgDaysToHire, icon: Calendar, color: "from-amber-400 to-orange-500", glow: "rgba(251,191,36,0.3)", action: undefined },
-                    { label: "Response Time", value: `${analyticsData.responseTime}h`, icon: Clock, color: "from-blue-400 to-indigo-600", glow: "rgba(96,165,250,0.3)", action: undefined },
+                    { label: "Applications", value: analyticsData.totalApplications, icon: Users, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)", action: () => setActiveTab("applications") },
+                    { label: "Active Jobs", value: analyticsData.totalJobs, icon: Briefcase, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)", action: () => setActiveTab("jobs") },
+                    { label: "Hired", value: analyticsData.hiredCount, icon: CheckCircle, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)", action: () => setActiveTab("applications") },
+                    { label: "Success Rate", value: `${analyticsData.successRate}%`, icon: TrendingUp, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)", action: undefined },
+                    { label: "Avg Days to Hire", value: analyticsData.avgDaysToHire, icon: Calendar, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)", action: undefined },
+                    { label: "Response Time", value: `${analyticsData.responseTime}h`, icon: Clock, color: "from-cyan-400 to-cyan-600", glow: "rgba(34,211,238,0.3)", action: undefined },
                   ].map((card, i) => (
                     <motion.div
                       key={card.label}
@@ -848,8 +848,8 @@ const HiringDashboard: React.FC = () => {
                     </h3>
                     <div className="space-y-3">
                       {[
-                        { icon: Users, label: "View Applications", desc: "Review pending applications", action: () => setActiveTab("applications"), color: "from-cyan-500 to-blue-600" },
-                        { icon: Plus, label: "Post New Job", desc: "Create a job posting", action: () => navigate("/post-job"), color: "from-emerald-500 to-teal-700" },
+                        { icon: Users, label: "View Applications", desc: "Review pending applications", action: () => setActiveTab("applications"), color: "from-cyan-400 to-cyan-600" },
+                        { icon: Plus, label: "Post New Job", desc: "Create a job posting", action: () => navigate("/post-job"), color: "from-cyan-400 to-cyan-600" },
                       ].map((item) => (
                         <motion.button
                           key={item.label}

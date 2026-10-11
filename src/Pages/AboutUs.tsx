@@ -40,25 +40,25 @@ const AboutUs: React.FC = () => {
       number: "10K+",
       label: t.aboutUs.activeFreelancers,
       icon: <FaUsers className="text-3xl" />,
-      color: "from-blue-500 to-cyan-600"
+      color: "from-cyan-400 to-cyan-600"
     },
     {
       number: "5K+",
       label: t.stats.happyClients,
       icon: <FaHandshake className="text-3xl" />,
-      color: "from-green-500 to-emerald-600"
+      color: "from-cyan-400 to-cyan-600"
     },
     {
       number: "20M+",
       label: t.stats.successProjects,
       icon: <FaRocket className="text-3xl" />,
-      color: "from-purple-500 to-pink-600"
+      color: "from-cyan-400 to-cyan-600"
     },
     {
       number: "98%",
       label: t.stats.successRate,
       icon: <FaStar className="text-3xl" />,
-      color: "from-yellow-500 to-orange-600"
+      color: "from-cyan-400 to-cyan-600"
     }
   ];
 
@@ -91,19 +91,19 @@ const AboutUs: React.FC = () => {
 
   const team = [
     {
-      name: "Yohannes Fikre",
+      name: t.aboutUs.teamFounderName,
       role: t.aboutUs.founderCEO,
       image: yohannesImg,
       bio: t.aboutUs.visionaryLeaderBio
     },
     {
-      name: "Messeret Ayalew",
+      name: t.aboutUs.teamFrontendName,
       role: t.aboutUs.frontendDeveloper,
       image: messieImg,
       bio: t.aboutUs.frontendDeveloperBio
     },
     {
-      name: "Dagim Debebe",
+      name: t.aboutUs.teamFullstackName,
       role: t.aboutUs.fullstackDeveloper,
       image: DagiImg,
       bio: t.aboutUs.fullstackDeveloperBio
@@ -320,7 +320,7 @@ const AboutUs: React.FC = () => {
                   {/* Values Section */}
                   <section className="mb-20">
                     <h3 className="text-3xl sm:text-4xl font-bold text-center mb-12">
-                      Our Values
+                      {t.aboutUs.ourValues}
                     </h3>
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                       {values.map((value, index) => (
