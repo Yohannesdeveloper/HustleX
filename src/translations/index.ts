@@ -1088,8 +1088,8 @@ const translations: Record<Language, Translations> = {
       signUp: "ተመዝግብ",
     },
     hero: {
-      title: "በብልሃት ስራ",
-      titleHighlight: "በፍጥነት ተግብር",
+      title: "በብልሃት ይሥሩ።",
+      titleHighlight: "ፍጥነትዎን ይጨምሩ።",
       subtitle: "ንግዶችን ከከፍተኛ የኢትዮጵያ ችሎታዎች ጋር ማገናኘት",
       subtitleHighlight: "በ200+ ክህሎቶች ውስጥ።",
       getStarted: "ጀምር",
@@ -1616,8 +1616,8 @@ const translations: Record<Language, Translations> = {
       signUp: "ተመዝግብ",
     },
     hero: {
-      title: "ብጥበብ ስርሑ",
-      titleHighlight: "ብፍጥነት ተግብር",
+      title: "ብብልሓት ስርሑ።",
+      titleHighlight: "ብቕልጣፈ ተዓወቱ።",
       subtitle: "ንንግድታት ምስ ዝለዓለ ኢትዮጵያዊ ክእለት",
       subtitleHighlight: "ኣብ 200+ ክእለትታት ውሽጢ።",
       getStarted: "ጅምር",
@@ -2142,8 +2142,8 @@ const translations: Record<Language, Translations> = {
       signUp: "Galmaa'i",
     },
     hero: {
-      title: "Ogummaan hojjedhaa",
-      titleHighlight: "Saffisaan hojjedhaa",
+      title: "Tooftaan Hojjedhaa.",
+      titleHighlight: "Saffisaan Milkaa'aa.",
       subtitle: "Daldaltoota waliin ogummaa guddaa Itoophiyaa waliin qunnamsiisuu",
       subtitleHighlight: "ogummaa 200+ ol irratti.",
       getStarted: "Eegalee",
