@@ -619,7 +619,26 @@ const JobDetailsMongo: React.FC = () => {
   // TypeScript assertion: job is guaranteed non-null here due to early returns above
   if (!job) return null; // Extra safety check for TypeScript
 
-  const cleanSnippet = job.description.replace(/<[^>]*>/g, "").substring(0, 160);
+  const rawSnippet = (job.description || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  // Thin listings (short descriptions) get an enriched 120–155 char meta description
+  const isThinListing = rawSnippet.length < 300;
+  const cleanSnippet = (() => {
+    if (rawSnippet.length >= 120) return rawSnippet.substring(0, 155);
+    const context = [
+      `${job.company || "A HustleX client"} is hiring on HustleX`,
+      job.budget ? `Budget: ${job.budget}` : "Competitive project budget",
+      job.skills && job.skills.length > 0
+        ? `Key skills: ${job.skills.slice(0, 4).join(", ")}`
+        : null,
+      "Apply in minutes and get paid securely with Ethiopia's #1 freelance marketplace.",
+    ]
+      .filter(Boolean)
+      .join(". ");
+    return `${rawSnippet ? rawSnippet + ". " : ""}${context}`.substring(0, 155);
+  })();
   const canonicalUrl = `https://hustlexet.com/job-details/${job._id}`;
   const jobDate = job.createdAt
     ? typeof job.createdAt === "string"
@@ -1192,6 +1211,126 @@ const JobDetailsMongo: React.FC = () => {
                     {job.description}
                   </p>
                 </div>
+              </motion.div>
+
+              {/* Page-specific info for thin listings — improves content depth */}
+              {isThinListing && (
+                <motion.div
+                  className={`${darkMode
+                    ? "bg-black/40 border-cyan-500/20"
+                    : "bg-white/40 border-cyan-500/10"
+                    } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.15 }}
+                >
+                  <h2
+                    className={`text-2xl font-bold mb-4 flex items-center gap-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                      }`}
+                  >
+                    <UserCheck className="w-6 h-6" />
+                    About this {job.jobType || "freelance"} opportunity
+                  </h2>
+                  <div className={`space-y-4 text-lg leading-relaxed font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                    <p>
+                      The <strong>{job.title}</strong> role was posted by{" "}
+                      {job.company || "a verified client"} on HustleX
+                      {job.category ? <> under the <strong>{job.category}</strong> category</> : null}. It is offered
+                      as a {job.jobType || "contract"} engagement
+                      {job.budget ? <> with a stated budget of <strong>{job.budget}</strong></> : null}
+                      {job.deadline ? <> and applications are open until {formatDate(job.deadline)}</> : null}. Freelancers
+                      worldwide can apply remotely — no relocation required.
+                    </p>
+                    {job.skills && job.skills.length > 0 && (
+                      <p>
+                        Successful applicants typically have hands-on experience with{" "}
+                        {job.skills.join(", ")}. Highlight relevant portfolio projects in your proposal to stand out
+                        with this client.
+                      </p>
+                    )}
+                    <p>
+                      HustleX makes hiring safe and simple: create a free profile, submit your proposal in a few
+                      clicks, communicate directly with the client, and receive secure payments once the work is
+                      approved. New to the platform? Read our step-by-step hiring guide before you apply.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Relevant internal links — helps SEO crawl depth and user navigation */}
+              <motion.div
+                className={`${darkMode
+                  ? "bg-black/40 border-cyan-500/20"
+                  : "bg-white/40 border-cyan-500/10"
+                  } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <h2
+                  className={`text-2xl font-bold mb-4 flex items-center gap-2 font-inter ${darkMode ? "text-cyan-400" : "text-cyan-600"
+                    }`}
+                >
+                  <Layers className="w-6 h-6" />
+                  Explore more on HustleX
+                </h2>
+                <nav className="grid sm:grid-cols-2 gap-3">
+                  <Link
+                    to="/job-listings"
+                    className={`px-4 py-3 rounded-xl font-medium border transition-all duration-300 font-inter hover:scale-[1.02] ${darkMode
+                      ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20"
+                      : "bg-cyan-500/5 text-cyan-600 border-cyan-500/15 hover:bg-cyan-500/10"
+                      }`}
+                  >
+                    Browse all freelance jobs
+                  </Link>
+                  <Link
+                    to="/post-job"
+                    className={`px-4 py-3 rounded-xl font-medium border transition-all duration-300 font-inter hover:scale-[1.02] ${darkMode
+                      ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20"
+                      : "bg-cyan-500/5 text-cyan-600 border-cyan-500/15 hover:bg-cyan-500/10"
+                      }`}
+                  >
+                    Post a job & hire freelancers
+                  </Link>
+                  <Link
+                    to="/how-it-works"
+                    className={`px-4 py-3 rounded-xl font-medium border transition-all duration-300 font-inter hover:scale-[1.02] ${darkMode
+                      ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20"
+                      : "bg-cyan-500/5 text-cyan-600 border-cyan-500/15 hover:bg-cyan-500/10"
+                      }`}
+                  >
+                    How HustleX works
+                  </Link>
+                  <Link
+                    to="/pricing"
+                    className={`px-4 py-3 rounded-xl font-medium border transition-all duration-300 font-inter hover:scale-[1.02] ${darkMode
+                      ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20"
+                      : "bg-cyan-500/5 text-cyan-600 border-cyan-500/15 hover:bg-cyan-500/10"
+                      }`}
+                  >
+                    Fees & pricing plans
+                  </Link>
+                  <Link
+                    to="/blog"
+                    className={`px-4 py-3 rounded-xl font-medium border transition-all duration-300 font-inter hover:scale-[1.02] ${darkMode
+                      ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20"
+                      : "bg-cyan-500/5 text-cyan-600 border-cyan-500/15 hover:bg-cyan-500/10"
+                      }`}
+                  >
+                    Freelancing tips on the HustleX blog
+                  </Link>
+                  <Link
+                    to="/about-us"
+                    className={`px-4 py-3 rounded-xl font-medium border transition-all duration-300 font-inter hover:scale-[1.02] ${darkMode
+                      ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20"
+                      : "bg-cyan-500/5 text-cyan-600 border-cyan-500/15 hover:bg-cyan-500/10"
+                      }`}
+                  >
+                    About HustleX
+                  </Link>
+                </nav>
               </motion.div>
 
               {job.requirements && job.requirements.length > 0 && (

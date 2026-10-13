@@ -75,7 +75,15 @@ const BlogPostView: React.FC = () => {
     );
   }
 
-  const cleanSnippet = blog.content.replace(/<[^>]*>/g, "").substring(0, 160);
+  const rawSnippet = (blog.content || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  // Keep meta description in the 120–155 char sweet spot even for short posts
+  const cleanSnippet =
+    rawSnippet.length >= 120
+      ? rawSnippet.substring(0, 155)
+      : `${rawSnippet ? rawSnippet + ". " : ""}Read the full article on the HustleX blog — practical insights for freelancers and businesses hiring top Ethiopian talent on Ethiopia's #1 freelance marketplace.`.substring(0, 155);
   const canonicalUrl = `https://hustlexet.com/blog/${blog.slug || blog._id}`;
   const ogImg = blog.imageUrl ? apiService.getFileUrl(blog.imageUrl) : "https://hustlexet.com/Logo.png";
 

@@ -101,6 +101,17 @@ const FreelancerProfilePage: React.FC = () => {
   const monthlyRate = profile.monthlyRate || "0";
   const currency = profile.currency || "ETB";
   const bio = profile.bio || "No professional overview available.";
+  // Keep meta description in the 120–155 char sweet spot even when the bio is thin
+  const metaDescription =
+    bio.trim().length >= 120 && !bio.startsWith("No professional overview")
+      ? bio.substring(0, 155)
+      : `${fullName} is a ${primarySkill} freelance professional${
+          location && location !== "Remote / Worldwide" ? ` based in ${location}` : ""
+        } available for projects on HustleX. ${
+          bio.startsWith("No professional overview") ? "" : bio + " "
+        }Hire vetted ${primarySkill} talent with secure payments on Ethiopia's #1 freelance marketplace.`
+          .replace(/\s+/g, " ")
+          .substring(0, 155);
   const isProfileComplete = profile.isProfileComplete || false;
   const experience = profile.experienceLevel || profile.experience || "Intermediate";
   const education = profile.education || "Not specified";
@@ -231,11 +242,11 @@ const FreelancerProfilePage: React.FC = () => {
 
       <SEO
         title={`${fullName} | Elite ${primarySkill} | HustleX`}
-        description={bio.substring(0, 160)}
+        description={metaDescription}
         keywords={[fullName, primarySkill, ...skills]}
         canonical={`https://hustlexet.com/freelancers/${slug}`}
         ogTitle={`${fullName} | Elite ${primarySkill}`}
-        ogDescription={bio.substring(0, 160)}
+        ogDescription={metaDescription}
         ogImage={avatarUrl || "https://hustlexet.com/Logo.png"}
         structuredData={[personSchema, breadcrumbsSchema]}
       />

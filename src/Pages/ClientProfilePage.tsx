@@ -90,6 +90,17 @@ const ClientProfilePage: React.FC = () => {
     : null;
   const description = companyProfile.description || "No company description available.";
   const industry = companyProfile.industry || "General / Technology";
+  // Keep meta description in the 120–155 char sweet spot even when the profile is thin
+  const metaDescription =
+    description.trim().length >= 120 && !description.startsWith("No company description")
+      ? description.substring(0, 155)
+      : `${companyName}${
+          industry ? ` (${industry})` : ""
+        } hires and collaborates with verified freelancers through HustleX. ${
+          description.startsWith("No company description") ? "" : description + " "
+        }Browse ${companyName}'s open freelance jobs or post your own project and get proposals in 24 hours on Ethiopia's #1 freelance marketplace.`
+          .replace(/\s+/g, " ")
+          .substring(0, 155);
   const website = companyProfile.website || "";
   const location = companyProfile.location || client.profile?.location || "Remote";
   const jobs = client.jobs || [];
@@ -137,11 +148,11 @@ const ClientProfilePage: React.FC = () => {
     <div className={`min-h-screen pb-16 ${darkMode ? "bg-gray-950 text-white" : "bg-gray-50 text-gray-900"}`}>
       <SEO
         title={`${companyName} | Hire Freelancers & Active Jobs | HustleX`}
-        description={description.substring(0, 160)}
+        description={metaDescription}
         keywords={[companyName, industry, "hire freelancers", "remote jobs", "company listings"]}
         canonical={`https://hustlexet.com/clients/${slug}`}
         ogTitle={`${companyName} | Premium Client Company`}
-        ogDescription={description.substring(0, 160)}
+        ogDescription={metaDescription}
         ogImage={logo || "https://hustlexet.com/Logo.png"}
         structuredData={[orgSchema, breadcrumbsSchema]}
       />
