@@ -14,9 +14,6 @@ import { useAuth } from "../store/hooks";
 import { getActiveRole } from "../utils/activeRole";
 import { HomeSEO } from "../components/SEO";
 
-// Import video
-import howItWorksVideo from "./videos/HowItWorks.mp4";
-
 // Import image
 import heroBackground from "../Images/Herobg.jpg";
 import avatar1 from "../Images/Freelancers/Yohannes.png";
@@ -275,7 +272,7 @@ const Home = () => {
                 </div>
               </motion.section>
 
-              {/* How It Works Video Section */}
+              {/* How It Works Section */}
               <motion.section
                 className={`py-16 sm:py-20 md:py-24 relative overflow-hidden ${darkMode ? "bg-gradient-to-br from-black via-gray-900 to-black" : "bg-gradient-to-br from-white via-gray-50 to-white"
                   }`}
@@ -355,46 +352,6 @@ const Home = () => {
                       </span>
                       {t.howItWorks.subtitle.split(t.howItWorks.videoSubtitle)[1]}
                     </motion.p>
-                  </motion.div>
-
-                  {/* Video Container */}
-                  <motion.div
-                    className="flex justify-center mb-12 sm:mb-16"
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 1, delay: 0.6 }}
-                  >
-                    <motion.div
-                      className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-gradient-to-r from-cyan-400 to-purple-600"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {/* Actual Video */}
-                      <video
-                        className="w-full h-full object-cover"
-                        controls
-                        preload="metadata"
-                        poster=""
-                        autoPlay
-                        loop
-                        muted
-                        style={{ zIndex: 1, position: 'relative' }}
-                      >
-                        <source src={howItWorksVideo} type="video/mp4" />
-                        Your browser does not support the video tag.
-                      </video>
-
-                      {/* Video Overlay Effects */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-                      <div className="absolute top-4 left-4">
-                        <motion.span
-                          className="px-3 py-1 bg-red-500 text-white text-xs sm:text-sm font-bold rounded-full"
-                          animate={{ opacity: [1, 0.7, 1] }}
-                          transition={{ duration: 2 }}
-                        >
-
-                        </motion.span>
-                      </div>
-                    </motion.div>
                   </motion.div>
 
                   {/* Step-by-Step Process */}
