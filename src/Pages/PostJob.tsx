@@ -7,7 +7,7 @@ import apiService from "../services/api";
 import { useTranslation } from "../hooks/useTranslation";
 import { Job as JobTypeFromAPI, User, Application, EmailData } from "../types";
 import { HireSEO } from "../components/SEO";
-import { categories, ALL_SKILLS_WITH_TECH } from "../constants/skills";
+import { categories, ALL_SKILLS_WITH_TECH, POPULAR_SKILLS, getSkillGroup } from "../constants/skills";
 
 // Then, in your code, replace Job with JobTypeFromAPI where needed:
 
@@ -696,6 +696,29 @@ const PostJob: React.FC = () => {
   const maxDescriptionLength = 5000;
   const descriptionCharsLeft = maxDescriptionLength - description.length;
 
+  // Worldwide skill suggestions: matches the skill name or its category group.
+  // With an empty search, popular worldwide tech (JavaScript, React, Python, ...)
+  // is listed first instead of only the alphabetically-first entries.
+  const skillSuggestions = React.useMemo(() => {
+    const q = skillSearch.toLowerCase().trim();
+    const available = skillsOptions.filter((skill) => !skills.includes(skill));
+    if (q) {
+      return available
+        .filter(
+          (skill) =>
+            skill.toLowerCase().includes(q) ||
+            getSkillGroup(skill).toLowerCase().includes(q)
+        )
+        .slice(0, 100);
+    }
+    const popular = POPULAR_SKILLS.filter((skill) => available.includes(skill));
+    const popularSet = new Set(popular);
+    return [
+      ...popular,
+      ...available.filter((skill) => !popularSet.has(skill)),
+    ].slice(0, 100);
+  }, [skillSearch, skills]);
+
   return (
     <>
       <HireSEO />
@@ -1295,20 +1318,15 @@ const PostJob: React.FC = () => {
                   {/* Dropdown suggestions */}
                   {showSkillDropdown && skills.length < 6 && (
                     <div
-                      className={`absolute z-50 w-full mt-1 max-h-60 overflow-y-auto rounded-lg border shadow-lg ${
+                      className={`absolute z-50 w-full mt-1 max-h-80 overflow-y-auto rounded-lg border shadow-lg ${
                         darkMode
                           ? "bg-gray-800 border-gray-600"
                           : "bg-white border-gray-200"
                       }`}
                     >
-                      {skillsOptions
-                        .filter(
-                          (skill) =>
-                            skill.toLowerCase().includes(skillSearch.toLowerCase()) &&
-                            !skills.includes(skill)
-                        )
-                        .slice(0, 20)
-                        .map((skill) => (
+                      {skillSuggestions.map((skill) => {
+                        const group = getSkillGroup(skill);
+                        return (
                           <button
                             key={skill}
                             type="button"
@@ -1318,20 +1336,26 @@ const PostJob: React.FC = () => {
                               setSkillSearch("");
                               setShowSkillDropdown(false);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                            className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between gap-3 ${
                               darkMode
                                 ? "text-gray-200 hover:bg-gray-700"
                                 : "text-gray-700 hover:bg-cyan-50"
                             }`}
                           >
-                            {skill}
+                            <span>{skill}</span>
+                            {group !== "Other" && (
+                              <span
+                                className={`text-[10px] uppercase tracking-wide truncate max-w-[45%] ${
+                                  darkMode ? "text-gray-500" : "text-gray-400"
+                                }`}
+                              >
+                                {group}
+                              </span>
+                            )}
                           </button>
-                        ))}
-                      {skillsOptions.filter(
-                        (skill) =>
-                          skill.toLowerCase().includes(skillSearch.toLowerCase()) &&
-                          !skills.includes(skill)
-                      ).length === 0 && (
+                        );
+                      })}
+                      {skillSuggestions.length === 0 && (
                         <div className={`px-4 py-3 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                           {skillSearch ? `${t.postJob.noSkillsMatching} "${skillSearch}"` : t.postJob.allSkillsSelected}
                         </div>
