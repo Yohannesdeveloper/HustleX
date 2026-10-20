@@ -12,11 +12,44 @@ const { getCache, setCache } = require("../middleware/cache");
 // Static SEO configs for default pages
 const staticPageSEO = {
   home: {
-    title: "HustleX — Hire Elite Freelancers Worldwide | Premium Marketplace",
-    description: "Hire top 1% freelancers in web development, MERN stack, UI/UX design & AI services. Trusted by startups & Fortune 500. Get started in minutes.",
-    keywords: ["freelancing platform", "hire freelancers", "freelance marketplace", "hire MERN developer", "remote developers"],
+    title: "HustleX — Freelance Marketplace",
+    description: "HustleX is Ethiopia's #1 freelance marketplace. Hire skilled developers, UI/UX designers, and AI specialists. Connect with top Ethiopian talent for web development and digital services.",
+    keywords: ["hustlex", "HustleX", "hustle x", "hustlex ethiopia", "freelance marketplace ethiopia", "hire freelancers ethiopia", "remote developers"],
     canonicalUrl: "https://hustlexet.com/",
-    ogImage: "https://hustlexet.com/og-image-home.jpg",
+    ogImage: "https://hustlexet.com/Logo.png",
+    structuredData: [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://hustlexet.com/#website",
+        "name": "HustleX",
+        "alternateName": [
+          "Hustle X",
+          "HustleX Ethiopia",
+          "HustleX Marketplace"
+        ],
+        "url": "https://hustlexet.com/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://hustlexet.com/job-listings?search={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://hustlexet.com/#organization",
+        "name": "HustleX",
+        "url": "https://hustlexet.com/",
+        "logo": "https://hustlexet.com/favicon-512x512.png",
+        "sameAs": [
+          "https://github.com/Yohannesdeveloper/HustleX"
+        ]
+      }
+    ],
   },
   postJob: {
     title: "Post a Project & Get Proposals in 24h | HustleX",

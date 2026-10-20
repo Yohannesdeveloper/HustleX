@@ -117,21 +117,60 @@
   <!-- Google Search Console Verification -->
   <meta name="google-site-verification" content="b1b916ceb07e5572" />
 
+  <!-- Structured Data: WebSite — Primary site-name signal for Google Search -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://hustlexet.com/#website",
+    "name": "HustleX",
+    "alternateName": [
+      "Hustle X",
+      "HustleX Ethiopia",
+      "HustleX Marketplace"
+    ],
+    "url": "https://hustlexet.com/",
+    "publisher": {
+      "@type": "Organization",
+      "@id": "https://hustlexet.com/#organization",
+      "name": "HustleX",
+      "url": "https://hustlexet.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://hustlexet.com/favicon-512x512.png",
+        "width": 512,
+        "height": 512
+      }
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://hustlexet.com/job-listings?search={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    },
+    "description": "Find and hire top freelancers in Ethiopia and worldwide on HustleX.",
+    "inLanguage": "en-US"
+  }
+  </script>
+
   <!-- Structured Data: Organization -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": "https://hustlexet.com/#organization",
     "name": "HustleX",
     "legalName": "HustleX",
     "alternateName": [
-      "Hustle X"
+      "Hustle X",
+      "HustleX Ethiopia"
     ],
     "url": "https://hustlexet.com/",
     "logo": "https://hustlexet.com/favicon-512x512.png",
     "sameAs": [
-      "https://github.com/Yohannesdeveloper/HustleX",
-      "https://hustlexet.com"
+      "https://github.com/Yohannesdeveloper/HustleX"
     ],
     "foundingDate": "2024",
     "telephone": "+251942927999",
@@ -151,63 +190,27 @@
   }
   </script>
 
-  <!-- Structured Data: WebSite — Primary site-name signal for Google Search -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "HustleX",
-    "alternateName": "Hustle X",
-    "url": "https://hustlexet.com/",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://hustlexet.com/favicon-512x512.png",
-      "width": 512,
-      "height": 512
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "HustleX",
-      "url": "https://hustlexet.com/",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://hustlexet.com/favicon-192x192.png",
-        "width": 192,
-        "height": 192
-      }
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://hustlexet.com/job-listings?search={search_term_string}"
-      },
-      "query-input": "required name=search_term_string"
-    },
-    "description": "Find and hire top freelancers in Ethiopia and worldwide on HustleX.",
-    "inLanguage": "en-US"
-  }
-  </script>
-
   <!-- Structured Data: Professional Service -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    "name": "HustleX Freelance Services",
-    "alternateName": "HustleX",
+    "name": "HustleX",
+    "alternateName": [
+      "HustleX Freelance Services",
+      "Hustle X"
+    ],
     "image": [
       "https://hustlexet.com/Logo.png",
       "https://hustlexet.com/favicon-192x192.png"
     ],
-    "url": "https://hustlexet.com",
+    "url": "https://hustlexet.com/",
     "telephone": "+251942927999",
     "email": "support@hustlexet.com",
     "priceRange": "$$",
     "currenciesAccepted": "ETB, USD",
     "paymentAccepted": "Credit Card, Bank Transfer",
     "sameAs": [
-      "https://hustlexet.com",
       "https://github.com/Yohannesdeveloper/HustleX"
     ],
     "address": {
@@ -382,7 +385,7 @@
     </style>
     <div id="splash">
       <div id="splash-logo">H</div>
-      <div style="font-size:18px;font-weight:600">HustleX</div>
+      <h1 style="font-size:18px;font-weight:600;margin:0;letter-spacing:-0.02em;">HustleX</h1>
       <div id="splash-label">Loading...</div>
       <div id="splash-bar">
         <div id="splash-bar-inner"></div>

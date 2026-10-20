@@ -169,11 +169,26 @@ export const structuredData = {
   website: {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://hustlexet.com/#website",
     name: "HustleX",
     alternateName: [
-      "Hustle X"
+      "Hustle X",
+      "HustleX Ethiopia",
+      "HustleX Marketplace"
     ],
     url: "https://hustlexet.com/",
+    publisher: {
+      "@type": "Organization",
+      "@id": "https://hustlexet.com/#organization",
+      name: "HustleX",
+      url: "https://hustlexet.com/",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://hustlexet.com/favicon-512x512.png",
+        width: 512,
+        height: 512
+      }
+    },
     potentialAction: {
       "@type": "SearchAction",
       target: {
@@ -190,9 +205,13 @@ export const structuredData = {
   professionalService: {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
-    name: "HustleX Freelance Services",
+    name: "HustleX",
+    alternateName: [
+      "HustleX Freelance Services",
+      "Hustle X"
+    ],
     image: "https://hustlexet.com/Logo.png",
-    url: "https://hustlexet.com",
+    url: "https://hustlexet.com/",
     priceRange: "$$",
     address: {
       "@type": "PostalAddress",

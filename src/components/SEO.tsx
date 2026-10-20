@@ -241,8 +241,8 @@ export const HomeSEO: React.FC = () => {
       twitterDescription={twitterCard.homepage.description}
       twitterImage={twitterCard.homepage.image}
       structuredData={[
-        structuredData.organization,
         structuredData.website,
+        structuredData.organization,
         structuredData.professionalService,
       ]}
     />
