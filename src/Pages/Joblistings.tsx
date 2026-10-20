@@ -1712,11 +1712,11 @@ const JobListings: React.FC = () => {
                           }`}
                       >
                         <div
-                          className={`p-0.5 rounded-md ${darkMode ? "bg-blue-500/20" : "bg-blue-500/10"
+                          className={`p-0.5 rounded-md ${darkMode ? "bg-cyan-500/20" : "bg-cyan-500/10"
                             }`}
                         >
                           <Clock
-                            className={`w-3 h-3 text-blue-500`}
+                            className={`w-3 h-3 text-cyan-500`}
                           />
                         </div>
                         <div>
@@ -1741,11 +1741,11 @@ const JobListings: React.FC = () => {
                           }`}
                       >
                         <div
-                          className={`p-0.5 rounded-md ${darkMode ? "bg-purple-500/20" : "bg-purple-500/10"
+                          className={`p-0.5 rounded-md ${darkMode ? "bg-cyan-500/20" : "bg-cyan-500/10"
                             }`}
                         >
                           <Briefcase
-                            className={`w-3 h-3 text-purple-500`}
+                            className={`w-3 h-3 text-cyan-500`}
                           />
                         </div>
                         <div>
@@ -1770,11 +1770,11 @@ const JobListings: React.FC = () => {
                           }`}
                       >
                         <div
-                          className={`p-0.5 rounded-md ${darkMode ? "bg-green-500/20" : "bg-green-500/10"
+                          className={`p-0.5 rounded-md ${darkMode ? "bg-cyan-500/20" : "bg-cyan-500/10"
                             }`}
                         >
                           <MapPin
-                            className={`w-3 h-3 text-green-500`}
+                            className={`w-3 h-3 text-cyan-500`}
                           />
                         </div>
                         <div>
@@ -1799,11 +1799,11 @@ const JobListings: React.FC = () => {
                           }`}
                       >
                         <div
-                          className={`p-0.5 rounded-md ${darkMode ? "bg-orange-500/20" : "bg-orange-500/10"
+                          className={`p-0.5 rounded-md ${darkMode ? "bg-cyan-500/20" : "bg-cyan-500/10"
                             }`}
                         >
                           <User
-                            className={`w-3 h-3 text-orange-500`}
+                            className={`w-3 h-3 text-cyan-500`}
                           />
                         </div>
                         <div>
@@ -1828,11 +1828,11 @@ const JobListings: React.FC = () => {
                           }`}
                       >
                         <div
-                          className={`p-0.5 rounded-md ${darkMode ? "bg-amber-500/20" : "bg-amber-500/10"
+                          className={`p-0.5 rounded-md ${darkMode ? "bg-cyan-500/20" : "bg-cyan-500/10"
                             }`}
                         >
                           <Users
-                            className={`w-3 h-3 text-amber-500`}
+                            className={`w-3 h-3 text-cyan-500`}
                           />
                         </div>
                         <div>
@@ -1857,11 +1857,11 @@ const JobListings: React.FC = () => {
                           }`}
                       >
                         <div
-                          className={`p-0.5 rounded-md ${darkMode ? "bg-rose-500/20" : "bg-rose-500/10"
+                          className={`p-0.5 rounded-md ${darkMode ? "bg-cyan-500/20" : "bg-cyan-500/10"
                             }`}
                         >
                           <Target
-                            className={`w-3 h-3 text-rose-500`}
+                            className={`w-3 h-3 text-cyan-500`}
                           />
                         </div>
                         <div>
