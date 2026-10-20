@@ -612,7 +612,7 @@ const PostJob: React.FC = () => {
         compensationType,
         compensationAmount,
         currency,
-        budget: compensationAmount ? `${compensationAmount} ${currency}` : "",
+        budget: compensationAmount ? `${compensationAmount} ${currency}` : (compensationType || "Negotiable"),
         deadline,
         experience,
         jobType,
@@ -666,8 +666,15 @@ const PostJob: React.FC = () => {
         }
       }
 
+      // Surface express-validator errors ({errors:[{msg}]}) returned as 400 by the API
+      const validationErrors = error.response?.data?.errors;
       const errorMessage =
-        error.response?.data?.message || error.message || "Please try again.";
+        (Array.isArray(validationErrors) && validationErrors.length
+          ? validationErrors.map((e: any) => e.msg || e.message).join(", ")
+          : "") ||
+        error.response?.data?.message ||
+        error.message ||
+        "Please try again.";
       alert(`❌ ${t.postJob.errorPostingJob} ${errorMessage}`);
     } finally {
       setIsSubmitting(false);

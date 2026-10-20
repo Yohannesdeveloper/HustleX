@@ -131,7 +131,8 @@ router.post(
   [
     body("title").notEmpty().withMessage("Title is required").trim(),
     body("description").notEmpty().withMessage("Description is required"),
-    body("budget").notEmpty().withMessage("Budget is required"),
+    // Budget may be empty when compensation type is e.g. "Negotiable" – fall back in the handler
+    body("budget").optional({ values: "falsy" }).trim(),
     body("category").notEmpty().withMessage("Category is required"),
   ],
   async (req, res) => {
@@ -153,7 +154,10 @@ router.post(
       const jobData = {
         title: req.body.title,
         description: req.body.description,
-        budget: req.body.budget,
+        budget:
+          String(req.body.budget || "").trim() ||
+          String(req.body.compensationType || "").trim() ||
+          "Negotiable",
         category: req.body.category,
         jobSector: req.body.jobSector ?? undefined,
         jobSite: req.body.jobSite ?? undefined,
