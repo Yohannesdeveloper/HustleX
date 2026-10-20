@@ -135,7 +135,7 @@ async function postJobToTelegram(job) {
     job?.jobLink ? `🔗 <b>External Link:</b> <a href="${job.jobLink}">${escapeHtml(job.jobLink)}</a>` : null,
     "",
     "—",
-    '<a href="https://www.hustleX.com">www.hustleX.com</a> | <a href="https://t.me/HustleXet">@HustleXet</a> | <a href="https://t.me/HustleXsupport">@HustleXsupport</a> | <a href="https://t.me/HustleXet_bot">@HustleXet_bot</a>',
+    '<a href="https://www.hustlexet.com">www.hustlexet.com</a> | <a href="https://t.me/HustleXet">@HustleXet</a> | <a href="https://t.me/HustleXsupport">@HustleXsupport</a> | <a href="https://t.me/HustleXet_bot">@HustleXet_bot</a>',
   ].flat().filter((x) => x != null);
 
   const message = lines.join("\n");
