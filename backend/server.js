@@ -473,6 +473,71 @@ async function removeUserPresence(userId) {
 }
 
 /**
+ * Sockets of a user on THIS pod. Room membership is maintained by Socket.IO
+ * itself, so this keeps presence working with the in-memory adapter
+ * (REDIS_ENABLED=false) and during Redis outages on single-pod setups.
+ */
+function localSocketCount(userId) {
+  const room = io.sockets.adapter.rooms.get(`user:${userId}`);
+  return room ? room.size : 0;
+}
+
+/**
+ * Current presence for many users in one call (freelancer directory view).
+ * Redis is authoritative across pods; the local room check covers this pod.
+ * Returns { [userId]: { online, lastSeen } } with lastSeen only for offline ids.
+ */
+async function getPresenceBatch(userIds) {
+  const ids = Array.from(
+    new Set((Array.isArray(userIds) ? userIds : [userIds]).map(String))
+  )
+    .filter((id) => id && id.length <= 64)
+    .slice(0, 200);
+
+  const result = {};
+  if (!ids.length) return result;
+
+  const redis = getSocketPubClient();
+  const redisOnline = new Set();
+  if (redis) {
+    try {
+      const values = await redis.mget(ids.map((id) => `${PRESENCE_PREFIX}${id}`));
+      values.forEach((value, index) => {
+        if (value) redisOnline.add(ids[index]);
+      });
+    } catch (err) {
+      console.error("getPresenceBatch redis mget error:", err.message);
+    }
+  }
+
+  const offlineIds = [];
+  ids.forEach((id) => {
+    const online = redisOnline.has(id) || localSocketCount(id) > 0;
+    result[id] = { online, lastSeen: null };
+    if (!online) offlineIds.push(id);
+  });
+
+  if (offlineIds.length) {
+    try {
+      const User = require("./models/User");
+      const validIds = offlineIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+      const users = await User.find({ _id: { $in: validIds } }).select("lastSeen").lean();
+      const seenById = {};
+      users.forEach((u) => {
+        seenById[String(u._id)] = u.lastSeen || null;
+      });
+      offlineIds.forEach((id) => {
+        result[id].lastSeen = seenById[id] || null;
+      });
+    } catch (err) {
+      console.error("getPresenceBatch lastSeen lookup error:", err.message);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Broadcast a user's online/offline transition to everyone watching them.
  * Watchers join the `watch:{userId}` room via the `watchPresence` socket event.
  * When offline, we include the persisted lastSeen timestamp for "last seen X" UI.
@@ -536,26 +601,34 @@ io.on("connection", (socket) => {
     if (!targetUserId) return;
     socket.join(`watch:${targetUserId}`);
     // Reply immediately with the current state so the UI is correct on open
-    const sid = await getUserSocketId(targetUserId);
-    let lastSeen = null;
-    if (!sid) {
-      try {
-        const User = require("./models/User");
-        const u = await User.findById(targetUserId).select("lastSeen").lean();
-        lastSeen = u?.lastSeen || null;
-      } catch (err) {
-        console.error("watchPresence lastSeen lookup error:", err.message);
-      }
-    }
+    const presence = await getPresenceBatch([targetUserId]);
+    const entry = presence[String(targetUserId)] || { online: false, lastSeen: null };
     socket.emit("presence:update", {
       userId: String(targetUserId),
-      online: !!sid,
-      lastSeen,
+      online: entry.online,
+      lastSeen: entry.lastSeen,
     });
   });
 
-  socket.on("unwatchPresence", (targetUserId) => {
-    if (targetUserId) socket.leave(`watch:${targetUserId}`);
+  // Directory view: watch many users with a single round trip
+  socket.on("presence:batch", async (userIds) => {
+    try {
+      const ids = Array.from(
+        new Set((Array.isArray(userIds) ? userIds : [userIds]).map(String))
+      ).filter((id) => id && id.length <= 64);
+      if (!ids.length) return;
+      ids.forEach((id) => socket.join(`watch:${id}`));
+      socket.emit("presence:batch", await getPresenceBatch(ids));
+    } catch (err) {
+      console.error("presence:batch error:", err.message);
+    }
+  });
+
+  socket.on("unwatchPresence", (target) => {
+    const ids = Array.isArray(target) ? target : [target];
+    ids.forEach((id) => {
+      if (id) socket.leave(`watch:${id}`);
+    });
   });
 
   // ─── WebRTC Video Call Signaling ────────────────────────────────────────
@@ -781,7 +854,8 @@ io.on("connection", (socket) => {
       }
 
       // Only mark offline / persist lastSeen if this was their last active socket
-      const stillOnline = await getUserSocketId(socket.userId);
+      const stillOnline =
+        (await getUserSocketId(socket.userId)) || localSocketCount(socket.userId) > 0;
       if (!stillOnline) {
         try {
           const User = require("./models/User");

@@ -24,7 +24,8 @@ interface WebSocketContextType {
   onTyping: (callback: (data: any) => void) => void;
   offTyping: (callback: (data: any) => void) => void;
   watchPresence: (userId: string) => void;
-  unwatchPresence: (userId: string) => void;
+  unwatchPresence: (userId: string | string[]) => void;
+  requestPresence: (userIds: string[]) => void;
   onPresence: (callback: (data: { userId: string; online: boolean; lastSeen?: string | null }) => void) => void;
   offPresence: (callback: (data: any) => void) => void;
 }
@@ -39,6 +40,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const messageCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const typingCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
   const presenceCallbacksRef = useRef<Set<(data: any) => void>>(new Set());
+  // Presence bookkeeping so a reconnect can re-register without remounting consumers
+  const selfIdRef = useRef<string | null>(null);
+  const watchedIdsRef = useRef<Set<string>>(new Set());
   const errorCountRef = useRef<number>(0);
 
   useEffect(() => {
@@ -66,6 +70,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       newSocket.on("connect", () => {
         connectedRef.current = true;
         errorCountRef.current = 0;
+        // Room membership died with the old socket — re-register self and watchers
+        if (selfIdRef.current) newSocket.emit("join", selfIdRef.current);
+        if (watchedIdsRef.current.size > 0) {
+          newSocket.emit("presence:batch", Array.from(watchedIdsRef.current));
+        }
       });
 
       newSocket.on("disconnect", () => {
@@ -122,6 +131,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         presenceCallbacksRef.current.forEach((cb) => { try { cb(data); } catch (e) {} });
       });
 
+      // Batch replies are fanned out as single-user updates so every
+      // presence subscriber (chat header, freelancer grid, …) shares one path
+      newSocket.on("presence:batch", (data: any) => {
+        if (!data || typeof data !== "object") return;
+        Object.entries(data as Record<string, { online?: boolean; lastSeen?: string | null }>)
+          .forEach(([userId, entry]) => {
+            presenceCallbacksRef.current.forEach((cb) => {
+              try { cb({ userId, online: !!entry?.online, lastSeen: entry?.lastSeen ?? null }); } catch (e) {}
+            });
+          });
+      });
+
       socketRef.current = newSocket;
     };
 
@@ -146,12 +167,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       messageCallbacksRef.current.clear();
       typingCallbacksRef.current.clear();
       presenceCallbacksRef.current.clear();
+      watchedIdsRef.current.clear();
+      selfIdRef.current = null;
     };
   }, []);
 
   const onNewApplication = useCallback((cb: (data: any) => void) => { callbacksRef.current.add(cb); }, []);
   const offNewApplication = useCallback((cb: (data: any) => void) => { callbacksRef.current.delete(cb); }, []);
   const joinUser = useCallback((userId: string) => {
+    if (!userId) return;
+    selfIdRef.current = String(userId);
     if (socketRef.current && connectedRef.current) socketRef.current.emit("join", userId);
   }, []);
   const sendMessage = useCallback((data: any) => {
@@ -162,10 +187,21 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const onTyping = useCallback((cb: (data: any) => void) => { typingCallbacksRef.current.add(cb); }, []);
   const offTyping = useCallback((cb: (data: any) => void) => { typingCallbacksRef.current.delete(cb); }, []);
   const watchPresence = useCallback((userId: string) => {
+    if (!userId) return;
+    watchedIdsRef.current.add(String(userId));
     if (socketRef.current && connectedRef.current) socketRef.current.emit("watchPresence", userId);
   }, []);
-  const unwatchPresence = useCallback((userId: string) => {
-    if (socketRef.current && connectedRef.current) socketRef.current.emit("unwatchPresence", userId);
+  const requestPresence = useCallback((userIds: string[]) => {
+    const ids = (userIds || []).map(String).filter(Boolean);
+    if (!ids.length) return;
+    ids.forEach((id) => watchedIdsRef.current.add(id));
+    if (socketRef.current && connectedRef.current) socketRef.current.emit("presence:batch", ids);
+  }, []);
+  const unwatchPresence = useCallback((userId: string | string[]) => {
+    const ids = (Array.isArray(userId) ? userId : [userId]).map(String).filter(Boolean);
+    ids.forEach((id) => watchedIdsRef.current.delete(id));
+    if (!socketRef.current || !connectedRef.current || !ids.length) return;
+    socketRef.current.emit("unwatchPresence", ids);
   }, []);
   const onPresence = useCallback((cb: (data: any) => void) => { presenceCallbacksRef.current.add(cb); }, []);
   const offPresence = useCallback((cb: (data: any) => void) => { presenceCallbacksRef.current.delete(cb); }, []);
@@ -184,6 +220,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     offTyping,
     watchPresence,
     unwatchPresence,
+    requestPresence,
     onPresence,
     offPresence,
   };

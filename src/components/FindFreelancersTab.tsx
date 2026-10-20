@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppSelector } from "../store/hooks";
 import { useAuth } from "../store/hooks";
@@ -7,10 +7,28 @@ import { Search, Filter, X, MapPin, Briefcase, Clock, MessageCircle, Sparkles, S
 import apiService from "../services/api";
 import { FreelancerWithStatus } from "../types";
 import StatusIndicator from "./StatusIndicator";
+import { useWebSocket } from "../context/WebSocketContext";
 import FreelancerProfileModal from "./FreelancerProfileModal";
 
 const CACHE_KEY = "freelancers_cache";
 const CACHE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+// How many visible cards we track live presence for, and how often the state is
+// re-verified (a missed socket transition must never stick forever)
+const PRESENCE_PAGE_CAP = 120;
+const PRESENCE_REFRESH_MS = 30000;
+
+/** Turn a lastSeen ISO date into a compact "last seen" label. */
+const formatLastSeen = (value?: string | null): string => {
+  if (!value) return "Offline";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "Offline";
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 60) return "Last seen just now";
+  if (diffSec < 3600) return `Last seen ${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `Last seen ${Math.floor(diffSec / 3600)}h ago`;
+  return `Last seen ${Math.floor(diffSec / 86400)}d ago`;
+};
 
 interface FindFreelancersTabProps {
   sharedFreelancers?: FreelancerWithStatus[];
@@ -52,6 +70,10 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const hasFetchedRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { onPresence, offPresence, requestPresence, unwatchPresence } = useWebSocket();
+  // Live presence pushed by the socket server: userId -> { online, lastSeen }
+  const [presence, setPresence] = useState<Record<string, { online: boolean; lastSeen?: string | null }>>({});
 
   // Load from cache on mount
   useEffect(() => {
@@ -233,6 +255,28 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
     return Array.from(locationsSet).sort();
   }, [freelancers]);
 
+  // Realtime presence is authoritative for the dot. Until the first reply for a
+  // card arrives we fall back to whatever the directory returned ("offline").
+  const liveStatus = useCallback(
+    (freelancer: FreelancerWithStatus): "online" | "offline" | "available" | "busy" => {
+      const entry = presence[String(freelancer._id)];
+      if (entry) return entry.online ? "online" : "offline";
+      return freelancer.status || "offline";
+    },
+    [presence]
+  );
+
+  const liveStatusLabel = useCallback(
+    (freelancer: FreelancerWithStatus): string => {
+      const entry = presence[String(freelancer._id)];
+      if (!entry) return freelancer.lastActive || "Offline";
+      return entry.online
+        ? "Online"
+        : formatLastSeen(entry.lastSeen ?? freelancer.lastActive);
+    },
+    [presence]
+  );
+
   // Filter freelancers based on search and filters
   const filteredFreelancers = useMemo(() => {
     console.log("Filtering freelancers. Total:", freelancers.length);
@@ -274,9 +318,18 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
         return false;
       }
 
-      // Status filter
-      if (filters.status && freelancer.status !== filters.status) {
-        return false;
+      // Status filter — live presence for online/offline, profile availability
+      // for the intent states ("Available"/"Busy") the freelancer picked
+      if (filters.status) {
+        const live = liveStatus(freelancer);
+        const availability = String(profile.availability || "").toLowerCase();
+        const matchesPresence = live === filters.status;
+        const matchesAvailability =
+          (filters.status === "available" || filters.status === "busy") &&
+          availability === filters.status;
+        if (!matchesPresence && !matchesAvailability) {
+          return false;
+        }
       }
 
       // Experience level filter
@@ -291,7 +344,44 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
     });
     console.log("Filtered freelancers count:", filtered.length);
     return filtered;
-  }, [freelancers, searchTerm, filters, user?._id]);
+  }, [freelancers, searchTerm, filters, user?._id, liveStatus]);
+
+  // Watch live presence for the cards currently on screen
+  const presenceIds = useMemo(
+    () => filteredFreelancers.slice(0, PRESENCE_PAGE_CAP).map((f) => String(f._id)),
+    [filteredFreelancers]
+  );
+  const presenceIdsRef = useRef<string[]>([]);
+  presenceIdsRef.current = presenceIds;
+  const presenceKey = presenceIds.join(",");
+
+  useEffect(() => {
+    const handlePresence = (data: { userId: string; online: boolean; lastSeen?: string | null }) => {
+      if (!data?.userId) return;
+      const id = String(data.userId);
+      setPresence((prev) => ({
+        ...prev,
+        [id]: { online: !!data.online, lastSeen: data.lastSeen ?? prev[id]?.lastSeen ?? null },
+      }));
+    };
+    onPresence(handlePresence);
+    return () => offPresence(handlePresence);
+  }, [onPresence, offPresence]);
+
+  useEffect(() => {
+    const ids = presenceIdsRef.current;
+    if (!ids.length) return;
+    // Ask for the current state immediately, then keep verifying on a heartbeat
+    requestPresence(ids);
+    const heartbeat = setInterval(() => {
+      const current = presenceIdsRef.current;
+      if (current.length) requestPresence(current);
+    }, PRESENCE_REFRESH_MS);
+    return () => {
+      clearInterval(heartbeat);
+      unwatchPresence(ids);
+    };
+  }, [presenceKey, requestPresence, unwatchPresence]);
 
   const toggleSkillFilter = (skill: string) => {
     setFilters((prev) => ({
@@ -585,11 +675,12 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
                           {fullName.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      {freelancer.status && (
-                        <div className="absolute -bottom-1 right-0">
-                          <StatusIndicator status={freelancer.status} size="sm" />
-                        </div>
-                      )}
+                      <div
+                        className="absolute -bottom-1 right-0"
+                        title={liveStatusLabel(freelancer)}
+                      >
+                        <StatusIndicator status={liveStatus(freelancer)} size="sm" />
+                      </div>
                     </div>
 
                     {/* Name & Badge */}
@@ -680,7 +771,11 @@ const FindFreelancersTab: React.FC<FindFreelancersTabProps> = ({
       {/* Profile Modal */}
       {selectedFreelancer && (
         <FreelancerProfileModal
-          freelancer={selectedFreelancer}
+          freelancer={{
+            ...selectedFreelancer,
+            status: liveStatus(selectedFreelancer),
+            lastActive: liveStatusLabel(selectedFreelancer),
+          }}
           onClose={() => setSelectedFreelancer(null)}
           onMessage={() => {
             if (selectedFreelancer) {

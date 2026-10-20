@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ReactGA from "react-ga4";
 import { WebSocketProvider } from "./context/WebSocketContext";
+import PresenceBootstrap from "./components/PresenceBootstrap";
 import { useAppDispatch } from "./store/hooks";
 import { checkAuth } from "./store/authSlice";
 import { resolveApplyFlowPath, setPendingJobRedirect } from "./utils/activeRole";
@@ -192,6 +193,7 @@ function AppContent() {
   console.log("[App] Rendering routes");
   return (
     <WebSocketProvider>
+      <PresenceBootstrap />
       <Routes>
         <Route path="*" element={
           <RoleRouteGuard>
