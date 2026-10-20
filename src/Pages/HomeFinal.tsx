@@ -128,7 +128,6 @@ const Home = () => {
         className={`relative overflow-hidden ${darkMode ? "bg-black" : "bg-white"
           }`}
       >
-        <HomeSEO />
         {/* Background */}
         {darkMode ? (
           <div className="fixed inset-0 z-0 bg-black" />
@@ -163,6 +162,7 @@ const Home = () => {
                       initial={false}
                       animate={{ opacity: 1, y: 0 }}
                     >
+                      <span className="sr-only">HustleX — </span>
                       "{t.hero.title}
                       <br />
                       <span className="text-cyan-500">
