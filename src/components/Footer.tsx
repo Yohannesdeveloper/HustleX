@@ -36,7 +36,8 @@ const Footer: React.FC = () => {
               title: t.footer.forClients,
               links: [
                 { text: t.footer.howToHire, href: "/how-it-works" },
-                { text: t.footer.talentMarketplace, href: "#" },
+                { text: t.postJob.postAJob, href: "/post-job" },
+                { text: t.footer.talentMarketplace, href: "/post-job" },
               ],
             },
             {
@@ -50,8 +51,9 @@ const Footer: React.FC = () => {
               title: t.footer.company,
               links: [
                 { text: t.footer.aboutUs, href: "/about-us" },
-                { text: t.footer.careers, href: "#" },
                 { text: t.footer.contactUs, href: "/contact-us" },
+                { text: t.nav.pricing, href: "/pricing" },
+                { text: t.nav.faq, href: "/faq" },
               ],
             },
             {
@@ -59,6 +61,7 @@ const Footer: React.FC = () => {
               links: [
                 { text: t.footer.helpCenter, href: "/help-center" },
                 { text: t.footer.blog, href: "/blog" },
+                { text: "Site map", href: "/sitemap.html" },
                 { text: t.footer.community, href: "https://t.me/HustleXet" },
                 { text: t.footer.api, href: "/api", isInternal: true },
               ],

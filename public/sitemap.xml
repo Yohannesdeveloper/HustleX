@@ -10,7 +10,7 @@
   <!-- Homepage - Highest Priority -->
   <url>
     <loc>https://hustlexet.com/</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -22,7 +22,7 @@
   <!-- Core Service Pages - High Priority -->
   <url>
     <loc>https://hustlexet.com/post-job</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
     <image:image>
@@ -33,7 +33,7 @@
 
   <url>
     <loc>https://hustlexet.com/job-listings</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.95</priority>
     <image:image>
@@ -44,7 +44,7 @@
 
   <url>
     <loc>https://hustlexet.com/signup</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.90</priority>
     <image:image>
@@ -56,42 +56,42 @@
   <!-- Information Pages - Medium-High Priority -->
   <url>
     <loc>https://hustlexet.com/about-us</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/how-it-works</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/pricing</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/faq</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/help-center</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/contact-us</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.70</priority>
   </url>
@@ -99,57 +99,64 @@
   <!-- Content Pages - Medium Priority -->
   <url>
     <loc>https://hustlexet.com/blog</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.70</priority>
+  </url>
+
+  <url>
+    <loc>https://hustlexet.com/sitemap.html</loc>
+    <lastmod>2026-10-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.40</priority>
   </url>
 
   <!-- Service Category Landing Pages -->
   <url>
     <loc>https://hustlexet.com/job-listings?category=web-development</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/job-listings?category=mern-stack</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/job-listings?category=ui-ux-design</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/job-listings?category=graphic-design</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/job-listings?category=video-editing</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/job-listings?category=digital-marketing</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
     <loc>https://hustlexet.com/job-listings?category=ai-services</loc>
-    <lastmod>2026-09-03</lastmod>
+    <lastmod>2026-10-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.85</priority>
   </url>

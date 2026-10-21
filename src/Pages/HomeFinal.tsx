@@ -1323,7 +1323,7 @@ const Home = () => {
                         title: t.footer.forClients,
                         links: [
                           { text: t.footer.howToHire, href: "/how-it-works" },
-
+                          { text: t.postJob.postAJob, href: "/post-job" },
                         ],
                       },
                       {
@@ -1339,6 +1339,8 @@ const Home = () => {
                           { text: t.footer.aboutUs, href: "/about-us" },
 
                           { text: t.footer.contactUs, href: "/contact-us" },
+                          { text: t.nav.pricing, href: "/pricing" },
+                          { text: t.nav.faq, href: "/faq" },
                         ],
                       },
                       {
@@ -1346,6 +1348,7 @@ const Home = () => {
                         links: [
                           { text: t.footer.helpCenter, href: "/help-center" },
                           { text: t.footer.blog, href: "/blog" },
+                          { text: "Site map", href: "/sitemap.html" },
                           { text: t.footer.community, href: "https://t.me/HustleXet" },
 
                         ],

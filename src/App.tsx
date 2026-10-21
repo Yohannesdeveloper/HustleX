@@ -233,7 +233,7 @@ function AppContent() {
             <Route path="my-applications" element={null} />
             <Route path="messages" element={null} />
           </Route>
-          <Route path="/job-listings" element={<JobListings />} />
+          <Route path="/job-listings" element={<PageLayout><JobListings /></PageLayout>} />
           <Route path="/edit-job/:id" element={<PageLayout><EditJobMongo /></PageLayout>} />
           <Route
             path="/admin/dashboard"

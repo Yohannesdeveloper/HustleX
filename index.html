@@ -151,7 +151,16 @@
       "query-input": "required name=search_term_string"
     },
     "description": "Find and hire top freelancers in Ethiopia and worldwide on HustleX.",
-    "inLanguage": "en-US"
+    "inLanguage": "en-US",
+    "hasPart": [
+      { "@type": "WebPage", "name": "Find Jobs", "url": "https://hustlexet.com/job-listings" },
+      { "@type": "WebPage", "name": "Post a Job", "url": "https://hustlexet.com/post-job" },
+      { "@type": "WebPage", "name": "How It Works", "url": "https://hustlexet.com/how-it-works" },
+      { "@type": "WebPage", "name": "Pricing", "url": "https://hustlexet.com/pricing" },
+      { "@type": "WebPage", "name": "About", "url": "https://hustlexet.com/about-us" },
+      { "@type": "WebPage", "name": "Blog", "url": "https://hustlexet.com/blog" },
+      { "@type": "WebPage", "name": "Contact", "url": "https://hustlexet.com/contact-us" }
+    ]
   }
   </script>
 
@@ -277,39 +286,54 @@
     ]
   }
   </script>
-  <!-- Structured Data: Site Navigation for Google Sitelinks -->
+  <!-- Important pages Google can use as sitelink candidates. Sitelinks are still chosen by Google, not this markup. -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "ItemList",
+    "name": "HustleX",
     "itemListElement": [
       {
-        "@type": "SiteNavigationElement",
+        "@type": "ListItem",
         "position": 1,
         "name": "Find Jobs",
-        "description": "Browse active freelance jobs and remote opportunities on HustleX",
         "url": "https://hustlexet.com/job-listings"
       },
       {
-        "@type": "SiteNavigationElement",
+        "@type": "ListItem",
         "position": 2,
-        "name": "Hire Freelancers",
-        "description": "Hire verified Ethiopian software developers, designers, and marketers",
+        "name": "Post a Job",
         "url": "https://hustlexet.com/post-job"
       },
       {
-        "@type": "SiteNavigationElement",
+        "@type": "ListItem",
         "position": 3,
         "name": "How It Works",
-        "description": "Learn how HustleX connects clients with top talent securely",
         "url": "https://hustlexet.com/how-it-works"
       },
       {
-        "@type": "SiteNavigationElement",
+        "@type": "ListItem",
         "position": 4,
-        "name": "About HustleX",
-        "description": "About HustleX - Ethiopia's premier freelance platform",
+        "name": "Pricing",
+        "url": "https://hustlexet.com/pricing"
+      },
+      {
+        "@type": "ListItem",
+        "position": 5,
+        "name": "About",
         "url": "https://hustlexet.com/about-us"
+      },
+      {
+        "@type": "ListItem",
+        "position": 6,
+        "name": "Blog",
+        "url": "https://hustlexet.com/blog"
+      },
+      {
+        "@type": "ListItem",
+        "position": 7,
+        "name": "Contact",
+        "url": "https://hustlexet.com/contact-us"
       }
     ]
   }
@@ -386,6 +410,19 @@
     <div id="splash">
       <div id="splash-logo">H</div>
       <h1 style="font-size:18px;font-weight:600;margin:0;letter-spacing:-0.02em;">HustleX</h1>
+      <nav aria-label="HustleX" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">
+        <ul>
+          <li><a href="https://hustlexet.com/job-listings">Find Jobs</a></li>
+          <li><a href="https://hustlexet.com/post-job">Post a Job</a></li>
+          <li><a href="https://hustlexet.com/how-it-works">How It Works</a></li>
+          <li><a href="https://hustlexet.com/pricing">Pricing</a></li>
+          <li><a href="https://hustlexet.com/about-us">About</a></li>
+          <li><a href="https://hustlexet.com/blog">Blog</a></li>
+          <li><a href="https://hustlexet.com/faq">FAQ</a></li>
+          <li><a href="https://hustlexet.com/contact-us">Contact</a></li>
+          <li><a href="https://hustlexet.com/signup">Sign Up</a></li>
+        </ul>
+      </nav>
       <div id="splash-label">Loading...</div>
       <div id="splash-bar">
         <div id="splash-bar-inner"></div>
@@ -403,6 +440,7 @@
       <h2>Explore HustleX Services</h2>
       <ul>
         <li><a href="/job-listings" style="color:#0ea5e9;">Browse Freelance Jobs on HustleX</a></li>
+        <li><a href="/post-job" style="color:#0ea5e9;">Post a Job & Hire Freelancers on HustleX</a></li>
         <li><a href="/freelancers" style="color:#0ea5e9;">Hire Top Ethiopian Freelancers</a></li>
         <li><a href="/login" style="color:#0ea5e9;">Sign In to HustleX Account</a></li>
         <li><a href="/signup" style="color:#0ea5e9;">Register as Freelancer or Client on HustleX</a></li>

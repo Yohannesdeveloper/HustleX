@@ -80,22 +80,37 @@ const HomeNavbar: React.FC = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <nav aria-label="HustleX pages" className="sr-only">
+            <ul>
+              <li><a href="/job-listings">Find Jobs</a></li>
+              <li><a href="/post-job">Post a Job</a></li>
+              <li><a href="/how-it-works">How It Works</a></li>
+              <li><a href="/pricing">Pricing</a></li>
+              <li><a href="/about-us">About</a></li>
+              <li><a href="/blog">Blog</a></li>
+              <li><a href="/faq">FAQ</a></li>
+              <li><a href="/contact-us">Contact</a></li>
+              <li><a href="/signup">Sign Up</a></li>
+            </ul>
+          </nav>
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 min-h-[52px]">
             <style>{`
               .nav-scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
               .nav-scrollbar-hide::-webkit-scrollbar { display: none; }
             `}</style>
-            {/* Logo - Left (never shrinks) */}
+            {/* Logo - real homepage link so Google can crawl it */}
             <motion.h1
               className={`flex-shrink-0 text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight cursor-pointer transition duration-300 flex items-center group`}
               whileHover={{
                 scale: 1.05,
               }}
-              onClick={() => {
-                navigate("/");
-                setMenuOpen(false);
-              }}
             >
+              <Link
+                to="/"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center"
+                aria-label="HustleX home"
+              >
               <span className={`transition-all duration-300 ${darkMode ? "text-white" : "text-black"}`}>
                 Hustle
               </span>
@@ -116,6 +131,7 @@ const HomeNavbar: React.FC = () => {
               >
                 X
               </span>
+              </Link>
             </motion.h1>
 
             {/* Desktop nav - in flow, scrollable at zoom to prevent overlap */}
@@ -125,6 +141,7 @@ const HomeNavbar: React.FC = () => {
                   { to: "/", label: t.nav.home, shortLabel: t.nav.home, icon: null },
                   { to: "/about-us", label: t.nav.aboutUs, shortLabel: t.nav.aboutUs, icon: null },
                   { to: "/job-listings", label: t.nav.exploreJobs, icon: <FaSearch />, shortLabel: t.nav.exploreJobs },
+                  { to: "/post-job", label: t.postJob.postAJob, shortLabel: t.postJob.postAJob, icon: null },
                   { to: "/pricing", label: t.nav.pricing, shortLabel: t.nav.pricing, icon: null },
                   { to: "/blog", label: t.nav.blog, shortLabel: t.nav.blog, icon: null },
                   { to: "/faq", label: t.nav.faq, shortLabel: t.nav.faq, icon: null },
@@ -187,22 +204,18 @@ const HomeNavbar: React.FC = () => {
               {/* Guest buttons - desktop only */}
               {userRole === "guest" && (
                 <div className="hidden md:flex gap-2">
-                  <button
-                    onClick={() =>
-                      navigate("/signup?redirect=" + encodeURIComponent(location.pathname))
-                    }
+                  <Link
+                    to={"/signup?redirect=" + encodeURIComponent(location.pathname)}
                     className="px-4 py-1.5 text-xs rounded-full font-semibold shadow-md transition duration-300 bg-cyan-600 text-white hover:bg-cyan-700"
                   >
                     {t.nav.logIn}
-                  </button>
-                  <button
-                    onClick={() =>
-                      navigate("/signup?redirect=" + encodeURIComponent(location.pathname))
-                    }
+                  </Link>
+                  <Link
+                    to={"/signup?redirect=" + encodeURIComponent(location.pathname)}
                     className="px-4 py-1.5 text-xs rounded-full font-semibold shadow-md transition duration-300 border-2 border-cyan-600 text-cyan-600 hover:bg-cyan-600 hover:text-white"
                   >
                     {t.nav.signUp}
-                  </button>
+                  </Link>
                 </div>
               )}
 
@@ -335,6 +348,7 @@ const HomeNavbar: React.FC = () => {
                       label: t.nav.exploreJobs,
                       icon: <FaSearch />,
                     },
+                    { to: "/post-job", label: t.postJob.postAJob },
                     { to: "/about-us", label: t.nav.aboutUs },
                     { to: "/blog", label: t.nav.blog },
                     { to: "/contact-us", label: t.nav.contact },
@@ -418,26 +432,22 @@ const HomeNavbar: React.FC = () => {
                   {userRole === "guest" && (
                     <>
                       <li>
-                        <button
-                          onClick={() => {
-                            navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
-                            setMenuOpen(false);
-                          }}
-                          className="w-full px-4 py-1.5 text-sm rounded-full font-semibold shadow-md transition duration-300 bg-cyan-600 text-white hover:bg-cyan-700"
+                        <Link
+                          to={"/signup?redirect=" + encodeURIComponent(location.pathname)}
+                          onClick={() => setMenuOpen(false)}
+                          className="w-full block text-center px-4 py-1.5 text-sm rounded-full font-semibold shadow-md transition duration-300 bg-cyan-600 text-white hover:bg-cyan-700"
                         >
                           {t.nav.logIn}
-                        </button>
+                        </Link>
                       </li>
                       <li>
-                        <button
-                          onClick={() => {
-                            navigate("/signup?redirect=" + encodeURIComponent(location.pathname));
-                            setMenuOpen(false);
-                          }}
-                          className="w-full px-4 py-1.5 text-sm rounded-full font-semibold shadow-md transition duration-300 border-2 border-cyan-600 text-cyan-600 hover:bg-cyan-600 hover:text-white"
+                        <Link
+                          to={"/signup?redirect=" + encodeURIComponent(location.pathname)}
+                          onClick={() => setMenuOpen(false)}
+                          className="w-full block text-center px-4 py-1.5 text-sm rounded-full font-semibold shadow-md transition duration-300 border-2 border-cyan-600 text-cyan-600 hover:bg-cyan-600 hover:text-white"
                         >
                           {t.nav.signUp}
-                        </button>
+                        </Link>
                       </li>
                     </>
                   )}

@@ -1,16 +1,13 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Briefcase, Users } from "lucide-react";
 import { useAppSelector } from "../store/hooks";
-import { useAuth } from "../store/hooks";
 import { useTranslation } from "../hooks/useTranslation";
 import Footer from "../components/Footer";
 import { HowItWorksSEO } from "../components/SEO";
 
 const HowItWorks: React.FC = () => {
   const darkMode = useAppSelector((s) => s.theme.darkMode);
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const t = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -165,20 +162,14 @@ const HowItWorks: React.FC = () => {
             <Briefcase className="w-5 h-5" />
             {t.howItWorks.findJobs}
           </Link>
-          <button
-            onClick={() => {
-              if (isAuthenticated) {
-                navigate("/post-job");
-              } else {
-                navigate("/signup?redirect=/post-job");
-              }
-            }}
+          <Link
+            to="/post-job"
             className={`px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 ${darkMode ? "text-white" : "text-black"
               } font-bold rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-lg shadow-purple-500/25 hover:shadow-purple-400/40 hover:scale-105 flex items-center gap-2`}
           >
             <Users className="w-5 h-5" />
             {t.howItWorks.postAJob}
-          </button>
+          </Link>
         </div>
 
         {/* Testimonial Section */}

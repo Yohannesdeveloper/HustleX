@@ -199,6 +199,15 @@ export const structuredData = {
     },
     description: "Find and hire top freelancers in Ethiopia and worldwide on HustleX.",
     inLanguage: "en-US",
+    hasPart: [
+      { "@type": "WebPage", name: "Find Jobs", url: "https://hustlexet.com/job-listings" },
+      { "@type": "WebPage", name: "Post a Job", url: "https://hustlexet.com/post-job" },
+      { "@type": "WebPage", name: "How It Works", url: "https://hustlexet.com/how-it-works" },
+      { "@type": "WebPage", name: "Pricing", url: "https://hustlexet.com/pricing" },
+      { "@type": "WebPage", name: "About", url: "https://hustlexet.com/about-us" },
+      { "@type": "WebPage", name: "Blog", url: "https://hustlexet.com/blog" },
+      { "@type": "WebPage", name: "Contact", url: "https://hustlexet.com/contact-us" },
+    ],
   },
 
   // Professional Service Schema
@@ -291,7 +300,7 @@ export const pageSEO = {
 
   // Hire Freelancer Page (/post-job)
   hireFreelancer: {
-    title: "Hire Freelancers | Post a Project & Get Proposals in 24h — HustleX",
+    title: "Post a Job | HustleX",
     description: "Post your project for free. Hire verified freelancers in web development, MERN stack, UI/UX design, video editing & AI. 100% secure payments.",
     keywords: [
       "hire freelancers",
@@ -361,7 +370,7 @@ export const pageSEO = {
 
   // Job Listings Page
   jobListings: {
-    title: "Browse Freelance Jobs | Remote Opportunities — HustleX",
+    title: "Find Jobs | HustleX",
     description: "Discover 1000+ freelance jobs in web development, design, marketing & AI. Remote opportunities for elite freelancers worldwide.",
     keywords: [
       "freelance jobs",
@@ -380,7 +389,7 @@ export const pageSEO = {
 
   // About Us Page
   aboutUs: {
-    title: "About Us | HustleX — Premium Freelance Marketplace",
+    title: "About | HustleX",
     description: "HustleX connects businesses with the world's top 1% freelancers. Learn about our mission, values, and commitment to excellence.",
     keywords: [
       "about HustleX",
@@ -394,7 +403,7 @@ export const pageSEO = {
 
   // Contact Us Page
   contactUs: {
-    title: "Contact Us | HustleX Support & Inquiries",
+    title: "Contact | HustleX",
     description: "Get in touch with HustleX. We're here to help with your questions, support needs, and partnership inquiries. 24/7 support available.",
     keywords: [
       "contact HustleX",
@@ -408,7 +417,7 @@ export const pageSEO = {
 
   // FAQ Page
   faq: {
-    title: "FAQ | HustleX — Frequently Asked Questions",
+    title: "FAQ | HustleX",
     description: "Find answers to common questions about hiring freelancers, getting paid, account management, and using HustleX.",
     keywords: [
       "HustleX FAQ",
@@ -423,7 +432,7 @@ export const pageSEO = {
 
   // Pricing Page
   pricing: {
-    title: "Pricing | HustleX — Transparent Freelance Marketplace Fees",
+    title: "Pricing | HustleX",
     description: "Simple, transparent pricing for clients and freelancers. No hidden fees. Start for free and scale as you grow.",
     keywords: [
       "HustleX pricing",
@@ -437,7 +446,7 @@ export const pageSEO = {
 
   // Blog Page
   blog: {
-    title: "Blog | HustleX — Insights for Freelancers & Businesses",
+    title: "Blog | HustleX",
     description: "Expert tips, industry insights, and success stories for freelancers and businesses. Level up your freelance career or hiring strategy.",
     keywords: [
       "freelance blog",
@@ -451,7 +460,7 @@ export const pageSEO = {
 
   // How It Works Page
   howItWorks: {
-    title: "How It Works | HustleX — Hire or Work in 3 Simple Steps",
+    title: "How It Works | HustleX",
     description: "Learn how HustleX works. Post projects, hire elite freelancers, and manage work seamlessly. Or join as a freelancer and start earning.",
     keywords: [
       "how HustleX works",
