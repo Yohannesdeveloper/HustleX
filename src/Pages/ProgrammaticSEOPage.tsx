@@ -209,7 +209,7 @@ const ProgrammaticSEOPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="max-w-3xl">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border ${
                 darkMode ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" : "bg-cyan-50 text-cyan-700 border-cyan-100"
@@ -219,7 +219,7 @@ const ProgrammaticSEOPage: React.FC = () => {
             </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight"
@@ -228,7 +228,7 @@ const ProgrammaticSEOPage: React.FC = () => {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               className={`text-lg md:text-xl mt-6 leading-relaxed ${darkMode ? "text-gray-300" : "text-gray-600"}`}
@@ -237,7 +237,7 @@ const ProgrammaticSEOPage: React.FC = () => {
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.15 }}
               className="flex flex-wrap gap-4 mt-8"
@@ -267,7 +267,7 @@ const ProgrammaticSEOPage: React.FC = () => {
           {/* Main Listings Column */}
           <div className="lg:col-span-2 space-y-8">
             <motion.div
-              initial={{ opacity: 0, y: 25 }}
+              initial={{ y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center justify-between border-b pb-4 border-gray-200 dark:border-gray-800"
             >
@@ -283,7 +283,7 @@ const ProgrammaticSEOPage: React.FC = () => {
               {data.items.map((item, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className={`p-6 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
@@ -374,7 +374,7 @@ const ProgrammaticSEOPage: React.FC = () => {
           <div className="space-y-6">
             {/* Statistics Card */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               className={`rounded-3xl border p-6 shadow-xl ${
                 darkMode ? "bg-gray-900/90 border-white/10" : "bg-white border-gray-200"
@@ -424,7 +424,7 @@ const ProgrammaticSEOPage: React.FC = () => {
 
             {/* Related Queries Linking Panel */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               className={`rounded-3xl border p-6 shadow-xl ${

@@ -801,7 +801,7 @@ const JobDetailsMongo: React.FC = () => {
                   ? "bg-black/40 border-cyan-500/20"
                   : "bg-white/40 border-cyan-500/10"
                   } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
@@ -1192,7 +1192,7 @@ const JobDetailsMongo: React.FC = () => {
                   ? "bg-black/40 border-cyan-500/20"
                   : "bg-white/40 border-cyan-500/10"
                   } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
@@ -1220,7 +1220,7 @@ const JobDetailsMongo: React.FC = () => {
                     ? "bg-black/40 border-cyan-500/20"
                     : "bg-white/40 border-cyan-500/10"
                     } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.15 }}
                 >
@@ -1264,7 +1264,7 @@ const JobDetailsMongo: React.FC = () => {
                   ? "bg-black/40 border-cyan-500/20"
                   : "bg-white/40 border-cyan-500/10"
                   } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
@@ -1339,7 +1339,7 @@ const JobDetailsMongo: React.FC = () => {
                     ? "bg-black/40 border-cyan-500/20"
                     : "bg-white/40 border-cyan-500/10"
                     } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
@@ -1374,7 +1374,7 @@ const JobDetailsMongo: React.FC = () => {
                     ? "bg-black/40 border-cyan-500/20"
                     : "bg-white/40 border-cyan-500/10"
                     } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >
@@ -1407,7 +1407,7 @@ const JobDetailsMongo: React.FC = () => {
                     ? "bg-black/40 border-cyan-500/20"
                     : "bg-white/40 border-cyan-500/10"
                     } backdrop-blur-xl border rounded-3xl p-8 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
@@ -1446,7 +1446,7 @@ const JobDetailsMongo: React.FC = () => {
                       ? "bg-gradient-to-br from-cyan-950/40 via-black/50 to-blue-950/30 border-cyan-500/30 shadow-cyan-950/20"
                       : "bg-gradient-to-br from-cyan-50 via-white to-blue-50 border-cyan-300/80 shadow-cyan-100/40"
                   } backdrop-blur-xl border rounded-3xl p-6 shadow-xl relative overflow-hidden`}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5 }}
                 >
@@ -1571,7 +1571,7 @@ const JobDetailsMongo: React.FC = () => {
                   ? "bg-black/40 border-cyan-500/20"
                   : "bg-white/40 border-cyan-500/10"
                   } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
               >
@@ -1722,7 +1722,7 @@ const JobDetailsMongo: React.FC = () => {
                   ? "bg-black/40 border-cyan-500/20"
                   : "bg-white/40 border-cyan-500/10"
                   } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
@@ -1894,7 +1894,7 @@ const JobDetailsMongo: React.FC = () => {
                     ? "bg-black/40 border-cyan-500/20"
                     : "bg-white/40 border-cyan-500/10"
                     } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
@@ -1972,7 +1972,7 @@ const JobDetailsMongo: React.FC = () => {
                     ? "bg-black/40 border-cyan-500/20"
                     : "bg-white/40 border-cyan-500/10"
                     } backdrop-blur-xl border rounded-3xl p-6 shadow-[0_4px_6px_rgba(0,0,0,0.3)]`}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >

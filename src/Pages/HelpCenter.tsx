@@ -785,7 +785,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
             {/* Search Results - Articles */}
             {(query || selectedCategory) && filteredArticles.length > 0 && (
               <motion.section
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
                 className="px-6 py-8"
               >
@@ -821,7 +821,7 @@ However, make sure you can deliver quality work on time for all projects. Overco
                     {filteredArticles.map((article) => (
                       <motion.div
                         key={article.id}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`rounded-xl border overflow-hidden ${darkMode
                           ? "bg-black/50 border-white/10"

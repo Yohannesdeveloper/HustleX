@@ -75,7 +75,7 @@ const HomeNavbar: React.FC = () => {
         <motion.header
           className={`fixed top-0 left-0 right-0 z-40 min-h-[52px] ${darkMode ? "border-black/30 bg-black/95" : "border-black/10 bg-white/95"
             } border-b shadow-2xl backdrop-blur-sm`}
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
@@ -133,7 +133,7 @@ const HomeNavbar: React.FC = () => {
                 ].map((link, idx) => (
                   <motion.div
                     key={link.to}
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
                     className="flex-shrink-0"
@@ -163,7 +163,7 @@ const HomeNavbar: React.FC = () => {
               ].map((link, idx) => (
                 <motion.div
                   key={link.to}
-                  initial={{ opacity: 0, y: -20 }}
+                  initial={{ y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
                   className="flex-shrink-0"

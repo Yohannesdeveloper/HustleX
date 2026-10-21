@@ -143,8 +143,8 @@ const SEO: React.FC<SEOProps> = ({
       {/* Canonical URL */}
       {canonical && <link rel="canonical" href={canonical} />}
 
-      {/* Viewport & Theme */}
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+      {/* Viewport & Theme (owns the data-rh viewport tag from index.html) */}
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
       <meta name="theme-color" content={siteConfig.themeColor} />
 
       {/* Author & Copyright */}

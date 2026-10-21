@@ -131,14 +131,14 @@ const Pricing: React.FC = () => {
         {/* Header Section */}
         <motion.div
           className="text-center mb-12 sm:mb-16 px-4"
-          initial={{ opacity: 0, y: -30 }}
+          initial={{ y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
           <motion.h1
             className={`text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 sm:mb-6 ${darkMode ? "text-white" : "text-black"
               }`}
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
@@ -150,7 +150,7 @@ const Pricing: React.FC = () => {
           <motion.p
             className={`text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto ${darkMode ? "text-gray-300" : "text-gray-600"
               }`}
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
@@ -164,7 +164,7 @@ const Pricing: React.FC = () => {
             {pricingPlans.map((plan, idx) => (
               <motion.div
                 key={plan.id}
-                initial={{ opacity: 0, y: 50 }}
+                initial={{ y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: idx * 0.2 }}
                 className={`relative rounded-2xl overflow-hidden ${plan.popular
@@ -277,7 +277,7 @@ const Pricing: React.FC = () => {
         {/* FAQ Section */}
         <motion.div
           className="max-w-4xl mx-auto mt-20 px-4"
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.8 }}
         >
@@ -312,7 +312,7 @@ const Pricing: React.FC = () => {
                   ? "bg-black/40 border border-white/10"
                   : "bg-white border border-black/10"
                   }`}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.9 + idx * 0.1 }}
               >

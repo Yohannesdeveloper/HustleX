@@ -21,7 +21,7 @@ const Navbar: React.FC = () => {
     <motion.header
       className={`sticky top-0 z-50 backdrop-blur-xl ${darkMode ? "bg-white/10 border-white/20" : "bg-white/90 border-gray-200"
         } border-b shadow-md`}
-      initial={{ opacity: 0, y: -50 }}
+      initial={{ y: -30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7 }}
     >

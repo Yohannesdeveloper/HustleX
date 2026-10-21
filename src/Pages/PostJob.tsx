@@ -338,7 +338,7 @@ const workLocations = ["Remote", "Onsite", "Hybrid"];
 
 // Animation for individual letters in headings
 const letterVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
@@ -351,7 +351,7 @@ const letterVariants = {
 
 // Animation for form sections
 const sectionVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { y: 20 },
   visible: {
     opacity: 1,
     y: 0,
@@ -361,7 +361,7 @@ const sectionVariants = {
 
 // Animation for inputs and buttons
 const inputVariants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   hover: { scale: 1.02, transition: { duration: 0.2 } },
 };
@@ -844,7 +844,7 @@ const PostJob: React.FC = () => {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="w-full max-w-5xl mb-12"
@@ -881,7 +881,7 @@ const PostJob: React.FC = () => {
       {
         !loadingStatus && postingStatus && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className={`mb-6 p-4 rounded-xl border-2 w-full max-w-5xl glass-card ${postingStatus.canPost
               ? darkMode
@@ -944,7 +944,7 @@ const PostJob: React.FC = () => {
 
       {!loadingStatus && postingStatus && !postingStatus.canPost ? (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-2xl p-12 rounded-3xl border-2 text-center shadow-2xl glass-card border-cyan-500/30"
         >

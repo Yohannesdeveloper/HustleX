@@ -108,7 +108,7 @@ const FAQ: React.FC = () => {
               ? "bg-black/60 border-white/10"
               : "bg-white/60 border-black/10"
               } backdrop-blur-md`}
-            initial={{ opacity: 0, y: -100 }}
+            initial={{ y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, type: "spring", stiffness: 100 }}
           >

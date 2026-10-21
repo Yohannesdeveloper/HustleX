@@ -285,7 +285,7 @@ const FreelancerProfilePage: React.FC = () => {
           {/* Left Panel: Profile Info Card (Sticky on Desktop) */}
           <div className="lg:col-span-1 lg:sticky lg:top-8 self-start space-y-6">
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, cubicBezier: [0.16, 1, 0.3, 1] }}
               className={`rounded-3xl border p-8 shadow-2xl backdrop-blur-xl transition-all duration-300 ${
@@ -510,7 +510,7 @@ const FreelancerProfilePage: React.FC = () => {
             
             {/* Tabs Control Switcher */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               className={`p-1.5 rounded-2xl flex gap-1.5 max-w-lg shadow-lg ${
@@ -548,7 +548,7 @@ const FreelancerProfilePage: React.FC = () => {
               {activeTab === "overview" && (
                 <motion.div
                   key="overview-tab"
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.3 }}
@@ -605,7 +605,7 @@ const FreelancerProfilePage: React.FC = () => {
               {activeTab === "portfolio" && (
                 <motion.div
                   key="portfolio-tab"
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.3 }}
@@ -684,7 +684,7 @@ const FreelancerProfilePage: React.FC = () => {
               {activeTab === "credentials" && (
                 <motion.div
                   key="credentials-tab"
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.3 }}
@@ -769,7 +769,7 @@ const FreelancerProfilePage: React.FC = () => {
             {/* Similar Specialists Panel */}
             {freelancer.similarFreelancers && freelancer.similarFreelancers.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className={`rounded-3xl border p-8 shadow-xl text-left ${

@@ -112,7 +112,7 @@ const API: React.FC = () => {
         {/* Header */}
         <motion.div
           className="text-center mb-12 sm:mb-16 px-4"
-          initial={{ opacity: 0, y: -30 }}
+          initial={{ y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
@@ -120,7 +120,7 @@ const API: React.FC = () => {
             className={`text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 sm:mb-6 ${
               darkMode ? "text-white" : "text-black"
             }`}
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
@@ -134,7 +134,7 @@ const API: React.FC = () => {
             className={`text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto ${
               darkMode ? "text-gray-300" : "text-gray-600"
             }`}
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
@@ -150,7 +150,7 @@ const API: React.FC = () => {
                 ? "bg-gradient-to-br from-cyan-900/30 to-purple-900/30 border-2 border-cyan-500/50"
                 : "bg-gradient-to-br from-cyan-50 to-purple-50 border-2 border-cyan-500"
             } shadow-2xl`}
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >

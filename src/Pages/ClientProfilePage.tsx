@@ -175,7 +175,7 @@ const ClientProfilePage: React.FC = () => {
           {/* Company Sidebar Info */}
           <div className="space-y-6">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className={`rounded-3xl border p-6 shadow-xl backdrop-blur-md ${
@@ -265,7 +265,7 @@ const ClientProfilePage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* About / Description */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               className={`rounded-3xl border p-6 shadow-lg ${
@@ -281,7 +281,7 @@ const ClientProfilePage: React.FC = () => {
 
             {/* Active Job Openings */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               className={`rounded-3xl border p-6 shadow-lg ${

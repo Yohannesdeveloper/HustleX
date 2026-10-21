@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
           ].map((section, idx) => (
             <motion.div
               key={section.title}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, duration: 0.6 }}
             >
@@ -168,7 +168,7 @@ const Footer: React.FC = () => {
                   aria-label={social.label}
                   whileHover={{ scale: 1.2, y: -2 }}
                   whileTap={{ scale: 0.9 }}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1, duration: 0.5 }}
                 >

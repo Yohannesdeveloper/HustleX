@@ -326,13 +326,13 @@ const Home = () => {
                   {/* Section Header */}
                   <motion.div
                     className="text-center mb-12 sm:mb-16"
-                    initial={{ opacity: 0, y: 50 }}
+                    initial={{ y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
                   >
                     <motion.h2
                       className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-center"
-                      initial={{ opacity: 0, scale: 0.5 }}
+                      initial={{ scale: 0.85 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 1, delay: 0.2 }}
                     >
@@ -342,7 +342,7 @@ const Home = () => {
                     <motion.p
                       className={`text-lg sm:text-xl md:text-2xl mb-8 sm:mb-10 md:mb-12 ${darkMode ? "text-gray-300" : "text-gray-600"
                         } max-w-4xl mx-auto leading-relaxed`}
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={{ y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.8, delay: 0.4 }}
                     >
@@ -357,7 +357,7 @@ const Home = () => {
                   {/* Step-by-Step Process */}
                   <motion.div
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
-                    initial={{ opacity: 0, y: 50 }}
+                    initial={{ y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.8 }}
                   >
@@ -401,7 +401,7 @@ const Home = () => {
                           ? "bg-black/60 border-white/10"
                           : "bg-white/80 border-black/10"
                           } border backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-300 group`}
-                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        initial={{ y: 30, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         whileHover={{
                           y: -10,
@@ -444,7 +444,7 @@ const Home = () => {
                         <motion.h3
                           className={`text-lg sm:text-xl font-bold mb-3 ${darkMode ? "text-white" : "text-black"
                             }`}
-                          initial={{ opacity: 0 }}
+                          initial={false}
                           animate={{ opacity: 1 }}
                           transition={{ duration: 0.6, delay: item.delay + 0.2 }}
                         >
@@ -454,7 +454,7 @@ const Home = () => {
                         <motion.p
                           className={`text-sm sm:text-base leading-relaxed ${darkMode ? "text-gray-300" : "text-gray-600"
                             }`}
-                          initial={{ opacity: 0 }}
+                          initial={false}
                           animate={{ opacity: 1 }}
                           transition={{ duration: 0.6, delay: item.delay + 0.4 }}
                         >
@@ -474,7 +474,7 @@ const Home = () => {
                   {/* Call to Action */}
                   <motion.div
                     className="text-center mt-12 sm:mt-16"
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 1.2 }}
                   >
@@ -507,7 +507,7 @@ const Home = () => {
 
                     <motion.p
                       className={`mt-6 text-sm sm:text-lg text-white/90`}
-                      initial={{ opacity: 0 }}
+                      initial={false}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.8, delay: 1.4 }}
                     >
@@ -597,7 +597,7 @@ const Home = () => {
                           ? "bg-black border-white/10"
                           : "bg-white border-black/10"
                           } border shadow-xl md:shadow-2xl relative overflow-hidden group cursor-pointer`}
-                        initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                        initial={{ y: 30, scale: 0.85 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         whileHover={{
                           scale: 1.05,
@@ -612,7 +612,7 @@ const Home = () => {
                       >
                         <motion.div
                           className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
-                          initial={{ scale: 0 }}
+                          initial={{ scale: 0.85 }}
                           animate={{ scale: 1 }}
                           transition={{
                             delay: i * 0.2 + 0.3,
@@ -890,7 +890,7 @@ const Home = () => {
                           ? "bg-black border-white/10 hover:bg-white/5"
                           : "bg-white border-black/10 hover:bg-white"
                           } border cursor-pointer transition-all duration-300 relative overflow-hidden group`}
-                        initial={{ opacity: 0, y: 30, scale: 0.8 }}
+                        initial={{ y: 30, scale: 0.85 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         whileHover={{
                           y: -10,
@@ -1028,7 +1028,7 @@ const Home = () => {
                           ? "bg-black border-white/10 hover:bg-white/5"
                           : "bg-white border-black/10 hover:bg-white"
                           } border shadow-xl md:shadow-2xl flex flex-col items-center text-center transition-all duration-300 relative overflow-hidden group`}
-                        initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                        initial={{ y: 30, scale: 0.85 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         whileHover={{
                           scale: 1.05,
@@ -1189,7 +1189,7 @@ const Home = () => {
                           ? "bg-black border-white/10 hover:bg-white/5"
                           : "bg-white border-black/10 hover:bg-white"
                           } border flex flex-col shadow-xl md:shadow-2xl relative overflow-hidden group`}
-                        initial={{ opacity: 0, y: 50 }}
+                        initial={{ y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: idx * 0.2 }}
                       >
@@ -1275,7 +1275,7 @@ const Home = () => {
                   </motion.h2>
                   <motion.p
                     className="text-white/80 mb-8 sm:mb-10 md:mb-12 text-base sm:text-lg md:text-xl leading-relaxed max-w-4xl mx-auto"
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                   >
@@ -1288,7 +1288,7 @@ const Home = () => {
 
                   <motion.div
                     className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-6"
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
                   >
@@ -1353,7 +1353,7 @@ const Home = () => {
                     ].map((section, idx) => (
                       <motion.div
                         key={section.title}
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1, duration: 0.6 }}
                       >
@@ -1457,7 +1457,7 @@ const Home = () => {
                             aria-label={social.label}
                             whileHover={{ scale: 1.2, y: -2 }}
                             whileTap={{ scale: 0.9 }}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.1, duration: 0.5 }}
                           >

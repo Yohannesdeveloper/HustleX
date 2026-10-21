@@ -149,7 +149,7 @@ const AboutUs: React.FC = () => {
               ? "bg-black/60 border-white/10"
               : "bg-white/60 border-black/10"
               } backdrop-blur-md`}
-            initial={{ opacity: 0, y: -100 }}
+            initial={{ y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, type: "spring", stiffness: 100 }}
           >
@@ -205,7 +205,7 @@ const AboutUs: React.FC = () => {
                           </motion.div>
                           <motion.div
                             className={`text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
-                            initial={{ scale: 0 }}
+                            initial={{ scale: 0.85 }}
                             whileInView={{ scale: 1 }}
                             transition={{
                               delay: index * 0.1 + 0.3,
