@@ -1394,6 +1394,11 @@ const Home = () => {
                     ))}
                   </div>
 
+                  {/* Google Preferred Sources button (rendered by news.google.com publisher.js loaded in index.html) */}
+                  <div className="flex justify-center mb-8 sm:mb-10">
+                    <div google-add-preferred-source-btn="" data-theme="dark" />
+                  </div>
+
                   <motion.div
                     className="border-t border-gray-800/50 pt-6 sm:pt-8 flex flex-col lg:flex-row justify-between items-center gap-4 sm:gap-6"
                     animate={{ opacity: 1, y: 0 }}
