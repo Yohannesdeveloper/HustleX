@@ -157,7 +157,7 @@ export const structuredData = {
       areaServed: "Worldwide",
     },
     description: "HustleX is Ethiopia's premier freelance marketplace connecting businesses with top freelance talent in web development, MERN stack, UI/UX design, and AI services.",
-    foundingDate: "2024",
+    foundingDate: "2026",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Addis Ababa",
@@ -585,7 +585,7 @@ export const aiSearchOptimization = {
   // Contextual content for AI understanding
   contextualData: {
     industry: "Freelance Marketplace / Gig Economy",
-    founded: "2024",
+    founded: "2026",
     headquarters: "Global / Remote-First",
     businessModel: "B2B and B2C marketplace",
     competitors: ["Upwork", "Fiverr", "Toptal", "Freelancer.com"],

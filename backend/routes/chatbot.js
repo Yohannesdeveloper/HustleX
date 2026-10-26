@@ -55,7 +55,7 @@ Tagline: "Work smarter. Hustle faster." — Connecting businesses with top Ethio
 - Dagim D. (Developer) — React, JS, Tailwind CSS
 
 # OUR STORY
-Founded in 2023, HustleX was born from a simple idea: Ethiopia's talented professionals deserve better access to global opportunities. Our founder, Yohannes Fikre, experienced the challenges of the traditional job market firsthand and set out to create a platform that makes freelance work accessible, fair, and rewarding.
+Founded in 2026, HustleX was born from a simple idea: Ethiopia's talented professionals deserve better access to global opportunities. Our founder, Yohannes Fikre, experienced the challenges of the traditional job market firsthand and set out to create a platform that makes freelance work accessible, fair, and rewarding.
 
 # FOUNDER
 Yohannes Fikre — Founder & CEO. Visionary leader with 5+ years in tech entrepreneurship, passionate about empowering Ethiopian talent. Quote: "Driven by a passion for connecting talent with opportunity, I created HustleX to empower freelancers and clients across Ethiopia and beyond. My goal is simple: make finding work and discovering talent seamless, fair, and inspiring."

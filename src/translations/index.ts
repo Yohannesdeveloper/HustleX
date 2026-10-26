@@ -642,7 +642,7 @@ const translations: Record<Language, Translations> = {
     },
     howItWorks: {
       title: "How It Works",
-      subtitle: "Watch this stunning video to see how HustleX transforms your freelance journey in just 60 seconds!",
+      subtitle: "See how HustleX transforms your freelance journey in just 4 simple steps!",
       videoSubtitle: "HustleX",
       steps: {
         step1: { title: "🔍 Browse Jobs", desc: "Explore a wide variety of freelance jobs posted by employers. Use filters to find exactly what matches your skills." },
@@ -866,7 +866,7 @@ const translations: Record<Language, Translations> = {
     aboutUs: {
       activeFreelancers: "Active Freelancers",
       ourStory: "Our Story",
-      ourStoryDescription: "Founded in 2023, HustleX was born from a simple idea: Ethiopia’s talented professionals deserve better access to global opportunities. Experiencing the challenges of the traditional job market firsthand, our founder set out to create a platform that would make freelance work accessible, fair, and rewarding.",
+      ourStoryDescription: "Founded in 2026, HustleX was born from a simple idea: Ethiopia’s talented professionals deserve better access to global opportunities. Experiencing the challenges of the traditional job market firsthand, our founder set out to create a platform that would make freelance work accessible, fair, and rewarding.",
       ourMission: "Our Mission",
       ourMissionDescription: "Though we are just getting started, HustleX is already building a community that connects skilled professionals with clients worldwide. Our mission goes beyond a marketplace—we’re creating a movement that empowers Ethiopia’s digital workforce to thrive in the global economy.",
       ourValues: "Our Values",
@@ -1168,7 +1168,7 @@ const translations: Record<Language, Translations> = {
     },
     howItWorks: {
       title: "አሠራሩ እንዴት ነው?",
-      subtitle: "HustleX ነጻ ስራ ጉዞዎን በ60 ሰከንድ ውስጥ እንዴት እንደሚቀይር ለማየት ይህንን የሚያስደንቅ ቪዲዮ ይመልከቱ!",
+      subtitle: "HustleX ነጻ ስራ ጉዞዎን በቀላል ደረጃዎች እንዴት እንደሚቀይር ይመልከቱ!",
       videoSubtitle: "HustleX",
       steps: {
         step1: { title: "🔍 ሥራዎችን ይፈልጉ", desc: "በቀጣሪዎች የተለጠፉ የተለያዩ የነፃ ሙያ (Freelance) ሥራዎችን ያጡ። ከእርስዎ ክህሎት ጋር ትክክለኛ ተስማሚነት ያላቸውን ለመለየት ማጣሪያዎችን ይጠቀሙ።" },
@@ -1394,7 +1394,7 @@ const translations: Record<Language, Translations> = {
     aboutUs: {
       activeFreelancers: "ንቁ የነፃ ሙያተኞች",
       ourStory: "ታሪካችን",
-      ourStoryDescription: "በእ.ኤ.አ. 2023 የተመሠረተው ሃስልኤክስ (HustleX) የተወለደው ከአንድ ቀላል ዓላማ ነው፤ እሱም፡ የኢትዮጵያ ባለክህሎት ሙያተኞች የተሻለ ዓለም አቀፍ የሥራ ዕድል የማግኘት መብት አላቸው ከሚል እምነት ነው። የመደበኛውን የሥራ ገበያ ፈተናዎች በቅርበት የተገነዘቡት መሥራቻችን፣ የነፃ ሙያ (Freelance) ሥራዎችን ተዳራሽ፣ ፍትሐዊ እና አርኪ የሚያደርግ የዲጂታል መድረክ ለመፍጠር ተነሡ።",
+      ourStoryDescription: "በእ.ኤ.አ. 2026 የተመሠረተው ሃስልኤክስ (HustleX) የተወለደው ከአንድ ቀላል ዓላማ ነው፤ እሱም፡ የኢትዮጵያ ባለክህሎት ሙያተኞች የተሻለ ዓለም አቀፍ የሥራ ዕድል የማግኘት መብት አላቸው ከሚል እምነት ነው። የመደበኛውን የሥራ ገበያ ፈተናዎች በቅርበት የተገነዘቡት መሥራቻችን፣ የነፃ ሙያ (Freelance) ሥራዎችን ተዳራሽ፣ ፍትሐዊ እና አርኪ የሚያደርግ የዲጂታል መድረክ ለመፍጠር ተነሡ።",
       ourMission: "ተልዕኳችን",
       ourMissionDescription: "ገና በጅምር ላይ ብንሆንም፣ ሃስልኤክስ (HustleX) ክህሎት ያላቸውን ሙያተኞች በዓለም ዙሪያ ካሉ ደንበኞች ጋር የሚያገናኝ ማኅበረሰብ በመገንባት ላይ ይገኛል። ተልዕኳችን የሥራ ገበያ ከመሆን ያለፈ ነው—የኢትዮጵያ የዲጂታል የሥራ ኃይል በዓለም አቀፍ ኤኮኖሚ ውስጥ ስኬታማ እንዲሆን የሚያስችል እንቅስቃሴ እየፈጠርን እንገኛለን።",
       ourValues: "እሴቶቻችን",
@@ -1688,7 +1688,7 @@ const translations: Record<Language, Translations> = {
     },
     howItWorks: {
       title: "ከመይ ይሰራሕ",
-      subtitle: "HustleX ነጻ ስራ ጉዞኻ ኣብ 60 ሰከንድ ከመይ ጌርካ ከም ዝቀየሮ ንምርኣይ ነዚ ዘደንቕ ቪድዮ ርአ!",
+      subtitle: "HustleX ነጻ ስራ ጉዞኻ ኣብ ቀሊል ስጉምትታት ከመይ ጌሩ ከም ዝቕይሮ ርአ!",
       videoSubtitle: "HustleX",
       steps: {
         step1: { title: "🔍 ስራሕቲ ድለዩ", desc: "ብኣስራሕቲ ዝወጹ ዝተፈላለዩ ናጻ ስራሕቲ (Freelance) ድለዩ። ምስ ክእለትኩም ዝሰማማዕ ንምርካብ መጽረዪ (filters) ተጠቐሙ።" },
@@ -2214,7 +2214,7 @@ const translations: Record<Language, Translations> = {
     },
     howItWorks: {
       title: "Akka Itti Hojjattu",
-      subtitle: "HustleX akka safara hojii bilisaa keessan sekondii 60 keessatti akka jijjiiramu agarsiisuuf video gaarii kana ilaalaa!",
+      subtitle: "HustleX akka safara hojii bilisaa keessan tarkaanjii salphaa 4 qofaan akka jijjiiramu ilaali!",
       videoSubtitle: "HustleX",
       steps: {
         step1: { title: "🔍 Hojiiwwan Ilaalaa", desc: "Hojiiwwan bilisaa adda addaa hojjachiistotaan maxxansaman ilaalaa. Waan dandeettii keessaniin wal simu argachuuf calaqqee fayyadamaa." },
@@ -2384,7 +2384,7 @@ const translations: Record<Language, Translations> = {
     aboutUs: {
       activeFreelancers: "Hojjettoota Freelance Hawaasaa",
       ourStory: "Seenaa Keenya",
-      ourStoryDescription: "Bara 2023 keessa kan hundaa'e HustleX, yaada salphaa tokko irraa ka'e: Ogeessotni Itoophiyaa dandeettii qaban carraa hojii idil-addunyaa fooyya'aa ta'e argachuu qabu. Rakkoolee gabaa hojii aadaa jiran irra gahuudhaan, hundessaan keenya hojii freelance (hojii dhuunfaa) akka salphaatti, haqaafi bu'a qabeessa ta'u gochuuf mofaan hojjetuu jalqabe.",
+      ourStoryDescription: "Bara 2026 keessa kan hundaa'e HustleX, yaada salphaa tokko irraa ka'e: Ogeessotni Itoophiyaa dandeettii qaban carraa hojii idil-addunyaa fooyya'aa ta'e argachuu qabu. Rakkoolee gabaa hojii aadaa jiran irra gahuudhaan, hundessaan keenya hojii freelance (hojii dhuunfaa) akka salphaatti, haqaafi bu'a qabeessa ta'u gochuuf mofaan hojjetuu jalqabe.",
       ourMission: "Ergama Keenya",
       ourMissionDescription: "Hundeeffamnee yeroo gabaabaa ta'us, HustleX ogeessota dandeettii qaban maamiltoota idil-addunyaa wajjin walitti hidhuuf hawaasa uumaa jira. Ergamsi keenya gabaa uumuu qofa miti—dinagdee idil-addunyaa keessatti humna hojii dijiitaala Itoophiyaa guddisuuf sochii hawaasummaa uumaa jirra.",
       ourValues: "Duudhaalee Keenya",
