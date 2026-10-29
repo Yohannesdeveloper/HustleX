@@ -961,7 +961,7 @@ const JobListings: React.FC = () => {
 
         {/* Main Content */}
         <motion.main
-          className="flex-1 w-full max-w-5xl mx-auto"
+          className="flex-1 min-w-0 w-full max-w-5xl mx-auto"
           initial={false}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -1077,7 +1077,7 @@ const JobListings: React.FC = () => {
                 : "bg-white text-black border border-black/10 hover:bg-gray-50"
                 }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Filter className="w-5 h-5" />
                 <span className="font-semibold">
                   {selectedFilterType || "Filter by"}
@@ -1312,7 +1312,7 @@ const JobListings: React.FC = () => {
               filteredJobs.map((job: JobType) => (
                 <div
                   key={job.id}
-                  className={`rounded-xl p-2 sm:p-3 md:p-4 shadow-lg transition-all duration-300 relative group border ${darkMode
+                  className={`rounded-xl p-2 sm:p-3 md:p-4 shadow-lg transition-all duration-300 relative group border overflow-hidden ${darkMode
                     ? "bg-black border-white/10 hover:bg-white/5"
                     : "bg-white border-black/10 hover:bg-black/5"
                     }`}
@@ -1449,20 +1449,20 @@ const JobListings: React.FC = () => {
                         );
                       })()}
                       <h3
-                        className={`text-base sm:text-lg md:text-xl font-bold font-inter leading-tight ${darkMode ? "text-white" : "text-black"
+                        className={`text-base sm:text-lg md:text-xl font-bold font-inter leading-tight break-words ${darkMode ? "text-white" : "text-black"
                           }`}
                       >
                         {job.title || "Untitled Job"}
                       </h3>
                       {job.company && (
                         <p
-                          className={`text-sm sm:text-base md:text-lg font-medium font-inter ${darkMode ? "text-white/90" : "text-black/90"
+                          className={`text-sm sm:text-base md:text-lg font-medium font-inter break-words ${darkMode ? "text-white/90" : "text-black/90"
                             }`}
                         >
                           {job.company}
                         </p>
                       )}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <Calendar
                             className={`w-3 h-3 sm:w-4 sm:h-4 ${darkMode ? "text-white/70" : "text-gray-500"
@@ -1508,7 +1508,7 @@ const JobListings: React.FC = () => {
                         }`}
                     >
                       <div
-                        className={`leading-relaxed text-xs ${darkMode ? "text-white/90" : "text-black/90"
+                        className={`leading-relaxed text-xs break-words [overflow-wrap:anywhere] ${darkMode ? "text-white/90" : "text-black/90"
                           }`}
                         style={{
                           lineHeight: "1.2",
@@ -2048,13 +2048,13 @@ const JobListings: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <DollarSign
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.compensationAmount && previewJob.currency
@@ -2064,110 +2064,110 @@ const JobListings: React.FC = () => {
                           : "Negotiable"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Clock
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.duration || "Not specified"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Briefcase
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.jobType || "Not specified"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <MapPin
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.workLocation || "Not specified"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <User
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.experience || "Experience not specified"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Users
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.vacancies || 1} Positions
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Target
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.gender || "Any Gender"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <GraduationCap
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.education || "Education not specified"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <Layers
                       className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                         }`}
                     />
                     <span
-                      className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                      className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                         }`}
                     >
                       {previewJob.category}
                     </span>
                   </div>
                   {previewJob.jobSector && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Zap
                         className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                           }`}
                       />
                       <span
-                        className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                           }`}
                       >
                         {previewJob.jobSector}
@@ -2175,13 +2175,13 @@ const JobListings: React.FC = () => {
                     </div>
                   )}
                   {previewJob.jobSite && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Globe
                         className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                           }`}
                       />
                       <span
-                        className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                           }`}
                       >
                         {previewJob.jobSite}
@@ -2189,13 +2189,13 @@ const JobListings: React.FC = () => {
                     </div>
                   )}
                   {previewJob.deadline && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Calendar
                         className={`w-4 h-4 sm:w-5 sm:h-5 ${darkMode ? "text-white" : "text-gray-600"
                           }`}
                       />
                       <span
-                        className={`text-sm sm:text-base font-inter ${darkMode ? "text-white" : "text-gray-800"
+                        className={`text-sm sm:text-base font-inter break-words ${darkMode ? "text-white" : "text-gray-800"
                           }`}
                       >
                         Exp: {new Date(previewJob.deadline).toLocaleDateString()}

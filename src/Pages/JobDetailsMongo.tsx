@@ -42,6 +42,7 @@ import { useWebSocket } from "../context/WebSocketContext";
 import ApplicationSuccessAnimation from "../components/ApplicationSuccessAnimation";
 import SEO from "../components/SEO";
 import { isFreelancerProfileComplete, setPendingJobRedirect, freelancerProfileSetupPath } from "../utils/activeRole";
+import Linkify from "../utils/linkify";
 
 // Role Switcher Component
 const RoleSwitcher: React.FC<{
@@ -989,7 +990,7 @@ const JobDetailsMongo: React.FC = () => {
                             className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                               }`}
                           />
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
                                 }`}
@@ -997,7 +998,7 @@ const JobDetailsMongo: React.FC = () => {
                               Job Site
                             </p>
                             <p
-                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                              className={`font-semibold break-words ${darkMode ? "text-white" : "text-gray-800"
                                 }`}
                             >
                               {job.jobSite}
@@ -1017,7 +1018,7 @@ const JobDetailsMongo: React.FC = () => {
                             className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                               }`}
                           />
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
                                 }`}
@@ -1025,7 +1026,7 @@ const JobDetailsMongo: React.FC = () => {
                               Job Sector
                             </p>
                             <p
-                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                              className={`font-semibold break-words ${darkMode ? "text-white" : "text-gray-800"
                                 }`}
                             >
                               {job.jobSector}
@@ -1045,7 +1046,7 @@ const JobDetailsMongo: React.FC = () => {
                             className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                               }`}
                           />
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
                                 }`}
@@ -1053,7 +1054,7 @@ const JobDetailsMongo: React.FC = () => {
                               Application Deadline
                             </p>
                             <p
-                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                              className={`font-semibold break-words ${darkMode ? "text-white" : "text-gray-800"
                                 }`}
                             >
                               {formatDate(job.deadline)}
@@ -1073,7 +1074,7 @@ const JobDetailsMongo: React.FC = () => {
                             className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                               }`}
                           />
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
                                 }`}
@@ -1081,7 +1082,7 @@ const JobDetailsMongo: React.FC = () => {
                               Compensation Type
                             </p>
                             <p
-                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                              className={`font-semibold break-words ${darkMode ? "text-white" : "text-gray-800"
                                 }`}
                             >
                               {job.compensationType}
@@ -1101,7 +1102,7 @@ const JobDetailsMongo: React.FC = () => {
                             className={`w-5 h-5 flex-shrink-0 mt-0.5 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                               }`}
                           />
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
                                 }`}
@@ -1109,10 +1110,14 @@ const JobDetailsMongo: React.FC = () => {
                               Work Address
                             </p>
                             <p
-                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                              className={`font-semibold break-words [overflow-wrap:anywhere] ${darkMode ? "text-white" : "text-gray-800"
                                 }`}
                             >
-                              {job.address}
+                              <Linkify
+                                text={job.address}
+                                linkClassName={`font-medium underline decoration-cyan-400/50 underline-offset-2 break-all ${darkMode ? "text-cyan-400" : "text-cyan-600"}
+                                  `}
+                              />
                             </p>
                           </div>
                         </div>
@@ -1129,7 +1134,7 @@ const JobDetailsMongo: React.FC = () => {
                             className={`w-5 h-5 flex-shrink-0 ${darkMode ? "text-cyan-400" : "text-cyan-600"
                               }`}
                           />
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
                                 }`}
@@ -1137,7 +1142,7 @@ const JobDetailsMongo: React.FC = () => {
                               Location Details
                             </p>
                             <p
-                              className={`font-semibold ${darkMode ? "text-white" : "text-gray-800"
+                              className={`font-semibold break-words ${darkMode ? "text-white" : "text-gray-800"
                                 }`}
                             >
                               {[job.city, job.country].filter(Boolean).join(", ") || "Not specified"}
@@ -1208,7 +1213,11 @@ const JobDetailsMongo: React.FC = () => {
                     className={`leading-relaxed text-lg whitespace-pre-line break-words font-inter ${darkMode ? "text-gray-300" : "text-gray-700"
                       }`}
                   >
-                    {job.description}
+                    <Linkify
+                      text={job.description || ""}
+                      linkClassName={`font-medium underline decoration-cyan-400/50 underline-offset-2 break-all hover:decoration-cyan-400 ${darkMode ? "text-cyan-400 hover:text-cyan-300" : "text-cyan-600 hover:text-cyan-700"}
+                        `}
+                    />
                   </p>
                 </div>
               </motion.div>

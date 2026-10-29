@@ -541,7 +541,7 @@ const HiringDashboard: React.FC = () => {
                       userJobs.map((job: any, index: number) => (
                         <motion.div
                           key={job._id}
-                          className={`rounded-2xl p-5 glass-card transition-all duration-300 ${
+                          className={`rounded-2xl p-5 glass-card transition-all duration-300 overflow-hidden ${
                             darkMode ? "" : "bg-white/50 border-black/10"
                           }`}
                           initial={{ opacity: 0, y: 20 }}
@@ -550,10 +550,10 @@ const HiringDashboard: React.FC = () => {
                           whileHover={{ scale: 1.01, y: -2 }}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between mb-2">
                                 <h4
-                                  className={`text-lg font-semibold font-display ${
+                                  className={`text-lg font-semibold font-display break-words ${
                                     darkMode ? "text-white" : "text-gray-900"
                                   }`}
                                 >
